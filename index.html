@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANT Fantazi Lig & Turnuva</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; padding-bottom: 85px; }
+        .navbar { background-color: #1e293b !important; border-bottom: 2px solid #3b82f6; }
+        .card { background-color: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 12px; margin-bottom: 15px; }
+        .table-dark { --bs-table-bg: #1e293b; --bs-table-border-color: #334155; }
+        .nav-bottom { position: fixed; bottom: 0; left: 0; right: 0; background-color: #0f172a; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 8px 0; z-index: 1000; }
+        .nav-bottom-item { color: #94a3b8; text-decoration: none; text-align: center; font-size: 11px; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+        .nav-bottom-item.active { color: #38bdf8; font-weight: bold; }
+        .nav-bottom-item i { font-size: 18px; display: block; }
+
+        /* ANA DÜZEN CONTAINER */
+        .pitch-layout-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 8px;
+            max-width: 520px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* SOL YEDEK KULÜBESİ */
+        .left-bench {
+            width: 90px;
+            flex: 0 0 90px;
+            background: #1e293b;
+            border: 1px dashed #334155;
+            border-radius: 10px;
+            padding: 6px 2px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            height: 420px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .left-bench-title {
+            font-size: 9px;
+            font-weight: bold;
+            color: #94a3b8;
+            text-transform: uppercase;
+            text-align: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 3px;
+            width: 100%;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        /* ORTA SAHA CONTAINER */
+        .perspective-container {
+            flex: 0 0 280px;
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ARKA TARAFTAKİ REKLAM PANOSU / AÇIK MAVİ DUVAR */
+        .stadium-wall {
+            width: 100%;
+            height: 38px;
+            background: #38bdf8;
+            border-radius: 8px 8px 0 0;
+            border: 1.9px solid #ff0022;
+            border-bottom: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2px 6px;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 -2px 10px rgba(255, 0, 34, 0.4);
+        }
+
+        .ant-logo-box {
+            width: 95px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .ant-logo-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .goal-box {
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 54px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-bottom: none;
+            background-image: radial-gradient(#ffffff 1px, transparent 1px);
+            background-size: 3px 3px;
+            box-shadow: 0 0 5px rgba(255,255,255,0.8);
+            z-index: 3;
+        }
+
+        /* SAHA */
+        .pitch-3d {
+            width: 100%;
+            height: 388px;
+            background: repeating-linear-gradient(
+                to bottom,
+                #10b981,
+                #10b981 28px,
+                #059669 28px,
+                #059669 56px
+            );
+            border: 3px solid #ffffff;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 8px 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pitch-box-top {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 120px;
+            height: 60px;
+            border: 2px solid rgba(255,255,255,0.9);
+            border-top: none;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+        .pitch-penalty-arc-top {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            width: 44px;
+            height: 22px;
+            border: 2px solid rgba(255,255,255,0.9);
+            border-top: none;
+            border-radius: 0 0 44px 44px;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        .pitch-line-center {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+        .pitch-circle-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 70px;
+            height: 70px;
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .pitch-row {
+            position: relative;
+            z-index: 5;
+        }
+
+        /* SAĞ FORMDA OYUNCULAR PANELİ */
+        .right-bench {
+            width: 115px;
+            flex: 0 0 115px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 6px 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            height: 420px;
+            overflow-y: auto;
+        }
+
+        .right-bench-title {
+            font-size: 9px;
+            font-weight: bold;
+            color: #f59e0b;
+            text-transform: uppercase;
+            text-align: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 3px;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        .top-player-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 3px 4px;
+        }
+
+        .top-player-name {
+            font-size: 8.5px;
+            font-weight: bold;
+            color: #f8fafc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        .top-player-stat { 
+            font-size: 8px; 
+            color: #38bdf8; 
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        .add-to-squad-btn {
+            background: #16a34a;
+            border: none;
+            color: #fff;
+            font-size: 8px;
+            font-weight: bold;
+            border-radius: 4px;
+            padding: 1px 3px;
+            margin-top: 2px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .add-to-squad-btn:hover { background: #22c55e; }
+        .add-to-squad-btn:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; }
+
+        /* OYUNCU KARTI */
+        .player-card {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            margin: 0;
+            transition: transform 0.15s;
+        }
+        .player-card:hover { transform: scale(1.08); }
+
+        .jersey-icon {
+            width: 30px;
+            height: 30px;
+            filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.7));
+        }
+
+        .jersey-name-tag {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid #38bdf8;
+            color: #fff;
+            font-size: 7.5px;
+            font-weight: bold;
+            padding: 1px 4px;
+            border-radius: 5px;
+            margin-top: 1px;
+            max-width: 65px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            text-align: center;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+        .jersey-name-tag.is-captain-tag { border-color: #f59e0b; color: #fbbf24; }
+
+        .captain-btn {
+            font-size: 7px;
+            padding: 0;
+            color: #fbbf24;
+            text-decoration: none;
+            font-weight: bold;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        .player-chip { 
+            background: rgba(15, 23, 42, 0.85); 
+            border: 1px solid #38bdf8; 
+            border-radius: 20px; 
+            padding: 5px 12px; 
+            font-size: 12px; 
+            display: inline-block; 
+            margin: 3px; 
+            cursor: pointer;
+            transition: all 0.2s;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+        .player-chip:hover {
+            background: #38bdf8;
+            color: #0f172a;
+            font-weight: bold;
+            transform: translateY(-2px);
+        }
+
+        .modal-content { background-color: #1e293b; color: #fff; border: 1px solid #334155; }
+        .list-group-item { background-color: #0f172a; color: #fff; border-color: #334155; cursor: pointer; }
+        .list-group-item:hover { background-color: #38bdf8; color: #0f172a; }
+        .search-input { background-color: #0f172a; border: 1px solid #3b82f6; color: #fff; }
+        .search-input:focus { background-color: #0f172a; color: #fff; border-color: #38bdf8; box-shadow: none; }
+        
+        .slot-select-btn {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            color: #f8fafc;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .slot-select-btn:hover {
+            background-color: #38bdf8;
+            color: #0f172a;
+            border-color: #38bdf8;
+        }
+
+        /* OYUNCU PROFİL & MAÇ DETAY MODAL STİLLERİ */
+        .profile-stat-box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .profile-stat-val {
+            font-size: 20px;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+        .profile-stat-lbl {
+            font-size: 10px;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+        .match-card {
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+        .match-card:hover {
+            transform: scale(1.01);
+            border-color: #38bdf8;
+        }
+        .match-goal-item {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 6px 10px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .match-goal-item:hover {
+            background: #1e293b;
+            border-color: #38bdf8;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark sticky-top">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1"><i class="bi bi-trophy-fill text-warning me-2"></i>ANT Fantazi Lig</span>
+        </div>
+    </nav>
+
+    <div class="container mt-2" id="main-content"></div>
+
+    <!-- Alt Menü -->
+    <div class="nav-bottom">
+        <a href="#" class="nav-bottom-item" onclick="showTab('puan-durumu', this)"><i class="bi bi-table"></i>Puan</a>
+        <a href="#" class="nav-bottom-item" onclick="showTab('fikstur', this)"><i class="bi bi-calendar-event"></i>Fikstür</a>
+        <a href="#" class="nav-bottom-item" onclick="showTab('istatistik', this)"><i class="bi bi-bar-chart-line-fill"></i>İstatistik</a>
+        <a href="#" class="nav-bottom-item" onclick="showTab('kadrolar', this)"><i class="bi bi-people-fill"></i>Kadrolar</a>
+        <a href="#" class="nav-bottom-item active" onclick="showTab('fantazi', this)"><i class="bi bi-star-fill text-warning"></i>Fantazi Kur</a>
+    </div>
+
+    <!-- Oyuncu Seçim Modalı -->
+    <div class="modal fade" id="playerModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-secondary pb-2">
+                    <h5 class="modal-title fs-6" id="modalTitle">Oyuncu Seç</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="p-2 border-bottom border-secondary" id="modalSearchArea">
+                    <input type="text" id="searchInput" class="form-control search-input form-control-sm" placeholder="🔍 Oyuncu adı yazın..." onkeyup="filterPlayers()">
+                </div>
+                <div class="modal-body p-2">
+                    <div id="removePlayerArea" class="mb-2"></div>
+                    <div class="list-group" id="playersList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pozisyon Seçim Modalı -->
+    <div class="modal fade" id="slotChooseModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-secondary pb-2">
+                    <h5 class="modal-title fs-6" id="slotChooseTitle">Pozisyon Seç</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <p class="text-muted small mb-2">Lütfen oyuncunun ekleneceği pozisyonu seçin:</p>
+                    <div class="d-flex flex-column gap-2" id="slotOptionsContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Oyuncu Profil Modalı -->
+    <div class="modal fade" id="playerProfileModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-secondary pb-2">
+                    <h5 class="modal-title fs-6" id="profileModalTitle"><i class="bi bi-person-badge text-warning me-2"></i>Oyuncu Profili</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3" id="playerProfileBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maç Detay / Goller Modalı -->
+    <div class="modal fade" id="matchDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-secondary pb-2">
+                    <h5 class="modal-title fs-6" id="matchDetailTitle"><i class="bi bi-info-circle text-info me-2"></i>Maç Detayları ve Goller</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3" id="matchDetailBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const teamsData = {
+            "PDI": ["Bayram Keleş (K)", "Batuhan Kayhan", "Recep Yolcu", "Can Altunel", "Taha Atalar", "Furkan Çetin", "Muhammed Tutar", "Sefa Akduman", "Yılmaz Aybaş", "Muharrem Özdemir", "Yusuf Kenan Aygün", "Batuhan Türkoğlu"],
+            "Saha Ekipleri": ["Melih Engin (K)", "Hakan Kapucu", "Gökhan Karatay", "Orkun Sevinç", "Mustafa Özbil", "Hakan Şahinkaya", "Kadir Karagöz", "Erdal Karakaya", "Halit Çoşar", "Mertcan Ateş", "Yasin Karadaş", "Uğur Uzun", "Emrah Anlar", "Kazım Can İşcan", "Murat Karagöz"],
+            "Liman": ["Mehmet Kağnıcı (K)", "Hakan Bilgiç", "Erhan Mızrak", "Yunus Emre Ergin", "Mete Üngün", "Berkant Güllü", "Taha Enan Geçmiş", "Murat Uzan", "Erkan Aktan", "Nihat Özmen", "Haşim Mert Gödek", "Yiğit Emre Balkan", "Tunahan Yalçın", "Muhammet Taha Dinç", "Murat Şensütmen"],
+            "İdari İşler": ["Burak Yılmaz (K)", "Levent Konan", "Emrah Suiçmez", "Ulaş Gülkan", "Furkan Demir", "Emre Halil", "Oğuzhan Aksoy", "İbrahim Kılıçkaya", "Özay Kaya", "Batuhan Çetin", "Furkan Yüksel", "Bora Köse", "Burak Saitoğlu", "Burak Köse"],
+            "Garaj Ekibi": ["Arif (K)", "Emre", "Gencer", "Özgür", "Mehmet", "Bedirhan", "A. Emir", "Murat", "Beytullah", "Furkan", "Semih", "Eren", "İsmail"],
+            "Teknik Servis": ["Cengizhan Karakaş (K)", "Engincan Tarı", "Zekeriya Tezcan", "Aliş Can Kaçar", "Mehmet Ersöyleyen", "Erdal Çarkçı", "Fevzi Aydın", "Hayrettin Koral", "Nezir Boğa", "Serhat Yesin", "Erdem Dikbaş", "Muhterem Sarı", "Oruçhan Bektaş", "Sinan Bayrak", "Mustafa Bulut", "Yusuf Demirkan"]
+        };
+
+        const slotLabels = {
+            st: "Forvet (ST)",
+            os1: "Orta Saha 1 (OS)",
+            os2: "Orta Saha 2 (OS)",
+            os3: "Orta Saha 3 (OS)",
+            def1: "Defans 1 (DEF)",
+            def2: "Defans 2 (DEF)",
+            gk: "Kaleci (GK)",
+            sub1: "Yedek 1",
+            sub2: "Yedek 2",
+            sub3: "Yedek 3",
+            sub4: "Yedek 4"
+        };
+
+        const teamColors = {
+            "PDI": { c1: "#eab308", c2: "#0f172a", collar: "#ffffff" },          
+            "Saha Ekipleri": { c1: "#ffffff", c2: "#0f172a", collar: "#e2e8f0" }, 
+            "Liman": { c1: "#22c55e", c2: "#0f172a", collar: "#ffffff" },         
+            "İdari İşler": { c1: "#ffffff", c2: "#16a34a", collar: "#dc2626" },   
+            "Garaj Ekibi": { c1: "#0f172a", c2: "#dc2626", collar: "#ffffff" },   
+            "Teknik Servis": { c1: "#dc2626", c2: "#ffffff", collar: "#2563eb" }, 
+            "GK": { c1: "#22c55e", c2: "#15803d", collar: "#000000" },            
+            "DEFAULT": { c1: "#64748b", c2: "#334155", collar: "#ffffff" }        
+        };
+
+        const topPerformers = [
+            { name: "Cengizhan Karakaş", team: "Teknik Servis", stat: "4 Gol" },
+            { name: "Engincan Tarı", team: "Teknik Servis", stat: "3 Asist" },
+            { name: "Mustafa Özbil", team: "Saha Ekipleri", stat: "2 Gol" },
+            { name: "Arif", team: "Garaj Ekibi", stat: "2 Gol" },
+            { name: "Hakan Kapucu", team: "Saha Ekipleri", stat: "2 Asist" },
+            { name: "Zekeriya Tezcan", team: "Teknik Servis", stat: "2 Gol" }
+        ];
+
+        const topScorers = [
+            { name: "Cengizhan Karakaş", team: "Teknik Servis", goals: 4 },
+            { name: "Mustafa Özbil", team: "Saha Ekipleri", goals: 2 },
+            { name: "Arif", team: "Garaj Ekibi", goals: 2 },
+            { name: "Zekeriya Tezcan", team: "Teknik Servis", goals: 2 },
+            { name: "Yasin Karadaş", team: "Saha Ekipleri", goals: 1 },
+            { name: "Yunus Emre Ergin", team: "Liman", goals: 1 }
+        ];
+
+        const topAssists = [
+            { name: "Engincan Tarı", team: "Teknik Servis", assists: 3 },
+            { name: "Hakan Kapucu", team: "Saha Ekipleri", assists: 2 },
+            { name: "Aliş Can Kaçar", team: "Teknik Servis", assists: 2 },
+            { name: "Gencer", team: "Garaj Ekibi", assists: 1 }
+        ];
+
+        const playedMatchesDetails = {
+            match1: {
+                homeTeam: "Teknik Servis",
+                awayTeam: "Liman",
+                score: "10 - 3",
+                date: "8.09.2026 - 22:00 (Grup B)",
+                goals: [
+                    { player: "Cengizhan Karakaş", team: "Teknik Servis", type: "Gol (4)", assist: "Engincan Tarı" },
+                    { player: "Zekeriya Tezcan", team: "Teknik Servis", type: "Gol (2)", assist: "Aliş Can Kaçar" },
+                    { player: "Yunus Emre Ergin", team: "Liman", type: "Gol (1)", assist: "Bilinmiyor" }
+                ]
+            },
+            match2: {
+                homeTeam: "Saha Ekipleri",
+                awayTeam: "Garaj Ekibi",
+                score: "3 - 3",
+                date: "8.09.2026 - 23:00 (Grup A)",
+                goals: [
+                    { player: "Mustafa Özbil", team: "Saha Ekipleri", type: "Gol (2)", assist: "Hakan Kapucu" },
+                    { player: "Arif", team: "Garaj Ekibi", type: "Gol (2)", assist: "Gencer" },
+                    { player: "Yasin Karadaş", team: "Saha Ekipleri", type: "Gol (1)", assist: "Hakan Kapucu" }
+                ]
+            }
+        };
+
+        const defaultSquad = {
+            st: "+ ST",
+            os1: "+ OS",
+            os2: "+ OS",
+            os3: "+ OS",
+            def1: "+ DEF",
+            def2: "+ DEF",
+            gk: "+ GK",
+            sub1: "+ YDK 1",
+            sub2: "+ YDK 2",
+            sub3: "+ YDK 3",
+            sub4: "+ YDK 4"
+        };
+
+        let mySquad = JSON.parse(localStorage.getItem('ant_fantasy_squad')) || { ...defaultSquad };
+        let captainSlot = localStorage.getItem('ant_fantasy_captain') || null;
+        let currentActiveSlot = null;
+        let selectedPlayerForPlacement = null;
+
+        function getPlayerTeam(playerName) {
+            for(let team in teamsData) {
+                if(teamsData[team].includes(playerName)) return team;
+            }
+            return "Bilinmiyor";
+        }
+
+        function getPlayerStats(playerName) {
+            let cleanName = playerName.replace(" (K)", "").trim();
+            let scorerMatch = topScorers.find(s => s.name.replace(" (K)", "").trim() === cleanName);
+            let assistMatch = topAssists.find(a => a.name.replace(" (K)", "").trim() === cleanName);
+
+            let goals = scorerMatch ? scorerMatch.goals : 0;
+            let assists = assistMatch ? assistMatch.assists : 0;
+
+            return { goals, assists, totalContribution: goals + assists };
+        }
+
+        function openPlayerProfile(playerName) {
+            let matchModalEl = document.getElementById('matchDetailModal');
+            let matchModalInstance = bootstrap.Modal.getInstance(matchModalEl);
+            if(matchModalInstance) matchModalInstance.hide();
+
+            let team = getPlayerTeam(playerName);
+            let stats = getPlayerStats(playerName);
+            let colors = teamColors[team] || teamColors["DEFAULT"];
+
+            let modalBody = document.getElementById('playerProfileBody');
+            modalBody.innerHTML = `
+                <div class="text-center mb-3">
+                    <div class="mb-2">
+                        ${generateJerseySVG(colors.c1, colors.c2, colors.collar, playerName.includes('(K)'))}
+                    </div>
+                    <h5 class="fw-bold mb-0 text-white">${playerName}</h5>
+                    <span class="badge bg-secondary mt-1">${team}</span>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-4">
+                        <div class="profile-stat-box">
+                            <div class="profile-stat-val text-warning">${stats.goals}</div>
+                            <div class="profile-stat-lbl">Gol</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="profile-stat-box">
+                            <div class="profile-stat-val text-info">${stats.assists}</div>
+                            <div class="profile-stat-lbl">Asist</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="profile-stat-box">
+                            <div class="profile-stat-val text-success">${stats.totalContribution}</div>
+                            <div class="profile-stat-lbl">Skor Katkısı</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-sm w-100 fw-bold" onclick="openSlotChoiceForPlayerFromProfile('${playerName.replace("'", "\\'")}')">
+                    <i class="bi bi-plus-lg me-1"></i> Kadroma Ekle
+                </button>
+            `;
+
+            let profileModal = new bootstrap.Modal(document.getElementById('playerProfileModal'));
+            profileModal.show();
+        }
+
+        function openMatchDetail(matchKey) {
+            let match = playedMatchesDetails[matchKey];
+            if(!match) return;
+
+            document.getElementById('matchDetailTitle').innerHTML = `<i class="bi bi-info-circle text-info me-2"></i>${match.homeTeam} vs ${match.awayTeam}`;
+            
+            let goalsHTML = match.goals.map(g => `
+                <div class="match-goal-item">
+                    <div>
+                        <span class="fw-bold text-warning" style="cursor:pointer;" onclick="openPlayerProfile('${g.player.replace("'", "\\'")}')">${g.player}</span> 
+                        <small class="text-muted">(${g.team})</small>
+                    </div>
+                    <div>
+                        <span class="badge bg-success me-1">${g.type}</span>
+                        ${g.assist && g.assist !== "Bilinmiyor" ? `<small class="text-info" style="cursor:pointer;" onclick="openPlayerProfile('${g.assist.replace("'", "\\'")}')">Asist: ${g.assist}</small>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('matchDetailBody').innerHTML = `
+                <div class="text-center mb-3">
+                    <small class="text-muted">${match.date}</small>
+                    <h3 class="text-warning fw-bold my-2">${match.score}</h3>
+                    <div class="fw-bold text-white">${match.homeTeam} - ${match.awayTeam}</div>
+                </div>
+                <hr class="border-secondary">
+                <h6 class="text-info small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Maçın Skor Katkıları (Profili görmek için isme tıklayın):</h6>
+                <div>${goalsHTML}</div>
+            `;
+
+            let matchModal = new bootstrap.Modal(document.getElementById('matchDetailModal'));
+            matchModal.show();
+        }
+
+        function openSlotChoiceForPlayerFromProfile(playerName) {
+            bootstrap.Modal.getInstance(document.getElementById('playerProfileModal')).hide();
+            openSlotChoiceForPlayer(playerName);
+        }
+
+        function generateJerseySVG(color1, color2, collarColor, isCaptain) {
+            return `
+            <svg class="jersey-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <path d="M 5,22 L 25,12 L 30,32 L 12,40 Z" fill="${color2}" stroke="#000" stroke-width="1.5"/>
+                <path d="M 95,22 L 75,12 L 70,32 L 88,40 Z" fill="${color1}" stroke="#000" stroke-width="1.5"/>
+                <path d="M 25,12 L 50,12 L 50,88 L 25,85 Z" fill="${color1}" stroke="#000" stroke-width="1.5"/>
+                <path d="M 50,12 L 75,12 L 75,85 L 50,88 Z" fill="${color2}" stroke="#000" stroke-width="1.5"/>
+                <path d="M 38,12 C 38,22 62,22 62,12 Z" fill="${collarColor}" stroke="#000" stroke-width="1"/>
+                ${isCaptain ? `
+                    <rect x="8" y="27" width="16" height="8" rx="2" fill="#f59e0b" stroke="#000" stroke-width="0.5"/>
+                    <text x="16" y="33.5" font-size="6.5" font-weight="bold" fill="#000" text-anchor="middle">C</text>
+                ` : ''}
+            </svg>`;
+        }
+
+        function saveSquadToStorage() {
+            localStorage.setItem('ant_fantasy_squad', JSON.stringify(mySquad));
+            if(captainSlot) localStorage.setItem('ant_fantasy_captain', captainSlot);
+            alert('Kadron ve Kaptanın başarıyla kaydedildi!');
+        }
+
+        function resetSquad() {
+            if(confirm("Kadroyu sıfırlamak istediğine emin misin?")) {
+                mySquad = { ...defaultSquad };
+                captainSlot = null;
+                localStorage.removeItem('ant_fantasy_squad');
+                localStorage.removeItem('ant_fantasy_captain');
+                renderPitch();
+            }
+        }
+
+        function setCaptain(slotKey) {
+            if(mySquad[slotKey].startsWith('+')) {
+                alert("Önce bu pozisyona bir oyuncu seçmelisin!");
+                return;
+            }
+            captainSlot = slotKey;
+            renderPitch();
+        }
+
+        function removePlayerFromSlot(slotKey) {
+            mySquad[slotKey] = defaultSquad[slotKey];
+            if(captainSlot === slotKey) {
+                captainSlot = null;
+            }
+            renderPitch();
+            bootstrap.Modal.getInstance(document.getElementById('playerModal')).hide();
+        }
+
+        function openSelectModal(slotKey) {
+            currentActiveSlot = slotKey;
+            document.getElementById('searchInput').value = '';
+            document.getElementById('modalTitle').innerText = "Pozisyon: " + slotLabels[slotKey];
+            
+            const removeArea = document.getElementById('removePlayerArea');
+            if(!mySquad[slotKey].startsWith('+')) {
+                removeArea.innerHTML = `
+                    <button class="btn btn-outline-danger btn-sm w-100 fw-bold py-2" onclick="removePlayerFromSlot('${slotKey}')">
+                        <i class="bi bi-person-x-fill me-1"></i> ${mySquad[slotKey]} isimli oyuncuyu çıkar
+                    </button>
+                    <div class="text-center text-muted my-2 align-items-center d-flex justify-content-center"><hr class="w-100 me-2"><span style="font-size:10px;">VEYA DEĞİŞTİR</span><hr class="w-100 ms-2"></div>
+                `;
+            } else {
+                removeArea.innerHTML = '';
+            }
+
+            renderPlayerList('');
+            let myModal = new bootstrap.Modal(document.getElementById('playerModal'));
+            myModal.show();
+        }
+
+        function openSlotChoiceForPlayer(playerName) {
+            if(Object.values(mySquad).includes(playerName)) {
+                alert("Bu oyuncu zaten kadroda ekli!");
+                return;
+            }
+            selectedPlayerForPlacement = playerName;
+            document.getElementById('slotChooseTitle').innerText = playerName + " - Pozisyon Seç";
+
+            let optionsHTML = '';
+            for(let key in slotLabels) {
+                let currentVal = mySquad[key];
+                let isOccupied = !currentVal.startsWith('+');
+                optionsHTML += `
+                    <button class="slot-select-btn" onclick="placePlayerToSlot('${key}')">
+                        <span><i class="bi bi-shield-square me-2 text-info"></i>${slotLabels[key]}</span>
+                        <span class="badge ${isOccupied ? 'bg-warning text-dark' : 'bg-success'}">${isOccupied ? currentVal : 'Boş'}</span>
+                    </button>
+                `;
+            }
+
+            document.getElementById('slotOptionsContainer').innerHTML = optionsHTML;
+            let choiceModal = new bootstrap.Modal(document.getElementById('slotChooseModal'));
+            choiceModal.show();
+        }
+
+        function placePlayerToSlot(slotKey) {
+            if(selectedPlayerForPlacement) {
+                mySquad[slotKey] = selectedPlayerForPlacement;
+                renderPitch();
+                bootstrap.Modal.getInstance(document.getElementById('slotChooseModal')).hide();
+                selectedPlayerForPlacement = null;
+            }
+        }
+
+        function filterPlayers() {
+            renderPlayerList(document.getElementById('searchInput').value.toLowerCase());
+        }
+
+        function renderPlayerList(filterText) {
+            const playersList = document.getElementById('playersList');
+            let listHTML = '';
+
+            for(let team in teamsData) {
+                let filtered = teamsData[team].filter(p => p.toLowerCase().includes(filterText));
+                if(filtered.length > 0) {
+                    listHTML += `<div class="p-2 bg-secondary text-white fw-bold small rounded mt-2 mb-1">${team}</div>`;
+                    filtered.forEach(player => {
+                        let isAlreadySelected = Object.values(mySquad).includes(player);
+                        if(isAlreadySelected) {
+                            listHTML += `<button class="list-group-item list-group-item-action py-2 fs-6 opacity-50 bg-dark text-muted" disabled>${player} <span class="badge bg-warning text-dark float-end">Kadroda</span></button>`;
+                        } else {
+                            listHTML += `<button class="list-group-item list-group-item-action py-2 fs-6" onclick="selectPlayer('${player.replace("'", "\\'")}')">${player}</button>`;
+                        }
+                    });
+                }
+            }
+            playersList.innerHTML = listHTML || '<div class="text-center text-muted p-3">Oyuncu bulunamadı...</div>';
+        }
+
+        function selectPlayer(playerName) {
+            if(Object.values(mySquad).includes(playerName)) {
+                alert("Bu oyuncu zaten kadroda!");
+                return;
+            }
+            if(currentActiveSlot) {
+                mySquad[currentActiveSlot] = playerName;
+                renderPitch();
+                bootstrap.Modal.getInstance(document.getElementById('playerModal')).hide();
+            }
+        }
+
+        function createSlotHTML(slotKey) {
+            let playerName = mySquad[slotKey];
+            let isSelected = !playerName.startsWith('+');
+            let isCaptain = captainSlot === slotKey;
+            let colors = teamColors["DEFAULT"];
+            
+            if(slotKey === 'gk' && isSelected) {
+                colors = teamColors["GK"];
+            } else if(isSelected) {
+                let team = getPlayerTeam(playerName);
+                if(team && teamColors[team]) colors = teamColors[team];
+            }
+
+            return `
+                <div class="player-card">
+                    <div onclick="openSelectModal('${slotKey}')">
+                        ${generateJerseySVG(colors.c1, colors.c2, colors.collar, isCaptain)}
+                    </div>
+                    <div class="jersey-name-tag ${isCaptain ? 'is-captain-tag' : ''}" onclick="openSelectModal('${slotKey}')">
+                        ${isCaptain ? '(C) ' : ''}${playerName}
+                    </div>
+                    ${isSelected ? `<a href="#" class="captain-btn" onclick="setCaptain('${slotKey}'); return false;">${isCaptain ? '★ Kaptan' : '☆ Kaptan'}</a>` : ''}
+                </div>
+            `;
+        }
+
+        function renderPitch() {
+            const pitchDiv = document.getElementById('pitch-container');
+            if(!pitchDiv) return;
+
+            let topPerformersHTML = topPerformers.map(p => {
+                let isAdded = Object.values(mySquad).includes(p.name);
+                return `
+                    <div class="top-player-card">
+                        <div class="top-player-name" title="${p.name}" style="cursor: pointer;" onclick="openPlayerProfile('${p.name.replace("'", "\\'")}')">${p.name}</div>
+                        <div class="top-player-stat"><i class="bi bi-fire text-warning"></i> ${p.stat}</div>
+                        <button class="add-to-squad-btn" ${isAdded ? 'disabled' : ''} onclick="openSlotChoiceForPlayer('${p.name.replace("'", "\\'")}')">
+                            ${isAdded ? '<i class="bi bi-check"></i> Ekli' : '<i class="bi bi-plus-lg"></i> Ekle'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            pitchDiv.innerHTML = `
+                <div class="pitch-layout-wrapper">
+                    <div class="left-bench">
+                        <div class="left-bench-title"><i class="bi bi-people-fill"></i> YEDEKLER</div>
+                        ${createSlotHTML('sub1')}
+                        ${createSlotHTML('sub2')}
+                        ${createSlotHTML('sub3')}
+                        ${createSlotHTML('sub4')}
+                    </div>
+
+                    <div class="perspective-container">
+                        <div class="stadium-wall">
+                            <div class="ant-logo-box">
+                                <img src="https://antlojistik.com.tr/wp-content/uploads/2025/02/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img">
+                            </div>
+                            <div class="goal-box"></div>
+                            <div class="ant-logo-box">
+                                <img src="https://antlojistik.com.tr/wp-content/uploads/2025/02/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img">
+                            </div>
+                        </div>
+
+                        <div class="pitch-3d">
+                            <div class="pitch-box-top"></div>
+                            <div class="pitch-penalty-arc-top"></div>
+                            <div class="pitch-line-center"></div>
+                            <div class="pitch-circle-center"></div>
+
+                            <div class="pitch-row text-center">${createSlotHTML('st')}</div>
+                            <div class="pitch-row d-flex justify-content-around">
+                                ${createSlotHTML('os1')}
+                                ${createSlotHTML('os2')}
+                                ${createSlotHTML('os3')}
+                            </div>
+                            <div class="pitch-row d-flex justify-content-around">
+                                ${createSlotHTML('def1')}
+                                ${createSlotHTML('def2')}
+                            </div>
+                            <div class="pitch-row text-center">${createSlotHTML('gk')}</div>
+                        </div>
+                    </div>
+
+                    <div class="right-bench">
+                        <div class="right-bench-title"><i class="bi bi-star-fill"></i> FORMDA 🎯</div>
+                        ${topPerformersHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        function showTab(tabName, element) {
+            document.querySelectorAll('.nav-bottom-item').forEach(el => el.classList.remove('active'));
+            if(element) element.classList.add('active');
+
+            const content = document.getElementById('main-content');
+            
+            if(tabName === 'fantazi') {
+                content.innerHTML = `
+                    <div class="text-center mb-2">
+                        <h6 class="text-info mb-0"><i class="bi bi-star me-1"></i>Rüya Takımını Kur</h6>
+                        <small class="text-muted">Sol: Yedekler | Orta: Saha | Sağ: Formda Oyuncular</small>
+                    </div>
+                    <div id="pitch-container"></div>
+                    
+                    <div class="d-flex gap-2 mt-3 justify-content-center" style="max-width:480px; margin: 10px auto 0 auto;">
+                        <button class="btn btn-success btn-sm w-100" onclick="saveSquadToStorage()">
+                            <i class="bi bi-check-circle me-1"></i> Kadroyu Kaydet
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm w-100" onclick="resetSquad()">
+                            <i class="bi bi-trash me-1"></i> Sıfırla
+                        </button>
+                    </div>
+                `;
+                renderPitch();
+            } else if(tabName === 'istatistik') {
+                let scorerHTML = topScorers.map((s, i) => `
+                    <li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary" onclick="openPlayerProfile('${s.name.replace("'", "\\'")}')">
+                        <div><span class="badge ${i===0?'bg-warning text-dark':(i===1?'bg-secondary':(i===2?'bg-danger':'bg-dark border'))} me-2">${i+1}</span><strong>${s.name}</strong> <small class="text-muted">(${s.team})</small></div>
+                        <span class="badge bg-primary fs-6">${s.goals} Gol</span>
+                    </li>`).join('');
+
+                let assistHTML = topAssists.map((a, i) => `
+                    <li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary" onclick="openPlayerProfile('${a.name.replace("'", "\\'")}')">
+                        <div><span class="badge ${i===0?'bg-warning text-dark':(i===1?'bg-secondary':(i===2?'bg-danger':'bg-dark border'))} me-2">${i+1}</span><strong>${a.name}</strong> <small class="text-muted">(${a.team})</small></div>
+                        <span class="badge bg-info text-dark fs-6">${a.assists} Asist</span>
+                    </li>`).join('');
+
+                content.innerHTML = `
+                    <h5 class="text-info mb-3"><i class="bi bi-bar-chart-line me-2"></i>Turnuva İstatistikleri <small class="text-muted fs-6 font-normal">(Profil için tıklayın)</small></h5>
+                    <div class="card p-3 mb-3"><h6 class="text-warning fw-bold mb-2"><i class="bi bi-award-fill me-1"></i> Gol Krallığı</h6><ul class="list-group list-group-flush">${scorerHTML}</ul></div>
+                    <div class="card p-3"><h6 class="text-info fw-bold mb-2"><i class="bi bi-lightning-charge-fill me-1"></i> Asist Krallığı</h6><ul class="list-group list-group-flush">${assistHTML}</ul></div>
+                `;
+            } else if(tabName === 'puan-durumu') {
+                content.innerHTML = `
+                    <h5 class="text-info mb-3"><i class="bi bi-trophy me-2"></i>A GRUBU</h5>
+                    <div class="card p-2"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:12px;"><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody><tr><td>1</td><td class="text-start fw-bold">Saha Ekipleri</td><td>1</td><td>0</td><td>1</td><td>0</td><td>3</td><td>3</td><td>0</td><td><span class="badge bg-primary">1</span></td></tr><tr><td>2</td><td class="text-start fw-bold">Garaj Ekibi</td><td>1</td><td>0</td><td>1</td><td>0</td><td>3</td><td>3</td><td>0</td><td><span class="badge bg-primary">1</span></td></tr><tr><td>3</td><td class="text-start fw-bold">İdari İşler</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td><span class="badge bg-secondary">0</span></td></tr></tbody></table></div>
+                    <h5 class="text-info mb-3 mt-4"><i class="bi bi-trophy me-2"></i>B GRUBU</h5>
+                    <div class="card p-2"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:12px;"><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody><tr><td>1</td><td class="text-start fw-bold">Teknik Servis</td><td>1</td><td>1</td><td>0</td><td>0</td><td>10</td><td>3</td><td>+7</td><td><span class="badge bg-success">3</span></td></tr><tr><td>2</td><td class="text-start fw-bold">PDI</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td><span class="badge bg-secondary">0</span></td></tr><tr><td>3</td><td class="text-start fw-bold">Liman</td><td>1</td><td>0</td><td>0</td><td>1</td><td>3</td><td>10</td><td>-7</td><td><span class="badge bg-danger">0</span></td></tr></tbody></table></div>
+                `;
+            } else if(tabName === 'fikstur') {
+                content.innerHTML = `
+                    <h5 class="text-info mb-3"><i class="bi bi-calendar3 me-2"></i>Fikstür ve Sonuçlar <small class="text-muted fs-6 font-normal">(Maç detayları için tıklayın)</small></h5>
+                    <h6 class="text-warning mt-3 mb-2"><i class="bi bi-clock-history me-1"></i>Oynanan Maçlar</h6>
+                    <div class="card p-3 match-card" onclick="openMatchDetail('match1')">
+                        <div class="d-flex justify-content-between border-bottom border-secondary pb-2 mb-2"><small class="text-muted">8.09.2026 - 22:00 (Grup B)</small><span class="badge bg-success">Oynandı (Detay)</span></div>
+                        <div class="d-flex justify-content-between align-items-center fw-bold"><span>Teknik Servis</span><span class="fs-5 text-warning">10 - 3</span><span>Liman</span></div>
+                    </div>
+                    <div class="card p-3 match-card" onclick="openMatchDetail('match2')">
+                        <div class="d-flex justify-content-between border-bottom border-secondary pb-2 mb-2"><small class="text-muted">8.09.2026 - 23:00 (Grup A)</small><span class="badge bg-success">Oynandı (Detay)</span></div>
+                        <div class="d-flex justify-content-between align-items-center fw-bold"><span>Saha Ekipleri</span><span class="fs-5 text-warning">3 - 3</span><span>Garaj Ekibi</span></div>
+                    </div>
+                    <h6 class="text-info mt-4 mb-2"><i class="bi bi-calendar-check me-1"></i>Gelecek Maçlar</h6>
+                    <div class="card p-3"><div class="d-flex justify-content-between border-bottom border-secondary pb-2 mb-2"><small class="text-muted">15.09.2026 - 22:00 (Grup A)</small><span class="badge bg-warning text-dark">Gelecek Maç</span></div><div class="d-flex justify-content-between align-items-center fw-bold"><span>İdari İşler</span><span class="fs-6 text-muted">vs</span><span>Garaj Ekibi</span></div></div>
+                    <div class="card p-3"><div class="d-flex justify-content-between border-bottom border-secondary pb-2 mb-2"><small class="text-muted">15.09.2026 - 23:00 (Grup B)</small><span class="badge bg-warning text-dark">Gelecek Maç</span></div><div class="d-flex justify-content-between align-items-center fw-bold"><span>PDI</span><span class="fs-6 text-muted">vs</span><span>Teknik Servis</span></div></div>
+                `;
+            } else if(tabName === 'kadrolar') {
+                let html = '<h5 class="text-info mb-3"><i class="bi bi-people me-2"></i>Takım Kadroları <small class="text-muted fs-6 font-normal">(Oyuncu profili için tıklayın)</small></h5>';
+                for(let key in teamsData) {
+                    html += `<div class="card p-3"><h6 class="fw-bold text-warning">${key}</h6><div>${teamsData[key].map(p => `<span class="player-chip" onclick="openPlayerProfile('${p.replace("'", "\\'")}')">${p}</span>`).join('')}</div></div>`;
+                }
+                content.innerHTML = html;
+            }
+        }
+
+        showTab('fantazi');
+    </script>
+</body>
+</html>
