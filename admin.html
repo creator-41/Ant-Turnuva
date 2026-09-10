@@ -24,7 +24,7 @@ body{background:#0f172a;color:#f8fafc;font-family:Segoe UI,sans-serif}.navbar{ba
 <div id="app" class="hidden">
 <nav class="navbar navbar-dark sticky-top"><div class="container-fluid"><span class="navbar-brand fw-bold"><i class="bi bi-trophy-fill text-warning me-2"></i>ANT Fantezi Lig <small class="text-info">ADMIN</small></span><button class="btn btn-sm btn-outline-light" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Çıkış</button></div></nav>
 <div class="container py-4">
-  <div id="configAlert" class="alert alert-warning hidden">Supabase bağlantısını <code>https://rmoalquwkfsyrsoqenzb.supabase.co/rest/v1/</code> ve <code>sb_publishable_A8-3DVa2k_Nmow4W8h_Reg_qITGWrRf</code> alanlarına girmen gerekiyor.</div>
+  <div id="configAlert" class="alert alert-warning hidden">Supabase bağlantısını <code>SUPABASE_URL</code> ve <code>SUPABASE_ANON_KEY</code> alanlarına girmen gerekiyor.</div>
   <div class="row g-3 mb-4">
     <div class="col-6 col-md-3"><div class="card p-3"><div class="muted">Takımlar</div><div id="statTeams" class="stat">0</div></div></div>
     <div class="col-6 col-md-3"><div class="card p-3"><div class="muted">Oyuncular</div><div id="statPlayers" class="stat">0</div></div></div>
@@ -72,10 +72,10 @@ body{background:#0f172a;color:#f8fafc;font-family:Segoe UI,sans-serif}.navbar{ba
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // SUPABASE BİLGİLERİNİ BURAYA GİRECEĞİZ
-const https://rmoalquwkfsyrsoqenzb.supabase.co/rest/v1/ = 'https://rmoalquwkfsyrsoqenzb.supabase.co/rest/v1/';
-const sb_publishable_A8-3DVa2k_Nmow4W8h_Reg_qITGWrRf = 'sb_publishable_A8-3DVa2k_Nmow4W8h_Reg_qITGWrRf';
-const configured = !https://rmoalquwkfsyrsoqenzb.supabase.co/rest/v1/.includes('BURAYA_') && !sb_publishable_A8-3DVa2k_Nmow4W8h_Reg_qITGWrRf.includes('BURAYA_');
-const sb = configured ? window.supabase.createClient(https://rmoalquwkfsyrsoqenzb.supabase.co/rest/v1/, sb_publishable_A8-3DVa2k_Nmow4W8h_Reg_qITGWrRf) : null;
+const SUPABASE_URL = 'https://rmoalquwkfsyrsoqenzb.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_A8-3DVa2k_Nmow4W8h_Reg_qITGWrRf';
+const configured = !SUPABASE_URL.includes('BURAYA_') && !SUPABASE_ANON_KEY.includes('BURAYA_');
+const sb = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 let teams=[], players=[], matches=[], events=[];
 const modal = id => bootstrap.Modal.getOrCreateInstance(document.getElementById(id));
 function $(id){return document.getElementById(id)}
