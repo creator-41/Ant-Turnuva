@@ -382,6 +382,9 @@
             background: #1e293b;
             border-color: #38bdf8;
         }
+    
+        .auth-btn { margin-left:auto; border:1px solid #38bdf8; background:#0f172a; color:#38bdf8; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:bold; }
+        .auth-user { margin-left:auto; color:#94a3b8; font-size:11px; display:flex; align-items:center; gap:6px; }
     </style>
 </head>
 <body>
@@ -389,6 +392,7 @@
     <nav class="navbar navbar-dark sticky-top">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1"><i class="bi bi-trophy-fill text-warning me-2"></i>ANT Fantezi Lig</span>
+            <div id="authArea"><button class="auth-btn" onclick="openAuthModal()"><i class="bi bi-person-circle me-1"></i>Giriş Yap</button></div>
         </div>
     </nav>
 
@@ -401,6 +405,25 @@
         <a href="#" class="nav-bottom-item" onclick="showTab('istatistik', this)"><i class="bi bi-bar-chart-line-fill"></i>İstatistik</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('kadrolar', this)"><i class="bi bi-people-fill"></i>Kadrolar</a>
         <a href="#" class="nav-bottom-item active" onclick="showTab('Fantezi', this)"><i class="bi bi-star-fill text-warning"></i>Takım Kur</a>
+    </div>
+
+    <!-- Giriş / Kayıt Modalı -->
+    <div class="modal fade" id="authModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title" id="authTitle"><i class="bi bi-person-circle text-info me-2"></i>Giriş Yap</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3"><label class="form-label small text-muted">E-posta</label><input id="authEmail" type="email" class="form-control bg-dark text-white border-secondary" placeholder="ornek@mail.com"></div>
+                    <div class="mb-3"><label class="form-label small text-muted">Şifre</label><input id="authPassword" type="password" class="form-control bg-dark text-white border-secondary" placeholder="En az 6 karakter"></div>
+                    <button id="authSubmitBtn" class="btn btn-primary w-100 fw-bold" onclick="submitAuth()">Giriş Yap</button>
+                    <button id="authToggleBtn" class="btn btn-link text-info w-100 mt-2" onclick="toggleAuthMode()">Hesabın yok mu? Kayıt ol</button>
+                    <div id="authMessage" class="small text-center mt-2"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Oyuncu Seçim Modalı -->
@@ -925,7 +948,7 @@
                     <div id="pitch-container"></div>
                     
                     <div class="d-flex gap-2 mt-3 justify-content-center" style="max-width:480px; margin: 10px auto 0 auto;">
-                        <button class="btn btn-success btn-sm w-100" onclick="saveSquadToStorage()">
+                        <button class="btn btn-success btn-sm w-100" onclick="saveSquadToSupabase()">
                             <i class="bi bi-check-circle me-1"></i> Kadroyu Kaydet
                         </button>
                         <button class="btn btn-outline-danger btn-sm w-100" onclick="resetSquad()">
@@ -994,6 +1017,115 @@
         function esc(v) {
             return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
         }
+
+        let currentUser = null;
+        let authMode = 'login';
+
+        function openAuthModal() {
+            document.getElementById('authMessage').innerHTML = '';
+            new bootstrap.Modal(document.getElementById('authModal')).show();
+        }
+
+        function toggleAuthMode() {
+            authMode = authMode === 'login' ? 'signup' : 'login';
+            document.getElementById('authTitle').innerHTML = authMode === 'login' ? '<i class="bi bi-person-circle text-info me-2"></i>Giriş Yap' : '<i class="bi bi-person-plus text-info me-2"></i>Kayıt Ol';
+            document.getElementById('authSubmitBtn').innerText = authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol';
+            document.getElementById('authToggleBtn').innerText = authMode === 'login' ? 'Hesabın yok mu? Kayıt ol' : 'Zaten hesabın var mı? Giriş yap';
+            document.getElementById('authMessage').innerHTML = '';
+        }
+
+        async function submitAuth() {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            const msg = document.getElementById('authMessage');
+            if(!email || !password) { msg.innerHTML='<span class="text-warning">E-posta ve şifre gerekli.</span>'; return; }
+            const btn=document.getElementById('authSubmitBtn'); btn.disabled=true;
+            const result = authMode === 'login'
+                ? await supabaseClient.auth.signInWithPassword({email,password})
+                : await supabaseClient.auth.signUp({email,password});
+            btn.disabled=false;
+            if(result.error) { msg.innerHTML='<span class="text-danger">'+result.error.message+'</span>'; return; }
+            if(authMode === 'signup' && !result.data.session) {
+                msg.innerHTML='<span class="text-success">Kayıt başarılı. E-postanı doğruladıktan sonra giriş yapabilirsin.</span>';
+                return;
+            }
+            currentUser=result.data.user;
+            updateAuthArea();
+            await loadSavedFantasyTeam();
+            bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+            alert(authMode === 'login' ? 'Giriş başarılı!' : 'Kayıt ve giriş başarılı!');
+        }
+
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            currentUser=null;
+            mySquad={...defaultSquad}; captainSlot=null;
+            updateAuthArea(); renderPitch();
+        }
+
+        function updateAuthArea() {
+            const area=document.getElementById('authArea');
+            if(!area) return;
+            if(currentUser) {
+                const email=currentUser.email || 'Kullanıcı';
+                area.innerHTML='<div class="auth-user"><i class="bi bi-person-check-fill text-success"></i><span>'+email+'</span><button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="logout()">Çıkış</button></div>';
+            } else {
+                area.innerHTML='<button class="auth-btn" onclick="openAuthModal()"><i class="bi bi-person-circle me-1"></i>Giriş Yap</button>';
+            }
+        }
+
+        async function saveSquadToSupabase() {
+            if(!currentUser) { openAuthModal(); return; }
+            const name = prompt('Takımının adı:', 'Takımım');
+            if(name === null) return;
+            const {data: existing, error: findError} = await supabaseClient.from('fantasy_teams').select('id').eq('user_id',currentUser.id).maybeSingle();
+            if(findError) { alert('Takım kontrol edilemedi: '+findError.message); return; }
+            let teamId;
+            if(existing) {
+                teamId=existing.id;
+                const {error}=await supabaseClient.from('fantasy_teams').update({name:name.trim() || 'Takımım',captain_slot:captainSlot,updated_at:new Date().toISOString()}).eq('id',teamId);
+                if(error){alert('Takım güncellenemedi: '+error.message);return;}
+                await supabaseClient.from('fantasy_team_players').delete().eq('fantasy_team_id',teamId);
+            } else {
+                const {data,error}=await supabaseClient.from('fantasy_teams').insert({user_id:currentUser.id,name:name.trim() || 'Takımım',captain_slot:captainSlot}).select('id').single();
+                if(error){alert('Takım oluşturulamadı: '+error.message);return;}
+                teamId=data.id;
+            }
+            const rows=[];
+            for(const slot in mySquad) {
+                const playerName=mySquad[slot];
+                if(!playerName || playerName.startsWith('+')) continue;
+                let found=null;
+                for(const team in teamsData){ const clean=teamsData[team].find(p=>p===playerName); if(clean){found=clean;break;} }
+                if(!found) continue;
+                const playerRow = await supabaseClient.from('players').select('id').eq('name',playerName.replace(' (K)','')).maybeSingle();
+                if(playerRow.data) rows.push({fantasy_team_id:teamId,player_id:playerRow.data.id,slot});
+            }
+            if(rows.length){ const {error}=await supabaseClient.from('fantasy_team_players').insert(rows); if(error){alert('Oyuncular kaydedilemedi: '+error.message);return;} }
+            localStorage.setItem('ant_fantasy_squad',JSON.stringify(mySquad));
+            if(captainSlot) localStorage.setItem('ant_fantasy_captain',captainSlot);
+            alert('Kadron Supabase hesabına başarıyla kaydedildi!');
+        }
+
+        async function loadSavedFantasyTeam() {
+            if(!currentUser) return;
+            const {data: team, error}=await supabaseClient.from('fantasy_teams').select('id,captain_slot').eq('user_id',currentUser.id).maybeSingle();
+            if(error || !team) return;
+            const {data: rows}=await supabaseClient.from('fantasy_team_players').select('slot,players(name)').eq('fantasy_team_id',team.id);
+            mySquad={...defaultSquad};
+            (rows||[]).forEach(r=>{ if(r.players && slotLabels[r.slot]) mySquad[r.slot]=r.players.name; });
+            captainSlot=team.captain_slot || null;
+            localStorage.setItem('ant_fantasy_squad',JSON.stringify(mySquad));
+            if(captainSlot) localStorage.setItem('ant_fantasy_captain',captainSlot);
+            renderPitch();
+        }
+
+        supabaseClient.auth.getSession().then(async ({data})=>{
+            currentUser=data.session?.user || null;
+            updateAuthArea();
+            if(currentUser) await loadSavedFantasyTeam();
+        });
+        supabaseClient.auth.onAuthStateChange((_event,session)=>{ currentUser=session?.user || null; updateAuthArea(); });
 
         async function loadLiveData() {
             try {
