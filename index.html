@@ -942,7 +942,7 @@
             if(tabName === 'Fantezi') {
                 content.innerHTML = `
                     <div class="text-center mb-2">
-                        <h6 class="text-info mb-0"><i class="bi bi-star me-1"></i>Rüya Takımını Kur</h6>
+                        <h6 class="text-info mb-0"><i class="bi bi-star me-1"></i><span id="fantasy-team-title">Rüya Takımını Kur</span></h6>
                         <small class="text-muted">Sol: Yedekler | Orta: Saha | Sağ: Formda Oyuncular</small>
                     </div>
                     <div id="pitch-container"></div>
@@ -1019,6 +1019,7 @@
         }
 
         let currentUser = null;
+        let fantasyTeamName = 'Rüya Takımını Kur';
         let authMode = 'login';
 
         function openAuthModal() {
@@ -1059,8 +1060,11 @@
         async function logout() {
             await supabaseClient.auth.signOut();
             currentUser=null;
+            fantasyTeamName='Rüya Takımını Kur';
             mySquad={...defaultSquad}; captainSlot=null;
             updateAuthArea(); renderPitch();
+            const titleEl=document.getElementById('fantasy-team-title');
+            if(titleEl) titleEl.textContent=fantasyTeamName;
         }
 
         function updateAuthArea() {
@@ -1076,11 +1080,15 @@
 
         async function saveSquadToSupabase() {
             if(!currentUser) { openAuthModal(); return; }
-            const name = prompt('Takımının adı:', 'Takımım');
-            if(name === null) return;
             const {data: existing, error: findError} = await supabaseClient.from('fantasy_teams').select('id').eq('user_id',currentUser.id).maybeSingle();
             if(findError) { alert('Takım kontrol edilemedi: '+findError.message); return; }
             let teamId;
+            let name = existing?.name || '';
+            if(!existing) {
+                name = prompt('Takımının adı:', 'Takımım');
+                if(name === null) return;
+                name = name.trim() || 'Takımım';
+            }
             if(existing) {
                 teamId=existing.id;
                 const {error}=await supabaseClient.from('fantasy_teams').update({name:name.trim() || 'Takımım',captain_slot:captainSlot,updated_at:new Date().toISOString()}).eq('id',teamId);
@@ -1104,17 +1112,29 @@
             if(rows.length){ const {error}=await supabaseClient.from('fantasy_team_players').insert(rows); if(error){alert('Oyuncular kaydedilemedi: '+error.message);return;} }
             localStorage.setItem('ant_fantasy_squad',JSON.stringify(mySquad));
             if(captainSlot) localStorage.setItem('ant_fantasy_captain',captainSlot);
+            fantasyTeamName = name;
+            const titleEl = document.getElementById('fantasy-team-title');
+            if(titleEl) titleEl.textContent = fantasyTeamName;
             alert('Kadron Supabase hesabına başarıyla kaydedildi!');
         }
 
         async function loadSavedFantasyTeam() {
             if(!currentUser) return;
-            const {data: team, error}=await supabaseClient.from('fantasy_teams').select('id,captain_slot').eq('user_id',currentUser.id).maybeSingle();
-            if(error || !team) return;
+            const {data: team, error}=await supabaseClient.from('fantasy_teams').select('id,name,captain_slot').eq('user_id',currentUser.id).maybeSingle();
+            if(error || !team) {
+                fantasyTeamName = 'Rüya Takımını Kur';
+                const titleEl = document.getElementById('fantasy-team-title');
+                if(titleEl) titleEl.textContent = fantasyTeamName;
+                return;
+            }
+            fantasyTeamName = team.name || 'Takımım';
+            const titleEl = document.getElementById('fantasy-team-title');
+            if(titleEl) titleEl.textContent = fantasyTeamName;
             const {data: rows}=await supabaseClient.from('fantasy_team_players').select('slot,players(name)').eq('fantasy_team_id',team.id);
             mySquad={...defaultSquad};
             (rows||[]).forEach(r=>{ if(r.players && slotLabels[r.slot]) mySquad[r.slot]=r.players.name; });
             captainSlot=team.captain_slot || null;
+            fantasyTeamName = team.name || fantasyTeamName || 'Takımım';
             localStorage.setItem('ant_fantasy_squad',JSON.stringify(mySquad));
             if(captainSlot) localStorage.setItem('ant_fantasy_captain',captainSlot);
             renderPitch();
@@ -1125,7 +1145,7 @@
             updateAuthArea();
             if(currentUser) await loadSavedFantasyTeam();
         });
-        supabaseClient.auth.onAuthStateChange((_event,session)=>{ currentUser=session?.user || null; updateAuthArea(); });
+        supabaseClient.auth.onAuthStateChange(async (_event,session)=>{ currentUser=session?.user || null; updateAuthArea(); if(currentUser) await loadSavedFantasyTeam(); });
 
         async function loadLiveData() {
             try {
