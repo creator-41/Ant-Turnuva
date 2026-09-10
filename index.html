@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANT Fantazi Lig & Turnuva</title>
+    <title>ANT Fantezi Lig & Turnuva</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
@@ -388,7 +388,7 @@
 
     <nav class="navbar navbar-dark sticky-top">
         <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1"><i class="bi bi-trophy-fill text-warning me-2"></i>ANT Fantazi Lig</span>
+            <span class="navbar-brand mb-0 h1"><i class="bi bi-trophy-fill text-warning me-2"></i>ANT Fantezi Lig</span>
         </div>
     </nav>
 
@@ -400,7 +400,7 @@
         <a href="#" class="nav-bottom-item" onclick="showTab('fikstur', this)"><i class="bi bi-calendar-event"></i>Fikstür</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('istatistik', this)"><i class="bi bi-bar-chart-line-fill"></i>İstatistik</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('kadrolar', this)"><i class="bi bi-people-fill"></i>Kadrolar</a>
-        <a href="#" class="nav-bottom-item active" onclick="showTab('fantazi', this)"><i class="bi bi-star-fill text-warning"></i>Fantazi Kur</a>
+        <a href="#" class="nav-bottom-item active" onclick="showTab('Fantezi', this)"><i class="bi bi-star-fill text-warning"></i>Fantezi Kur</a>
     </div>
 
     <!-- Oyuncu Seçim Modalı -->
@@ -915,7 +915,7 @@
 
             const content = document.getElementById('main-content');
             
-            if(tabName === 'fantazi') {
+            if(tabName === 'Fantezi') {
                 content.innerHTML = `
                     <div class="text-center mb-2">
                         <h6 class="text-info mb-0"><i class="bi bi-star me-1"></i>Rüya Takımını Kur</h6>
@@ -983,7 +983,7 @@
             }
         }
 
-        showTab('fantazi');
+        showTab('Fantezi');
     </script>
 </body>
 </html>
