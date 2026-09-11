@@ -27,6 +27,56 @@
             position: relative;
         }
 
+        /* MOBİL: Yedekler ve Formda panelleri ekran dışına taşmasın */
+        @media (max-width: 576px) {
+            .pitch-layout-wrapper {
+                width: 100%;
+                max-width: 100%;
+                gap: 3px;
+                overflow: hidden;
+            }
+            .left-bench {
+                width: 58px;
+                flex: 0 0 58px;
+                padding: 5px 2px;
+            }
+            .perspective-container {
+                flex: 1 1 auto;
+                width: auto;
+                min-width: 0;
+            }
+            .right-bench {
+                width: 76px;
+                flex: 0 0 76px;
+                padding: 5px 2px;
+            }
+            .left-bench-title, .right-bench-title {
+                font-size: 7px;
+            }
+            .top-player-card {
+                padding: 3px 2px;
+            }
+            .top-player-name {
+                font-size: 7px;
+            }
+            .top-player-stat {
+                font-size: 6.5px;
+            }
+            .add-to-squad-btn {
+                font-size: 6.5px;
+                padding: 1px 2px;
+            }
+            .jersey-icon {
+                width: 27px;
+                height: 27px;
+            }
+            .jersey-name-tag {
+                font-size: 6.5px;
+                max-width: 52px;
+                padding: 1px 2px;
+            }
+        }
+
         /* SOL YEDEK KULÜBESİ */
         .left-bench {
             width: 90px;
