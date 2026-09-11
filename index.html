@@ -427,6 +427,40 @@
             cursor: pointer;
             transition: background 0.15s;
         }
+        .match-contribution-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 12px;
+            padding: 7px 10px;
+            margin-bottom: 6px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+        }
+        .match-contribution-player {
+            min-width: 0;
+            text-align: left;
+            overflow: hidden;
+        }
+        .match-contribution-player > span {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .match-contribution-stats {
+            min-width: 115px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        @media(max-width:480px){
+            .match-contribution-row{gap:8px;padding:6px 8px;}
+            .match-contribution-stats{min-width:95px;}
+        }
         .match-goal-item:hover {
             background: #1e293b;
             border-color: #38bdf8;
@@ -1292,13 +1326,13 @@
                         awayTeam: teamMap[m.away_team_id]?.name || 'Bilinmiyor',
                         score: `${Number(m.home_score ?? 0)} - ${Number(m.away_score ?? 0)}`,
                         date: fmt(m.match_date) + ` (Grup ${m.group_name})`,
-                        goals: evs.flatMap(e => {
+                        goals: evs.filter(e => Number(e.goals || 0) > 0).map(e => {
                             const p = playerMap[e.player_id];
-                            const items = [];
-                            const g = Number(e.goals || 0);
-                            const a = Number(e.assists || 0);
-                            if (g > 0) items.push({ player: p?.name || 'Bilinmiyor', team: teamMap[e.team_id]?.name || 'Bilinmiyor', type: `Gol (${g})`, assist: a > 0 ? 'Asist katkısı var' : 'Bilinmiyor' });
-                            return items;
+                            return { player: p?.name || 'Bilinmiyor', team: teamMap[e.team_id]?.name || 'Bilinmiyor', type: `Gol (${Number(e.goals)})` };
+                        }),
+                        assists: evs.filter(e => Number(e.assists || 0) > 0).map(e => {
+                            const p = playerMap[e.player_id];
+                            return { player: p?.name || 'Bilinmiyor', team: teamMap[e.team_id]?.name || 'Bilinmiyor', count: Number(e.assists) };
                         })
                     };
                 });
@@ -1393,22 +1427,49 @@
         openMatchDetail = function(matchId) {
             const match=playedMatchesDetails[matchId]; if(!match) return;
             document.getElementById('matchDetailTitle').innerHTML=`<i class="bi bi-info-circle text-info me-2"></i>${esc(match.homeTeam)} vs ${esc(match.awayTeam)}`;
-            const goalsHTML=(match.goals||[]).map(g=>{
-                const playerClick=String(g.player||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                const assistName=(g.assist&&g.assist!=='Bilinmiyor')?String(g.assist):'';
-                const assistClick=assistName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                return `<div class="match-goal-item">
-                    <div>
-                        <span class="fw-bold text-warning" style="cursor:pointer;text-decoration:underline dotted;" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${playerClick}')">${esc(g.player)}</span>
-                        <small class="text-muted">(${esc(g.team)})</small>
+            const goalRows=match.goals||[];
+            const assistRows=match.assists||[];
+
+            // Aynı oyuncunun gol + asist katkılarını tek satırda birleştir;
+            // sadece asist yapan oyuncuları ise altta ayrı göster.
+            const contributionMap={};
+            goalRows.forEach(g=>{
+                const key=String(g.player||'').trim().toLocaleLowerCase('tr-TR');
+                if(!contributionMap[key]) contributionMap[key]={player:g.player,team:g.team,goals:0,assists:0};
+                contributionMap[key].goals += Number((String(g.type||'').match(/\d+/)||[1])[0]);
+            });
+            assistRows.forEach(a=>{
+                const key=String(a.player||'').trim().toLocaleLowerCase('tr-TR');
+                if(!contributionMap[key]) contributionMap[key]={player:a.player,team:a.team,goals:0,assists:0};
+                contributionMap[key].assists += Number(a.count||1);
+            });
+
+            const contributions=Object.values(contributionMap);
+            const goalContributions=contributions.filter(x=>x.goals>0);
+            const assistOnlyContributions=contributions.filter(x=>x.goals===0 && x.assists>0);
+
+            const playerLink=(player,team)=>{
+                const safe=String(player).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                return `<span class="fw-bold text-white" style="cursor:pointer;" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safe}')">${esc(player)} <small class="text-muted">(${esc(team)})</small></span>`;
+            };
+
+            const goalsHTML=goalContributions.map(x=>`
+                <div class="match-contribution-row">
+                    <div class="match-contribution-player">${playerLink(x.player,x.team)}</div>
+                    <div class="match-contribution-stats">
+                        <span class="badge bg-success">Gol ${x.goals}</span>
+                        ${x.assists>0 ? `<span class="badge bg-warning text-dark">Asist ${x.assists}</span>` : ''}
                     </div>
-                    <div>
-                        <span class="badge bg-success me-1">${esc(g.type)}</span>
-                        ${assistName ? `<small class="text-info" style="cursor:pointer;text-decoration:underline dotted;" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${assistClick}')">Asist: ${esc(assistName)}</small>` : ''}
-                    </div>
-                </div>`;
-            }).join('')||'<div class="text-muted">Bu maç için gol olayı kaydı yok.</div>';
-            document.getElementById('matchDetailBody').innerHTML=`<div class="text-center mb-3"><small class="text-muted">${esc(match.date)}</small><h3 class="text-warning fw-bold my-2">${esc(match.score)}</h3><div class="fw-bold text-white">${esc(match.homeTeam)} - ${esc(match.awayTeam)}</div></div><hr class="border-secondary"><h6 class="text-info small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Maçın Skor Katkıları <small class="text-muted fw-normal">(Oyuncu profili için isme tıklayın)</small></h6><div>${goalsHTML}</div>`;
+                </div>`).join('');
+
+            const assistOnlyHTML=assistOnlyContributions.length ? `
+                <div class="mt-3 pt-2 border-top border-secondary">
+                    <div class="text-center text-warning small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Sadece Asist Yapanlar</div>
+                    ${assistOnlyContributions.map(x=>`<div class="match-contribution-row"><div class="match-contribution-player">${playerLink(x.player,x.team)}</div><div class="match-contribution-stats"><span class="badge bg-warning text-dark">Asist ${x.assists}</span></div></div>`).join('')}
+                </div>` : '';
+
+            const goalsContent=(goalsHTML || '<div class="text-muted small">Gol katkısı yok.</div>') + assistOnlyHTML;
+            document.getElementById('matchDetailBody').innerHTML=`<div class="text-center mb-3"><small class="text-muted">${esc(match.date)}</small><h3 class="text-warning fw-bold my-2">${esc(match.score)}</h3><div class="fw-bold text-white">${esc(match.homeTeam)} - ${esc(match.awayTeam)}</div></div><hr class="border-secondary"><h6 class="text-info small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Maçın Skor Katkıları <small class="text-muted fw-normal">(Oyuncu profili için isme tıklayın)</small></h6><div>${goalsContent}</div>`;
             new bootstrap.Modal(document.getElementById('matchDetailModal')).show();
         };
 
