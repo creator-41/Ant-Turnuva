@@ -383,6 +383,14 @@
             border-color: #38bdf8;
         }
     
+
+        .fixture-teams-row{display:grid!important;grid-template-columns:minmax(0,1fr) 90px minmax(0,1fr);align-items:center;gap:8px;width:100%;}
+        .fixture-team{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .fixture-team.home{text-align:right;}
+        .fixture-team.away{text-align:left;}
+        .fixture-score{width:90px;min-width:90px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums;}
+        .fixture-date{display:block;text-align:center;line-height:1.35;}
+        @media(max-width:480px){.fixture-teams-row{grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr);gap:5px}.fixture-score{width:70px;min-width:70px;font-size:1rem!important}.fixture-team{font-size:12px}.fixture-date{font-size:11px;}}
         .auth-btn { margin-left:auto; border:1px solid #38bdf8; background:#0f172a; color:#38bdf8; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:bold; }
         .auth-user { margin-left:auto; color:#94a3b8; font-size:11px; display:flex; align-items:center; gap:6px; }
     </style>
@@ -997,8 +1005,8 @@
                         <div class="d-flex justify-content-between align-items-center fw-bold"><span>Saha Ekipleri</span><span class="fs-5 text-warning">3 - 3</span><span>Garaj Ekibi</span></div>
                     </div>
                     <h6 class="text-info mt-4 mb-2"><i class="bi bi-calendar-check me-1"></i>Gelecek Maçlar</h6>
-                    <div class="card p-3"><div class="d-flex justify-content-between border-bottom border-secondary pb-2 mb-2"><small class="text-muted">15.09.2026 - 22:00 (Grup A)</small><span class="badge bg-warning text-dark">Gelecek Maç</span></div><div class="d-flex justify-content-between align-items-center fw-bold"><span>İdari İşler</span><span class="fs-6 text-muted">vs</span><span>Garaj Ekibi</span></div></div>
-                    <div class="card p-3"><div class="d-flex justify-content-between border-bottom border-secondary pb-2 mb-2"><small class="text-muted">15.09.2026 - 23:00 (Grup B)</small><span class="badge bg-warning text-dark">Gelecek Maç</span></div><div class="d-flex justify-content-between align-items-center fw-bold"><span>PDI</span><span class="fs-6 text-muted">vs</span><span>Teknik Servis</span></div></div>
+                    <div class="card p-3"><div class="d-flex justify-content-between align-items-center border-bottom border-secondary pb-2 mb-2 gap-2"><small class="text-muted fixture-date">15.09.2026 - 22:00<br><span>(Grup A)</span></small><span class="badge bg-warning text-dark">Gelecek Maç</span></div><div class="fixture-teams-row fw-bold"><span class="fixture-team home">İdari İşler</span><span class="fixture-score fs-6 text-muted">VS</span><span class="fixture-team away">Garaj Ekibi</span></div></div>
+                    <div class="card p-3"><div class="d-flex justify-content-between align-items-center border-bottom border-secondary pb-2 mb-2 gap-2"><small class="text-muted fixture-date">15.09.2026 - 23:00<br><span>(Grup B)</span></small><span class="badge bg-warning text-dark">Gelecek Maç</span></div><div class="fixture-teams-row fw-bold"><span class="fixture-team home">PDI</span><span class="fixture-score fs-6 text-muted">VS</span><span class="fixture-team away">Teknik Servis</span></div></div>
                 `;
             } else if(tabName === 'kadrolar') {
                 let html = '<h5 class="text-info mb-3"><i class="bi bi-people me-2"></i>Takım Kadroları <small class="text-muted fs-6 font-normal">(Oyuncu profili için tıklayın)</small></h5>';
@@ -1215,7 +1223,7 @@
                         homeTeam: teamMap[m.home_team_id]?.name || 'Bilinmiyor',
                         awayTeam: teamMap[m.away_team_id]?.name || 'Bilinmiyor',
                         score: `${Number(m.home_score ?? 0)} - ${Number(m.away_score ?? 0)}`,
-                        date: formatMatchDate(m.match_date) + ` (Grup ${m.group_name})`,
+                        date: fmt(m.match_date) + ` (Grup ${m.group_name})`,
                         goals: evs.flatMap(e => {
                             const p = playerMap[e.player_id];
                             const items = [];
@@ -1236,11 +1244,23 @@
             }
         }
 
-        function formatMatchDate(value) {
-            if (!value) return '';
-            const d = new Date(value);
-            if (isNaN(d)) return String(value);
-            return d.toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        function fmt(value){
+            if(!value){
+                return '-';
+            }
+            const date = new Date(value);
+            if(isNaN(date.getTime())){
+                return '-';
+            }
+            return new Intl.DateTimeFormat('tr-TR',{
+                timeZone:'Europe/Istanbul',
+                day:'2-digit',
+                month:'2-digit',
+                year:'numeric',
+                hour:'2-digit',
+                minute:'2-digit',
+                hourCycle:'h23'
+            }).format(date);
         }
 
         function buildStandings(dbTeams, dbMatches) {
@@ -1275,7 +1295,7 @@
                 content.innerHTML='<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Puan Durumu</h5>'+html;
             } else if(tabName==='fikstur') {
                 const played=matches.filter(m=>m.played), upcoming=matches.filter(m=>!m.played);
-                const card=m=>`<div class="card p-3 match-card" onclick="openMatchDetail('${m.id}')"><div class="d-flex justify-content-between border-bottom border-secondary pb-2 mb-2"><small class="text-muted">${formatMatchDate(m.match_date)} (Grup ${esc(m.group_name)})</small><span class="badge ${m.played?'bg-success':'bg-warning text-dark'}">${m.played?'Oynandı (Detay)':'Gelecek Maç'}</span></div><div class="d-flex justify-content-between align-items-center fw-bold"><span>${esc(teamMap[m.home_team_id]?.name||'Bilinmiyor')}</span><span class="fs-5 text-warning">${m.played?`${Number(m.home_score||0)} - ${Number(m.away_score||0)}`:'vs'}</span><span>${esc(teamMap[m.away_team_id]?.name||'Bilinmiyor')}</span></div></div>`;
+                const card=m=>`<div class="card p-3 match-card" onclick="${m.played?`openMatchDetail('${m.id}')`:''}"><div class="d-flex justify-content-between align-items-center border-bottom border-secondary pb-2 mb-2 gap-2"><small class="text-muted fixture-date"><i class="bi bi-calendar-event me-1"></i><strong>${fmt(m.match_date)}</strong><br><span>(Grup ${esc(m.group_name)})</span></small><span class="badge ${m.played?'bg-success':'bg-warning text-dark'}">${m.played?'Oynandı (Detay)':'Gelecek Maç'}</span></div><div class="fixture-teams-row fw-bold"><span class="fixture-team home">${esc(teamMap[m.home_team_id]?.name||'Bilinmiyor')}</span><span class="fixture-score fs-5 text-warning">${m.played?`${Number(m.home_score??0)} - ${Number(m.away_score??0)}`:'VS'}</span><span class="fixture-team away">${esc(teamMap[m.away_team_id]?.name||'Bilinmiyor')}</span></div></div>`;
                 content.innerHTML='<h5 class="text-info mb-3"><i class="bi bi-calendar3 me-2"></i>Fikstür ve Sonuçlar</h5><h6 class="text-warning mt-3 mb-2"><i class="bi bi-clock-history me-1"></i>Oynanan Maçlar</h6>'+ (played.map(card).join('')||'<div class="text-muted">Henüz oynanan maç yok.</div>') + '<h6 class="text-info mt-4 mb-2"><i class="bi bi-calendar-check me-1"></i>Gelecek Maçlar</h6>'+ (upcoming.map(card).join('')||'<div class="text-muted">Planlanmış maç yok.</div>');
             } else if(tabName==='istatistik') {
                 const goals={}, assists={};
