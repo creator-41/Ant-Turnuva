@@ -544,30 +544,10 @@
             "DEFAULT": { c1: "#64748b", c2: "#334155", collar: "#ffffff" }        
         };
 
-        let topPerformers = [
-            { name: "Cengizhan Karakaş", team: "Teknik Servis", stat: "4 Gol" },
-            { name: "Engincan Tarı", team: "Teknik Servis", stat: "3 Asist" },
-            { name: "Mustafa Özbil", team: "Saha Ekipleri", stat: "2 Gol" },
-            { name: "Arif", team: "Garaj Ekibi", stat: "2 Gol" },
-            { name: "Hakan Kapucu", team: "Saha Ekipleri", stat: "2 Asist" },
-            { name: "Zekeriya Tezcan", team: "Teknik Servis", stat: "2 Gol" }
-        ];
+        let topPerformers = [];
 
-        let topScorers = [
-            { name: "Cengizhan Karakaş", team: "Teknik Servis", goals: 4 },
-            { name: "Mustafa Özbil", team: "Saha Ekipleri", goals: 2 },
-            { name: "Arif", team: "Garaj Ekibi", goals: 2 },
-            { name: "Zekeriya Tezcan", team: "Teknik Servis", goals: 2 },
-            { name: "Yasin Karadaş", team: "Saha Ekipleri", goals: 1 },
-            { name: "Yunus Emre Ergin", team: "Liman", goals: 1 }
-        ];
-
-        let topAssists = [
-            { name: "Engincan Tarı", team: "Teknik Servis", assists: 3 },
-            { name: "Hakan Kapucu", team: "Saha Ekipleri", assists: 2 },
-            { name: "Aliş Can Kaçar", team: "Teknik Servis", assists: 2 },
-            { name: "Gencer", team: "Garaj Ekibi", assists: 1 }
-        ];
+        let topScorers = [];
+        let topAssists = [];
 
         let playedMatchesDetails = {
             match1: {
@@ -1328,7 +1308,7 @@
             if(tabName==='puan-durumu') {
                 const html=['A','B'].map(group=>{
                     const data=buildStandings(teams.filter(t=>t.group_name===group), matches.filter(m=>m.group_name===group));
-                    return `<h5 class="text-info mb-3 mt-2"><i class="bi bi-trophy me-2"></i>${group} GRUBU</h5><div class="card p-2"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle standings-table" style="font-size:12px"><colgroup><col class="col-rank"><col class="col-team"><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody>${data.map((x,i)=>`<tr><td>${i+1}</td><td class="text-start fw-bold">${esc(x.name)}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gd>0?'+'+x.gd:x.gd}</td><td><span class="badge ${x.points>0?'bg-primary':'bg-secondary'}">${x.points}</span></td></tr>`).join('')||'<tr><td colspan="10" class="text-muted">Takım yok</td></tr>'}</tbody></table></div></div>`;
+                    return `<h5 class="text-info mb-3 mt-2"><i class="bi bi-trophy me-2"></i>${group} GRUBU</h5><div class="card p-2"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle standings-table" style="font-size:12px"><colgroup><col class="col-rank"><col class="col-team"><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody>${data.map((x,i)=>`<tr><td><span class="d-inline-flex align-items-center justify-content-center gap-1" style="min-width:38px"><i class="bi ${i<2?'bi-arrow-up-circle-fill text-success':'bi-arrow-down-circle-fill text-danger'}" title="${i<2?'Üst tura çıkıyor':'Elenecek sıra'}"></i><strong>${i+1}</strong></span></td><td class="text-start fw-bold">${esc(x.name)}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gd>0?'+'+x.gd:x.gd}</td><td><span class="badge" style="background-color:${teams.find(t=>t.name===x.name)?.color||teamColors[x.name]?.c1||'#475569'};color:#fff;min-width:32px;">${x.points}</span></td></tr>`).join('')||'<tr><td colspan="10" class="text-muted">Takım yok</td></tr>'}</tbody></table></div></div>`;
                 }).join('');
                 content.innerHTML='<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Puan Durumu</h5>'+html;
             } else if(tabName==='fikstur') {
