@@ -306,6 +306,12 @@
             transform: translateY(-2px);
         }
 
+
+        /* Kadro pozisyon seçim modalı her durumda en üstte açılsın */
+        #slotChooseModal {
+            z-index: 1070 !important;
+        }
+
         .modal-content { background-color: #1e293b; color: #fff; border: 1px solid #334155; }
         .list-group-item { background-color: #0f172a; color: #fff; border-color: #334155; cursor: pointer; }
         .list-group-item:hover { background-color: #38bdf8; color: #0f172a; }
@@ -632,13 +638,16 @@
         }
 
         function openPlayerProfile(playerName) {
+            // Oyuncu hangi ekrandan açılırsa açılsın profil penceresi gösterilir.
+            // Maç detayından geliyorsa arka plandaki maç modalını kapatıyoruz.
             let matchModalEl = document.getElementById('matchDetailModal');
-            let matchModalInstance = bootstrap.Modal.getInstance(matchModalEl);
+            let matchModalInstance = matchModalEl ? bootstrap.Modal.getInstance(matchModalEl) : null;
             if(matchModalInstance) matchModalInstance.hide();
 
             let team = getPlayerTeam(playerName);
             let stats = getPlayerStats(playerName);
             let colors = teamColors[team] || teamColors["DEFAULT"];
+            let isInSquad = Object.values(mySquad).includes(playerName);
 
             let modalBody = document.getElementById('playerProfileBody');
             modalBody.innerHTML = `
@@ -646,8 +655,9 @@
                     <div class="mb-2">
                         ${generateJerseySVG(colors.c1, colors.c2, colors.collar, playerName.includes('(K)'))}
                     </div>
-                    <h5 class="fw-bold mb-0 text-white">${playerName}</h5>
-                    <span class="badge bg-secondary mt-1">${team}</span>
+                    <h5 class="fw-bold mb-0 text-white">${esc(playerName)}</h5>
+                    <span class="badge bg-secondary mt-1">${esc(team)}</span>
+                    ${isInSquad ? '<div class="mt-2"><span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Kadromda</span></div>' : ''}
                 </div>
 
                 <div class="row g-2 mb-3">
@@ -671,9 +681,26 @@
                     </div>
                 </div>
 
-                <button class="btn btn-primary btn-sm w-100 fw-bold" onclick="openSlotChoiceForPlayerFromProfile('${playerName.replace("'", "\\'")}')">
-                    <i class="bi bi-plus-lg me-1"></i> Kadroma Ekle
-                </button>
+                <div class="card bg-dark border-secondary p-2 mb-3 text-start">
+                    <div class="small text-muted mb-1">Genel İstatistik</div>
+                    <div class="d-flex justify-content-between py-1 border-bottom border-secondary">
+                        <span>Gol</span><strong class="text-warning">${stats.goals}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom border-secondary">
+                        <span>Asist</span><strong class="text-info">${stats.assists}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span>Toplam Skor Katkısı</span><strong class="text-success">${stats.totalContribution}</strong>
+                    </div>
+                </div>
+
+                ${isInSquad
+                    ? `<button class="btn btn-outline-warning btn-sm w-100 fw-bold" onclick="bootstrap.Modal.getInstance(document.getElementById('playerProfileModal')).hide()">
+                            <i class="bi bi-check-circle me-1"></i>Kadromda — Kapat
+                       </button>`
+                    : `<button class="btn btn-primary btn-sm w-100 fw-bold" onclick="openSlotChoiceForPlayerFromProfile('${playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+                            <i class="bi bi-plus-lg me-1"></i> Kadroma Ekle
+                       </button>`}
             `;
 
             let profileModal = new bootstrap.Modal(document.getElementById('playerProfileModal'));
@@ -787,6 +814,11 @@
         }
 
         function openSlotChoiceForPlayer(playerName) {
+            // Maç detayından oyuncu seçildiyse, maç detayını kapatıp pozisyon seçimini öne al.
+            const matchDetailEl = document.getElementById('matchDetailModal');
+            const matchDetailInstance = matchDetailEl ? bootstrap.Modal.getInstance(matchDetailEl) : null;
+            if(matchDetailInstance) matchDetailInstance.hide();
+
             if(Object.values(mySquad).includes(playerName)) {
                 alert("Bu oyuncu zaten kadroda ekli!");
                 return;
@@ -872,10 +904,10 @@
 
             return `
                 <div class="player-card">
-                    <div onclick="openSelectModal('${slotKey}')">
+                    <div onclick="${isSelected ? `openPlayerProfile('${playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')` : `openSelectModal('${slotKey}')`}">
                         ${generateJerseySVG(colors.c1, colors.c2, colors.collar, isCaptain)}
                     </div>
-                    <div class="jersey-name-tag ${isCaptain ? 'is-captain-tag' : ''}" onclick="openSelectModal('${slotKey}')">
+                    <div class="jersey-name-tag ${isCaptain ? 'is-captain-tag' : ''}" onclick="${isSelected ? `openPlayerProfile('${playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')` : `openSelectModal('${slotKey}')`}">
                         ${isCaptain ? '(C) ' : ''}${playerName}
                     </div>
                     ${isSelected ? `<a href="#" class="captain-btn" onclick="setCaptain('${slotKey}'); return false;">${isCaptain ? '★ Kaptan' : '☆ Kaptan'}</a>` : ''}
@@ -1307,7 +1339,7 @@
                 const goals={}, assists={};
                 events.forEach(e=>{ if(Number(e.goals||0)>0) goals[e.player_id]=(goals[e.player_id]||0)+Number(e.goals); if(Number(e.assists||0)>0) assists[e.player_id]=(assists[e.player_id]||0)+Number(e.assists); });
                 const pr=Object.fromEntries((await supabaseClient.from('players').select('*')).data?.map(p=>[p.id,p])||[]);
-                const list=(obj,label)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,v],i)=>`<li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary"><div><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'} me-2">${i+1}</span><strong>${esc(pr[id]?.name||'Bilinmiyor')}</strong> <small class="text-muted">(${esc(teamMap[pr[id]?.team_id]?.name||'')})</small></div><span class="badge bg-primary fs-6">${v} ${label}</span></li>`).join('')||'<li class="list-group-item bg-dark text-muted border-secondary">Henüz veri yok.</li>';
+                const list=(obj,label)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,v],i)=>{ const playerName=pr[id]?.name||'Bilinmiyor'; const safePlayer=playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); return `<li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary" style="cursor:pointer" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safePlayer}')"><div><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'} me-2">${i+1}</span><strong>${esc(playerName)}</strong> <small class="text-muted">(${esc(teamMap[pr[id]?.team_id]?.name||'')})</small></div><span class="badge bg-primary fs-6">${v} ${label}</span></li>`; }).join('')||'<li class="list-group-item bg-dark text-muted border-secondary">Henüz veri yok.</li>';
                 content.innerHTML=`<h5 class="text-info mb-3"><i class="bi bi-bar-chart-line-fill me-2"></i>İstatistikler</h5><div class="card p-3"><h6 class="text-warning">Gol Krallığı</h6><ul class="list-group">${list(goals,'Gol')}</ul></div><div class="card p-3"><h6 class="text-info">Asist Krallığı</h6><ul class="list-group">${list(assists,'Asist')}</ul></div>`;
             } else if(tabName==='kadrolar') {
                 const playersRes=await supabaseClient.from('players').select('*').order('name'); const ps=playersRes.data||[];
@@ -1331,8 +1363,22 @@
         openMatchDetail = function(matchId) {
             const match=playedMatchesDetails[matchId]; if(!match) return;
             document.getElementById('matchDetailTitle').innerHTML=`<i class="bi bi-info-circle text-info me-2"></i>${esc(match.homeTeam)} vs ${esc(match.awayTeam)}`;
-            const goalsHTML=(match.goals||[]).map(g=>`<div class="match-goal-item"><div><span class="fw-bold text-warning">${esc(g.player)}</span> <small class="text-muted">(${esc(g.team)})</small></div><div><span class="badge bg-success me-1">${esc(g.type)}</span></div></div>`).join('')||'<div class="text-muted">Bu maç için gol olayı kaydı yok.</div>';
-            document.getElementById('matchDetailBody').innerHTML=`<div class="text-center mb-3"><small class="text-muted">${esc(match.date)}</small><h3 class="text-warning fw-bold my-2">${esc(match.score)}</h3><div class="fw-bold text-white">${esc(match.homeTeam)} - ${esc(match.awayTeam)}</div></div><hr class="border-secondary"><h6 class="text-info small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Maçın Skor Katkıları</h6><div>${goalsHTML}</div>`;
+            const goalsHTML=(match.goals||[]).map(g=>{
+                const playerClick=String(g.player||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                const assistName=(g.assist&&g.assist!=='Bilinmiyor')?String(g.assist):'';
+                const assistClick=assistName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                return `<div class="match-goal-item">
+                    <div>
+                        <span class="fw-bold text-warning" style="cursor:pointer;text-decoration:underline dotted;" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${playerClick}')">${esc(g.player)}</span>
+                        <small class="text-muted">(${esc(g.team)})</small>
+                    </div>
+                    <div>
+                        <span class="badge bg-success me-1">${esc(g.type)}</span>
+                        ${assistName ? `<small class="text-info" style="cursor:pointer;text-decoration:underline dotted;" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${assistClick}')">Asist: ${esc(assistName)}</small>` : ''}
+                    </div>
+                </div>`;
+            }).join('')||'<div class="text-muted">Bu maç için gol olayı kaydı yok.</div>';
+            document.getElementById('matchDetailBody').innerHTML=`<div class="text-center mb-3"><small class="text-muted">${esc(match.date)}</small><h3 class="text-warning fw-bold my-2">${esc(match.score)}</h3><div class="fw-bold text-white">${esc(match.homeTeam)} - ${esc(match.awayTeam)}</div></div><hr class="border-secondary"><h6 class="text-info small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Maçın Skor Katkıları <small class="text-muted fw-normal">(Oyuncu profili için isme tıklayın)</small></h6><div>${goalsHTML}</div>`;
             new bootstrap.Modal(document.getElementById('matchDetailModal')).show();
         };
 
