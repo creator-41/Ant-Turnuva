@@ -12,7 +12,7 @@
         .card { background-color: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 12px; margin-bottom: 15px; }
         .table-dark { --bs-table-bg: #1e293b; --bs-table-border-color: #334155; }
         .nav-bottom { position: fixed; bottom: 0; left: 0; right: 0; background-color: #0f172a; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 8px 0; z-index: 1000; }
-        .nav-bottom-item { color: #94a3b8; text-decoration: none; text-align: center; font-size: 11px; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+        .nav-bottom-item { color: #94a3b8; text-decoration: none; text-align: center; font-size: 11px; }
         .nav-bottom-item.active { color: #38bdf8; font-weight: bold; }
         .nav-bottom-item i { font-size: 18px; display: block; }
 
@@ -52,7 +52,6 @@
             border-bottom: 1px solid #334155;
             padding-bottom: 3px;
             width: 100%;
-            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
         }
 
         /* ORTA SAHA CONTAINER */
@@ -208,7 +207,6 @@
             text-align: center;
             border-bottom: 1px solid #334155;
             padding-bottom: 3px;
-            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
         }
 
         .top-player-card {
@@ -225,13 +223,11 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
         }
 
         .top-player-stat { 
             font-size: 8px; 
-            color: #38bdf8; 
-            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+            color: #38bdf8;
         }
 
         .add-to-squad-btn {
@@ -281,7 +277,6 @@
             text-overflow: ellipsis;
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
             text-align: center;
-            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
         }
         .jersey-name-tag.is-captain-tag { border-color: #f59e0b; color: #fbbf24; }
 
@@ -291,7 +286,6 @@
             color: #fbbf24;
             text-decoration: none;
             font-weight: bold;
-            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
         }
 
         .player-chip { 
@@ -304,7 +298,6 @@
             margin: 3px; 
             cursor: pointer;
             transition: all 0.2s;
-            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
         }
         .player-chip:hover {
             background: #38bdf8;
@@ -393,7 +386,25 @@
         @media(max-width:480px){.fixture-teams-row{grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr);gap:5px}.fixture-score{width:70px;min-width:70px;font-size:1rem!important}.fixture-team{font-size:12px}.fixture-date{font-size:11px;}}
         .auth-btn { margin-left:auto; border:1px solid #38bdf8; background:#0f172a; color:#38bdf8; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:bold; }
         .auth-user { margin-left:auto; color:#94a3b8; font-size:11px; display:flex; align-items:center; gap:6px; }
-    </style>
+    
+        /* Puan durumu: A ve B gruplarındaki sütunlar birebir aynı hizada */
+        .standings-table {
+            width: 100%;
+            table-layout: fixed;
+        }
+        .standings-table th,
+        .standings-table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle;
+        }
+        .standings-table .col-rank { width: 5%; }
+        .standings-table .col-team { width: 30%; }
+        .standings-table th:not(:nth-child(1)):not(:nth-child(2)),
+        .standings-table td:not(:nth-child(1)):not(:nth-child(2)) { width: 7.222%; }
+        .standings-table .col-team { text-align: left; }
+</style>
 </head>
 <body>
 
@@ -498,14 +509,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        const teamsData = {
-            "PDI": ["Bayram Keleş (K)", "Batuhan Kayhan", "Recep Yolcu", "Can Altunel", "Taha Atalar", "Furkan Çetin", "Muhammed Tutar", "Sefa Akduman", "Yılmaz Aybaş", "Muharrem Özdemir", "Yusuf Kenan Aygün", "Batuhan Türkoğlu"],
-            "Saha Ekipleri": ["Melih Engin (K)", "Hakan Kapucu", "Gökhan Karatay", "Orkun Sevinç", "Mustafa Özbil", "Hakan Şahinkaya", "Kadir Karagöz", "Erdal Karakaya", "Halit Çoşar", "Mertcan Ateş", "Yasin Karadaş", "Uğur Uzun", "Emrah Anlar", "Kazım Can İşcan", "Murat Karagöz"],
-            "Liman": ["Mehmet Kağnıcı (K)", "Hakan Bilgiç", "Erhan Mızrak", "Yunus Emre Ergin", "Mete Üngün", "Berkant Güllü", "Taha Enan Geçmiş", "Murat Uzan", "Erkan Aktan", "Nihat Özmen", "Haşim Mert Gödek", "Yiğit Emre Balkan", "Tunahan Yalçın", "Muhammet Taha Dinç", "Murat Şensütmen"],
-            "İdari İşler": ["Burak Yılmaz (K)", "Levent Konan", "Emrah Suiçmez", "Ulaş Gülkan", "Furkan Demir", "Emre Halil", "Oğuzhan Aksoy", "İbrahim Kılıçkaya", "Özay Kaya", "Batuhan Çetin", "Furkan Yüksel", "Bora Köse", "Burak Saitoğlu", "Burak Köse"],
-            "Garaj Ekibi": ["Arif (K)", "Emre", "Gencer", "Özgür", "Mehmet", "Bedirhan", "A. Emir", "Murat", "Beytullah", "Furkan", "Semih", "Eren", "İsmail"],
-            "Teknik Servis": ["Cengizhan Karakaş (K)", "Engincan Tarı", "Zekeriya Tezcan", "Aliş Can Kaçar", "Mehmet Ersöyleyen", "Erdal Çarkçı", "Fevzi Aydın", "Hayrettin Koral", "Nezir Boğa", "Serhat Yesin", "Erdem Dikbaş", "Muhterem Sarı", "Oruçhan Bektaş", "Sinan Bayrak", "Mustafa Bulut", "Yusuf Demirkan"]
-        };
+        // Takım ve oyuncu listeleri artık tamamen Supabase'den gelir.
+        // Sabit teamsData listesi kaldırıldı.
+        let teamsData = {};
 
         const slotLabels = {
             st: "Forvet (ST)",
@@ -1290,7 +1296,7 @@
             if(tabName==='puan-durumu') {
                 const html=['A','B'].map(group=>{
                     const data=buildStandings(teams.filter(t=>t.group_name===group), matches.filter(m=>m.group_name===group));
-                    return `<h5 class="text-info mb-3 mt-2"><i class="bi bi-trophy me-2"></i>${group} GRUBU</h5><div class="card p-2"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:12px"><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody>${data.map((x,i)=>`<tr><td>${i+1}</td><td class="text-start fw-bold">${esc(x.name)}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gd>0?'+'+x.gd:x.gd}</td><td><span class="badge ${x.points>0?'bg-primary':'bg-secondary'}">${x.points}</span></td></tr>`).join('')||'<tr><td colspan="10" class="text-muted">Takım yok</td></tr>'}</tbody></table></div></div>`;
+                    return `<h5 class="text-info mb-3 mt-2"><i class="bi bi-trophy me-2"></i>${group} GRUBU</h5><div class="card p-2"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle standings-table" style="font-size:12px"><colgroup><col class="col-rank"><col class="col-team"><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody>${data.map((x,i)=>`<tr><td>${i+1}</td><td class="text-start fw-bold">${esc(x.name)}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gd>0?'+'+x.gd:x.gd}</td><td><span class="badge ${x.points>0?'bg-primary':'bg-secondary'}">${x.points}</span></td></tr>`).join('')||'<tr><td colspan="10" class="text-muted">Takım yok</td></tr>'}</tbody></table></div></div>`;
                 }).join('');
                 content.innerHTML='<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Puan Durumu</h5>'+html;
             } else if(tabName==='fikstur') {
