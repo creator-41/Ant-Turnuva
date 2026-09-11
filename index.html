@@ -366,6 +366,28 @@
             transform: scale(1.01);
             border-color: #38bdf8;
         }
+        .match-teams-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 70px minmax(0, 1fr);
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        .match-team {
+            min-width: 0;
+            font-weight: 700;
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+        .match-score {
+            width: 70px;
+            justify-self: center;
+            text-align: center;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .match-score.played { font-size: 1.25rem; color: #f59e0b; }
+        .match-score.upcoming { font-size: 1rem; color: #94a3b8; }
         .match-goal-item {
             background: #0f172a;
             border: 1px solid #334155;
@@ -588,8 +610,8 @@
             sub4: "+ YDK 4"
         };
 
-        let mySquad = JSON.parse(localStorage.getItem('ant_fantasy_squad')) || { ...defaultSquad };
-        let captainSlot = localStorage.getItem('ant_fantasy_captain') || null;
+        let mySquad = { ...defaultSquad };
+        let captainSlot = null;
         let currentActiveSlot = null;
         let selectedPlayerForPlacement = null;
 
@@ -715,8 +737,6 @@
         }
 
         function saveSquadToStorage() {
-            localStorage.setItem('ant_fantasy_squad', JSON.stringify(mySquad));
-            if(captainSlot) localStorage.setItem('ant_fantasy_captain', captainSlot);
             alert('Kadron ve Kaptanın başarıyla kaydedildi!');
         }
 
@@ -724,8 +744,6 @@
             if(confirm("Kadroyu sıfırlamak istediğine emin misin?")) {
                 mySquad = { ...defaultSquad };
                 captainSlot = null;
-                localStorage.removeItem('ant_fantasy_squad');
-                localStorage.removeItem('ant_fantasy_captain');
                 renderPitch();
             }
         }
@@ -1110,8 +1128,6 @@
                 if(playerRow.data) rows.push({fantasy_team_id:teamId,player_id:playerRow.data.id,slot});
             }
             if(rows.length){ const {error}=await supabaseClient.from('fantasy_team_players').insert(rows); if(error){alert('Oyuncular kaydedilemedi: '+error.message);return;} }
-            localStorage.setItem('ant_fantasy_squad',JSON.stringify(mySquad));
-            if(captainSlot) localStorage.setItem('ant_fantasy_captain',captainSlot);
             fantasyTeamName = name;
             const titleEl = document.getElementById('fantasy-team-title');
             if(titleEl) titleEl.textContent = fantasyTeamName;
@@ -1135,8 +1151,6 @@
             (rows||[]).forEach(r=>{ if(r.players && slotLabels[r.slot]) mySquad[r.slot]=r.players.name; });
             captainSlot=team.captain_slot || null;
             fantasyTeamName = team.name || fantasyTeamName || 'Takımım';
-            localStorage.setItem('ant_fantasy_squad',JSON.stringify(mySquad));
-            if(captainSlot) localStorage.setItem('ant_fantasy_captain',captainSlot);
             renderPitch();
         }
 
@@ -1242,7 +1256,7 @@
             if (!value) return '';
             const d = new Date(value);
             if (isNaN(d)) return String(value);
-            return d.toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+            return d.toLocaleString('tr-TR', { timeZone:'Europe/Istanbul', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
         }
 
         function buildStandings(dbTeams, dbMatches) {
@@ -1277,7 +1291,7 @@
                 content.innerHTML='<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Puan Durumu</h5>'+html;
             } else if(tabName==='fikstur') {
                 const played=matches.filter(m=>m.played), upcoming=matches.filter(m=>!m.played);
-                const card=m=>`<div class="card p-3 match-card" onclick="openMatchDetail('${m.id}')"><div class="d-flex justify-content-between border-bottom border-secondary pb-2 mb-2"><small class="text-muted">${formatMatchDate(m.match_date)} (Grup ${esc(m.group_name)})</small><span class="badge ${m.played?'bg-success':'bg-warning text-dark'}">${m.played?'Oynandı (Detay)':'Gelecek Maç'}</span></div><div class="d-flex justify-content-between align-items-center fw-bold"><span>${esc(teamMap[m.home_team_id]?.name||'Bilinmiyor')}</span><span class="fs-5 text-warning">${m.played?`${Number(m.home_score||0)} - ${Number(m.away_score||0)}`:'vs'}</span><span>${esc(teamMap[m.away_team_id]?.name||'Bilinmiyor')}</span></div></div>`;
+                const card=m=>{ const home=esc(teamMap[m.home_team_id]?.name||'Bilinmiyor'); const away=esc(teamMap[m.away_team_id]?.name||'Bilinmiyor'); const result=m.played?`${Number(m.home_score||0)} - ${Number(m.away_score||0)}`:'vs'; return `<div class="card p-3 match-card" onclick="${m.played?`openMatchDetail('${m.id}')`:''}"><div class="d-flex justify-content-between align-items-center border-bottom border-secondary pb-2 mb-3"><small class="text-muted">${formatMatchDate(m.match_date)} (Grup ${esc(m.group_name)})</small><span class="badge ${m.played?'bg-success':'bg-warning text-dark'}">${m.played?'Oynandı (Detay)':'Gelecek Maç'}</span></div><div class="match-teams-row"><div class="match-team home">${home}</div><div class="match-score ${m.played?'played':'upcoming'}">${result}</div><div class="match-team away">${away}</div></div></div>`; };
                 content.innerHTML='<h5 class="text-info mb-3"><i class="bi bi-calendar3 me-2"></i>Fikstür ve Sonuçlar</h5><h6 class="text-warning mt-3 mb-2"><i class="bi bi-clock-history me-1"></i>Oynanan Maçlar</h6>'+ (played.map(card).join('')||'<div class="text-muted">Henüz oynanan maç yok.</div>') + '<h6 class="text-info mt-4 mb-2"><i class="bi bi-calendar-check me-1"></i>Gelecek Maçlar</h6>'+ (upcoming.map(card).join('')||'<div class="text-muted">Planlanmış maç yok.</div>');
             } else if(tabName==='istatistik') {
                 const goals={}, assists={};
