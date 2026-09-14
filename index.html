@@ -238,6 +238,7 @@
         let teamsData = {};
         let dbPlayersGlobal = []; 
         let rawTeamsGlobal = [];
+        let globalPlayerStats = {}; // Tüm oyuncu istatistiklerinin global havuzu
 
         // BİLDİRİM FONKSİYONU (2 saniye sonra otomatik kaybolur)
         function showNotification(message, type = 'success') {
@@ -318,13 +319,22 @@
             return "Bilinmiyor";
         }
 
+        // İLK 10 SINIRINA TAKILMAYAN GLOBAL HAVUZDAN ÇEKEN KUSURSUZ STATS FONKSİYONU
         function getPlayerStats(playerName) {
-            let cleanName = playerName.replace(" (K)", "").trim();
-            let scorerMatch = topScorers.find(s => s.name.replace(" (K)", "").trim() === cleanName);
-            let assistMatch = topAssists.find(a => a.name.replace(" (K)", "").trim() === cleanName);
-            let goals = scorerMatch ? scorerMatch.goals : 0;
-            let assists = assistMatch ? assistMatch.assists : 0;
-            return { goals, assists, totalContribution: goals + assists };
+            if (!playerName) return { goals: 0, assists: 0, totalContribution: 0 };
+            let cleanName = playerName.replace(" (K)", "").trim().toLowerCase();
+            
+            for (let id in globalPlayerStats) {
+                let pStats = globalPlayerStats[id];
+                if (pStats.name.replace(" (K)", "").trim().toLowerCase() === cleanName) {
+                    return {
+                        goals: pStats.goals,
+                        assists: pStats.assists,
+                        totalContribution: pStats.goals + pStats.assists
+                    };
+                }
+            }
+            return { goals: 0, assists: 0, totalContribution: 0 };
         }
 
         function removePlayerFromSquadByName(playerName) {
@@ -876,6 +886,9 @@
                     stats[e.player_id].goals += Number(e.goals || 0);
                     stats[e.player_id].assists += Number(e.assists || 0);
                 });
+
+                // GLOBAL HAVUZA AKTARILDI (İLK 10 SINIRINA TAKILMAZ)
+                globalPlayerStats = stats;
 
                 topScorers = Object.values(stats).filter(x => x.goals > 0).sort((a,b) => b.goals-a.goals || a.name.localeCompare(b.name,'tr')).slice(0,10);
                 topAssists = Object.values(stats).filter(x => x.assists > 0).sort((a,b) => b.assists-a.assists || a.name.localeCompare(b.name,'tr')).slice(0,10);
