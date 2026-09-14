@@ -322,14 +322,33 @@ async function saveMatch(){
         const upsertData = [];
         document.querySelectorAll('.squad-cb').forEach(cb => {
             let pid = cb.value, tid = cb.getAttribute('data-team'), isP = cb.checked;
-            let conceded = (tid === home) ? awayS : homeS;
             
             if(eMap[pid]) {
-                upsertData.push({ id: eMap[pid].id, match_id: finalMatchId, player_id: pid, team_id: tid, played: isP, goals: eMap[pid].goals || 0, assists: eMap[pid].assists || 0, yellow_cards: eMap[pid].yellow_cards || 0, red_cards: eMap[pid].red_cards || 0, goals_conceded: conceded });
+                upsertData.push({ 
+                    id: eMap[pid].id, 
+                    match_id: finalMatchId, 
+                    player_id: pid, 
+                    team_id: tid, 
+                    played: isP, 
+                    goals: eMap[pid].goals || 0, 
+                    assists: eMap[pid].assists || 0, 
+                    yellow_cards: eMap[pid].yellow_cards || 0, 
+                    red_cards: eMap[pid].red_cards || 0 
+                });
             } else {
-                upsertData.push({ match_id: finalMatchId, player_id: pid, team_id: tid, played: isP, goals: 0, assists: 0, yellow_cards: 0, red_cards: 0, goals_conceded: conceded });
+                upsertData.push({ 
+                    match_id: finalMatchId, 
+                    player_id: pid, 
+                    team_id: tid, 
+                    played: isP, 
+                    goals: 0, 
+                    assists: 0, 
+                    yellow_cards: 0, 
+                    red_cards: 0 
+                });
             }
         });
+        
         if(upsertData.length > 0) {
             const { error: upsErr } = await sb.from('match_events').upsert(upsertData, { onConflict: 'match_id,player_id' });
             if(upsErr) { alert('Kadro kaydedilemedi: ' + upsErr.message); return; }
@@ -413,10 +432,6 @@ async function saveEvent(){
     };
     if(!obj.player_id) { alert('Lütfen geçerli bir oyuncu seçin!'); return; }
     obj.team_id = players.find(x => x.id === obj.player_id)?.team_id;
-    
-    let m = matches.find(x => x.id === obj.match_id);
-    if(m && m.played) obj.goals_conceded = (obj.team_id === m.home_team_id) ? m.away_score : m.home_score;
-    else obj.goals_conceded = 0;
 
     let eId = $('eventId').value;
     let r = eId ? await sb.from('match_events').update(obj).eq('id', eId) : await sb.from('match_events').insert(obj);
