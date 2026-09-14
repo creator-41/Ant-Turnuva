@@ -121,7 +121,7 @@
 
     <div class="container mt-2" id="main-content"></div>
 
-    <!-- 6 Butonlu Alt Menü (Başlangıçta Takım Kur Aktif) -->
+    <!-- 6 Butonlu Alt Menü -->
     <div class="nav-bottom">
         <a href="#" class="nav-bottom-item" onclick="showTab('puan-durumu', this)"><i class="bi bi-table"></i>Puan</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('fikstur', this)"><i class="bi bi-calendar-event"></i>Fikstür</a>
@@ -146,8 +146,14 @@
                     </div>
                     <div class="mb-3"><label class="form-label small text-muted">E-posta</label><input id="authEmail" type="email" class="form-control bg-dark text-white border-secondary" placeholder="ornek@mail.com"></div>
                     <div class="mb-3"><label class="form-label small text-muted">Şifre</label><input id="authPassword" type="password" class="form-control bg-dark text-white border-secondary" placeholder="En az 6 karakter"></div>
-                    <button id="authSubmitBtn" class="btn btn-primary w-100 fw-bold" onclick="submitAuth()">Giriş Yap</button>
-                    <button id="authToggleBtn" class="btn btn-link text-info w-100 mt-2" onclick="toggleAuthMode()">Hesabın yok mu? Kayıt ol</button>
+                    
+                    <!-- Şifremi Unuttum Bağlantısı -->
+                    <div class="text-end mb-3" id="forgotPasswordArea">
+                        <a href="#" onclick="forgotPassword(); return false;" class="text-info small text-decoration-none">Şifremi Unuttum?</a>
+                    </div>
+
+                    <button id="authSubmitBtn" class="btn btn-primary w-100 fw-bold mb-2" onclick="submitAuth()">Giriş Yap</button>
+                    <button id="authToggleBtn" class="btn btn-link text-info w-100 mt-1" onclick="toggleAuthMode()">Hesabın yok mu? Kayıt ol</button>
                     <div id="authMessage" class="small text-center mt-2"></div>
                 </div>
             </div>
@@ -253,9 +259,9 @@
         const teamColors = {
             "PDI": { c1: "#eab308", c2: "#0f172a", collar: "#ffffff" },          
             "Saha Ekipleri": { c1: "#ffffff", c2: "#0f172a", collar: "#e2e8f0" }, 
-            "Liman": { c1: "#22c55e", c2: "#0f172a", collar: "#ffffff" },         
-            "İdari İşler": { c1: "#ffffff", c2: "#16a34a", collar: "#dc2626" },   
-            "Garaj Ekibi": { c1: "#0f172a", c2: "#dc2626", collar: "#ffffff" },   
+            "Liman": { c1: "#22c55e", c2: "#0f172a", collar: "#ffffff" },          
+            "İdari İşler": { c1: "#ffffff", c2: "#16a34a", collar: "#dc2626" },    
+            "Garaj Ekibi": { c1: "#0f172a", c2: "#dc2626", collar: "#ffffff" },    
             "Teknik Servis": { c1: "#dc2626", c2: "#ffffff", collar: "#2563eb" }, 
             "GK": { c1: "#22c55e", c2: "#15803d", collar: "#000000" },            
             "DEFAULT": { c1: "#64748b", c2: "#334155", collar: "#ffffff" }        
@@ -539,6 +545,7 @@
             document.getElementById('authSubmitBtn').innerText = 'Giriş Yap';
             document.getElementById('authToggleBtn').innerText = 'Hesabın yok mu? Kayıt ol';
             document.getElementById('usernameFieldContainer').style.display = 'none';
+            document.getElementById('forgotPasswordArea').style.display = 'block';
             new bootstrap.Modal(document.getElementById('authModal')).show(); 
         }
 
@@ -548,7 +555,25 @@
             document.getElementById('authSubmitBtn').innerText = authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol';
             document.getElementById('authToggleBtn').innerText = authMode === 'login' ? 'Hesabın yok mu? Kayıt ol' : 'Zaten hesabın var mı? Giriş yap';
             document.getElementById('usernameFieldContainer').style.display = authMode === 'login' ? 'none' : 'block';
+            document.getElementById('forgotPasswordArea').style.display = authMode === 'login' ? 'block' : 'none';
             document.getElementById('authMessage').innerHTML = '';
+        }
+
+        async function forgotPassword() {
+            const email = document.getElementById('authEmail').value.trim();
+            const msg = document.getElementById('authMessage');
+            if(!email) {
+                msg.innerHTML = '<span class="text-warning">Lütfen önce yukarıdaki e-posta alanına e-postanızı yazın.</span>';
+                return;
+            }
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.href,
+            });
+            if(error) {
+                msg.innerHTML = '<span class="text-danger">' + error.message + '</span>';
+            } else {
+                msg.innerHTML = '<span class="text-success">Şifre sıfırlama bağlantısı e-posta adresinize gönderildi!</span>';
+            }
         }
 
         async function submitAuth() {
@@ -571,7 +596,6 @@
                 if(result.error) { msg.innerHTML='<span class="text-danger">'+result.error.message+'</span>'; return; }
                 currentUser = result.data.user;
 
-                // GİRİŞ YAPTIĞINDA PROFILES TABLOSUNDA VAR MI KONTROL ET VE EKLE/GÜNCELLE
                 if(currentUser) {
                     await supabaseClient.from('profiles').upsert({ 
                         id: currentUser.id, 
@@ -593,7 +617,6 @@
                     return; 
                 }
                 
-                // KAYIT OLDUĞUNDA PROFILES TABLOSUNA GARANTİLİ YAZ
                 if(result.data.user) {
                     await supabaseClient.from('profiles').upsert({ 
                         id: result.data.user.id, 
@@ -841,7 +864,6 @@
                 
                 window.globalProfileMap = profileMap;
 
-                // BAŞLANGIÇTA DOĞRUDAN TAKIM KUR EKRANINI AÇ
                 showTab('Fantezi', document.querySelector('.nav-bottom-item:nth-child(6)'));
             } catch (err) { console.error('Supabase veri yükleme hatası:', err); }
         }
