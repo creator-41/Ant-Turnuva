@@ -331,7 +331,7 @@ async function saveMatch(){
             }
         });
         if(upsertData.length > 0) {
-            const { error: upsErr } = await sb.from('match_events').upsert(upsertData);
+            const { error: upsErr } = await sb.from('match_events').upsert(upsertData, { onConflict: 'match_id,player_id' });
             if(upsErr) { alert('Kadro kaydedilemedi: ' + upsErr.message); return; }
         }
     }
