@@ -12,6 +12,14 @@
         .card { background-color: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 12px; margin-bottom: 15px; }
         .table-dark { --bs-table-bg: #1e293b; --bs-table-border-color: #334155; }
         
+        /* ÖZEL BİLDİRİM (TOAST) SİSTEMİ */
+        #notification-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: 320px; }
+        .custom-toast { background: #1e293b; border-left: 4px solid #38bdf8; color: #f8fafc; padding: 12px 16px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 13px; display: flex; align-items: center; justify-content: space-between; opacity: 0; transform: translateY(-20px); transition: all 0.3s ease; }
+        .custom-toast.show { opacity: 1; transform: translateY(0); }
+        .custom-toast.success { border-left-color: #22c55e; }
+        .custom-toast.error { border-left-color: #ef4444; }
+        .custom-toast.warning { border-left-color: #f59e0b; }
+
         /* ALT MENÜ */
         .nav-bottom { position: fixed; bottom: 0; left: 0; right: 0; background-color: #0f172a; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 6px 0; z-index: 1000; }
         .nav-bottom-item { color: #94a3b8; text-decoration: none; text-align: center; font-size: 10px; flex: 1; cursor: pointer; }
@@ -111,6 +119,9 @@
     </style>
 </head>
 <body>
+
+    <!-- BİLDİRİM KONTEYNERİ -->
+    <div id="notification-container"></div>
 
     <nav class="navbar navbar-dark sticky-top">
         <div class="container-fluid">
@@ -227,6 +238,27 @@
         let teamsData = {};
         let dbPlayersGlobal = []; 
         let rawTeamsGlobal = [];
+
+        // BİLDİRİM FONKSİYONU (2 saniye sonra otomatik kaybolur)
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notification-container');
+            const toast = document.createElement('div');
+            toast.className = `custom-toast ${type}`;
+            
+            let icon = 'bi-check-circle-fill text-success';
+            if(type === 'error') icon = 'bi-exclamation-triangle-fill text-danger';
+            if(type === 'warning') icon = 'bi-info-circle-fill text-warning';
+
+            toast.innerHTML = `<div class="d-flex align-items-center gap-2"><i class="bi ${icon} fs-6"></i><span>${esc(message)}</span></div>`;
+            container.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 50);
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
 
         const badWords = [
             "aq", "amina", "amk", "sik", "orospu", "piç", "oc", "oç", "amq", "göt", "yarrak", 
@@ -376,6 +408,7 @@
         function resetSquad() {
             if(confirm("Kadroyu sıfırlamak istediğine emin misin?")) {
                 mySquad = { ...defaultSquad }; captainSlot = null; renderPitch();
+                showNotification("Kadro sıfırlandı.", "warning");
             }
         }
 
@@ -572,7 +605,8 @@
             if(error) {
                 msg.innerHTML = '<span class="text-danger">' + error.message + '</span>';
             } else {
-                msg.innerHTML = '<span class="text-success">Şifre sıfırlama bağlantısı e-posta adresinize gönderildi!</span>';
+                showNotification("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi!", "success");
+                msg.innerHTML = '<span class="text-success">Şifre sıfırlama bağlantısı gönderildi!</span>';
             }
         }
 
@@ -637,7 +671,7 @@
             updateAuthArea(); 
             await loadSavedFantasyTeam();
             bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
-            alert(authMode === 'login' ? 'Giriş başarılı!' : 'Kayıt ve giriş başarılı!');
+            showNotification(authMode === 'login' ? 'Giriş başarılı!' : 'Kayıt ve giriş başarılı!', 'success');
         }
 
         async function logout() {
@@ -648,6 +682,7 @@
             const titleEl=document.getElementById('fantasy-team-title');
             if(titleEl) titleEl.textContent=fantasyTeamName;
             showTab('Fantezi', document.querySelector('.nav-bottom-item:nth-child(6)'));
+            showNotification("Çıkış yapıldı.", "warning");
         }
 
         async function updateAuthArea() {
@@ -680,7 +715,7 @@
             if(error) {
                 alert("Takım adı değiştirilemedi: " + error.message);
             } else {
-                alert("Takım adı başarıyla değiştirildi!");
+                showNotification("Takım adı başarıyla değiştirildi!", "success");
                 fantasyTeamName = newName;
                 isTeamNameChanged = true;
                 showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
@@ -746,7 +781,7 @@
                 }
                 
                 fantasyTeamName = name;
-                alert('Kadron kaydedildi!');
+                showNotification("Kadron kaydedildi!", "success");
                 showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
 
             } finally {
