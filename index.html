@@ -121,7 +121,7 @@
 
     <div class="container mt-2" id="main-content"></div>
 
-    <!-- 6 Butonlu Alt Menü (Başlangıçta Takım Kur / Fantezi Aktif) -->
+    <!-- 6 Butonlu Alt Menü (Başlangıçta Takım Kur Aktif) -->
     <div class="nav-bottom">
         <a href="#" class="nav-bottom-item" onclick="showTab('puan-durumu', this)"><i class="bi bi-table"></i>Puan</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('fikstur', this)"><i class="bi bi-calendar-event"></i>Fikstür</a>
@@ -570,19 +570,40 @@
                 btn.disabled = false;
                 if(result.error) { msg.innerHTML='<span class="text-danger">'+result.error.message+'</span>'; return; }
                 currentUser = result.data.user;
+
+                // GİRİŞ YAPTIĞINDA PROFILES TABLOSUNDA VAR MI KONTROL ET VE EKLE/GÜNCELLE
+                if(currentUser) {
+                    await supabaseClient.from('profiles').upsert({ 
+                        id: currentUser.id, 
+                        email: currentUser.email,
+                        role: 'user' 
+                    }, { onConflict: 'id', ignoreDuplicates: true });
+                }
+
             } else {
                 const result = await supabaseClient.auth.signUp({
                     email, 
                     password,
                     options: { data: { username: username } }
                 });
-                btn.disabled = false;
-                if(result.error) { msg.innerHTML='<span class="text-danger">'+result.error.message+'</span>'; return; }
                 
+                if(result.error) { 
+                    btn.disabled = false;
+                    msg.innerHTML='<span class="text-danger">'+result.error.message+'</span>'; 
+                    return; 
+                }
+                
+                // KAYIT OLDUĞUNDA PROFILES TABLOSUNA GARANTİLİ YAZ
                 if(result.data.user) {
-                    await supabaseClient.from('profiles').upsert({ id: result.data.user.id, username: username });
+                    await supabaseClient.from('profiles').upsert({ 
+                        id: result.data.user.id, 
+                        username: username,
+                        email: email,
+                        role: 'user' 
+                    });
                 }
 
+                btn.disabled = false;
                 if(!result.data.session) { 
                     msg.innerHTML='<span class="text-success">Kayıt başarılı! E-postanı doğruladıktan sonra giriş yapabilirsin.</span>'; 
                     return; 
@@ -820,7 +841,7 @@
                 
                 window.globalProfileMap = profileMap;
 
-                // BAŞLANGIÇTA DOĞRUDAN TAKIM KUR (FANTEZİ) EKRANINI AÇ
+                // BAŞLANGIÇTA DOĞRUDAN TAKIM KUR EKRANINI AÇ
                 showTab('Fantezi', document.querySelector('.nav-bottom-item:nth-child(6)'));
             } catch (err) { console.error('Supabase veri yükleme hatası:', err); }
         }
