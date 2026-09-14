@@ -316,31 +316,18 @@ async function saveMatch(){
     let finalMatchId = id || r.data.id;
 
     if(played) {
-        const {data: exist} = await sb.from('match_events').select('*').eq('match_id', finalMatchId);
-        const eMap = {}; (exist||[]).forEach(e => eMap[e.player_id] = e);
+        await sb.from('match_events').delete().eq('match_id', finalMatchId);
         
-        const upsertData = [];
+        const insertData = [];
         document.querySelectorAll('.squad-cb').forEach(cb => {
             let pid = cb.value, tid = cb.getAttribute('data-team'), isP = cb.checked;
             
-            if(eMap[pid]) {
-                upsertData.push({ 
-                    id: eMap[pid].id, 
+            if(isP) {
+                insertData.push({ 
                     match_id: finalMatchId, 
                     player_id: pid, 
                     team_id: tid, 
-                    played: isP, 
-                    goals: eMap[pid].goals || 0, 
-                    assists: eMap[pid].assists || 0, 
-                    yellow_cards: eMap[pid].yellow_cards || 0, 
-                    red_cards: eMap[pid].red_cards || 0 
-                });
-            } else {
-                upsertData.push({ 
-                    match_id: finalMatchId, 
-                    player_id: pid, 
-                    team_id: tid, 
-                    played: isP, 
+                    played: true, 
                     goals: 0, 
                     assists: 0, 
                     yellow_cards: 0, 
@@ -349,9 +336,9 @@ async function saveMatch(){
             }
         });
         
-        if(upsertData.length > 0) {
-            const { error: upsErr } = await sb.from('match_events').upsert(upsertData, { onConflict: 'match_id,player_id' });
-            if(upsErr) { alert('Kadro kaydedilemedi: ' + upsErr.message); return; }
+        if(insertData.length > 0) {
+            const { error: insErr } = await sb.from('match_events').insert(insertData);
+            if(insErr) { alert('Kadro kaydedilemedi: ' + insErr.message); return; }
         }
     }
     modal('matchModal').hide(); await loadAll();
