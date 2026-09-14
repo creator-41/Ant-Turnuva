@@ -14,7 +14,7 @@
         
         /* ALT MENÜ */
         .nav-bottom { position: fixed; bottom: 0; left: 0; right: 0; background-color: #0f172a; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 6px 0; z-index: 1000; }
-        .nav-bottom-item { color: #94a3b8; text-decoration: none; text-align: center; font-size: 10px; flex: 1; }
+        .nav-bottom-item { color: #94a3b8; text-decoration: none; text-align: center; font-size: 10px; flex: 1; cursor: pointer; }
         .nav-bottom-item.active { color: #38bdf8; font-weight: bold; }
         .nav-bottom-item i { font-size: 16px; display: block; margin-bottom: 1px; }
 
@@ -67,25 +67,7 @@
         .player-card { display: inline-flex; flex-direction: column; align-items: center; cursor: pointer; margin: 0; transition: transform 0.15s; }
         .player-card:hover { transform: scale(1.08); }
         .jersey-icon { width: 30px; height: 30px; filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.7)); }
-        
-        /* Çizgilerle karışmaması için gölgeli ve koyu etiket yapısı */
-        .jersey-name-tag { 
-            background: rgba(15, 23, 42, 0.95); 
-            border: 1px solid #38bdf8; 
-            color: #fff; 
-            font-size: 7.5px; 
-            font-weight: bold; 
-            padding: 1px 4px; 
-            border-radius: 5px; 
-            margin-top: 1px; 
-            max-width: 65px; 
-            white-space: nowrap; 
-            overflow: hidden; 
-            text-overflow: ellipsis; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.8); 
-            text-align: center; 
-        }
-
+        .jersey-name-tag { background: rgba(15, 23, 42, 0.95); border: 1px solid #38bdf8; color: #fff; font-size: 7.5px; font-weight: bold; padding: 1px 4px; border-radius: 5px; margin-top: 1px; max-width: 65px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 2px 4px rgba(0,0,0,0.8); text-align: center; }
         .jersey-name-tag.is-captain-tag { border-color: #f59e0b; color: #fbbf24; }
         .captain-btn { font-size: 7px; padding: 0; color: #fbbf24; text-decoration: none; font-weight: bold; }
         .player-chip { background: rgba(15, 23, 42, 0.85); border: 1px solid #38bdf8; border-radius: 20px; padding: 5px 12px; font-size: 12px; display: inline-block; margin: 3px; cursor: pointer; transition: all 0.2s; }
@@ -139,14 +121,14 @@
 
     <div class="container mt-2" id="main-content"></div>
 
-    <!-- 6 Butonlu Alt Menü -->
+    <!-- 6 Butonlu Alt Menü (Başlangıçta Takım Kur / Fantezi Aktif) -->
     <div class="nav-bottom">
         <a href="#" class="nav-bottom-item" onclick="showTab('puan-durumu', this)"><i class="bi bi-table"></i>Puan</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('fikstur', this)"><i class="bi bi-calendar-event"></i>Fikstür</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('istatistik', this)"><i class="bi bi-bar-chart-line-fill"></i>İstatistik</a>
-        <a href="#" class="nav-bottom-item active" onclick="showTab('kadrolar', this)"><i class="bi bi-people-fill"></i>Kadrolar</a>
+        <a href="#" class="nav-bottom-item" onclick="showTab('kadrolar', this)"><i class="bi bi-people-fill"></i>Kadrolar</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('siralama', this)"><i class="bi bi-trophy-fill"></i>Sıralama</a>
-        <a href="#" class="nav-bottom-item" onclick="showTab('Fantezi', this)"><i class="bi bi-star-fill text-warning"></i>Takım Kur</a>
+        <a href="#" class="nav-bottom-item active" onclick="showTab('Fantezi', this)"><i class="bi bi-star-fill text-warning"></i>Takım Kur</a>
     </div>
 
     <!-- Giriş / Kayıt Modalı -->
@@ -159,7 +141,7 @@
                 </div>
                 <div class="modal-body">
                     <div id="usernameFieldContainer" class="mb-3" style="display: none;">
-                        <label class="form-label small text-muted">Kullanıcı Adı</label>
+                        <label class="form-label small text-muted">Kullanıcı Adı (Zorunlu)</label>
                         <input id="authUsername" type="text" class="form-control bg-dark text-white border-secondary" placeholder="Örn: FutbolKurdu">
                     </div>
                     <div class="mb-3"><label class="form-label small text-muted">E-posta</label><input id="authEmail" type="email" class="form-control bg-dark text-white border-secondary" placeholder="ornek@mail.com"></div>
@@ -577,7 +559,7 @@
 
             if(!email || !password) { msg.innerHTML='<span class="text-warning">E-posta ve şifre gerekli.</span>'; return; }
             if(authMode === 'signup') {
-                if(!username) { msg.innerHTML='<span class="text-warning">Kayıt olmak için kullanıcı adı gerekli.</span>'; return; }
+                if(!username) { msg.innerHTML='<span class="text-warning">Kullanıcı adı zorunludur!</span>'; return; }
                 if(containsBadWord(username)) { msg.innerHTML='<span class="text-danger">Kullanıcı adında uygunsuz kelimeler kullanılamaz!</span>'; return; }
             }
 
@@ -621,7 +603,7 @@
             updateAuthArea(); renderPitch();
             const titleEl=document.getElementById('fantasy-team-title');
             if(titleEl) titleEl.textContent=fantasyTeamName;
-            showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
+            showTab('Fantezi', document.querySelector('.nav-bottom-item:nth-child(6)'));
         }
 
         async function updateAuthArea() {
@@ -632,7 +614,7 @@
                 const {data: prof} = await supabaseClient.from('profiles').select('username').eq('id', currentUser.id).maybeSingle();
                 if(prof && prof.username) displayName = prof.username;
 
-                area.innerHTML=`<div class="auth-user"><i class="bi bi-person-check-fill text-success"></i><span>${esc(displayName)}</span><button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="logout()">Çıkış</button></div>`;
+                area.innerHTML=`<div class="auth-user"><i class="bi bi-person-check-fill text-success"></i><span>${esc(displayName)}</span><button class="btn btn-sm btn-outline-danger py-0 px-2 ms-1" onclick="logout()">Çıkış</button></div>`;
             } else {
                 area.innerHTML='<button class="auth-btn" onclick="openAuthModal()"><i class="bi bi-person-circle me-1"></i>Giriş Yap</button>';
             }
@@ -760,7 +742,7 @@
 
             captainSlot=team.captain_slot || null;
             renderPitch();
-            showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
+            showTab('Fantezi', document.querySelector('.nav-bottom-item:nth-child(6)'));
         }
 
         supabaseClient.auth.getSession().then(async ({data})=>{
@@ -838,7 +820,8 @@
                 
                 window.globalProfileMap = profileMap;
 
-                showTab('kadrolar', document.querySelector('.nav-bottom-item.active'));
+                // BAŞLANGIÇTA DOĞRUDAN TAKIM KUR (FANTEZİ) EKRANINI AÇ
+                showTab('Fantezi', document.querySelector('.nav-bottom-item:nth-child(6)'));
             } catch (err) { console.error('Supabase veri yükleme hatası:', err); }
         }
 
@@ -862,7 +845,6 @@
             return Object.values(rows).map(x=>({...x, gd:x.gf-x.ga})).sort((a,b)=>b.points-a.points||b.gd-a.gd||b.gf-a.gf||a.name.localeCompare(b.name,'tr'));
         }
 
-        // --- TAKIMLARI ESNEK DİKEY SAHADA GÖSTERME (ÇİZGİLER ŞEFFAF, İSİMLER NET) ---
         function generateTeamPitchHTML(teamName, playersList, teamColor) {
             let gk = playersList.filter(p => String(p.position||'').toUpperCase() === 'GK' || p.name.includes('(K)'));
             let def = playersList.filter(p => String(p.position||'').toUpperCase() === 'DEF' && !gk.includes(p));
@@ -878,7 +860,7 @@
             };
 
             const renderRowsHtml = (arr) => {
-                let chunks = chunkArray(arr, 4); // Satır başına max 4 oyuncu
+                let chunks = chunkArray(arr, 4);
                 return chunks.map(chunk => `
                     <div class="d-flex justify-content-center flex-wrap gap-2 mb-2">
                         ${chunk.map(p => `
@@ -893,7 +875,6 @@
 
             return `
                 <div style="background: repeating-linear-gradient(to bottom, #10b981, #10b981 26px, #059669 26px, #059669 52px); border: 2px solid #ffffff; border-radius: 8px; padding: 12px 6px; position: relative; overflow: hidden; max-width: 360px; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.4);">
-                    <!-- Çizgilerin şeffaflığı düşürüldü (0.4) ki isimler kusursuz okunsun -->
                     <div style="position: absolute; top:0; left:50%; width:120px; height:45px; border:2px solid rgba(255,255,255,0.4); border-top:none; transform:translateX(-50%); pointer-events:none;"></div>
                     <div style="position: absolute; top:50%; left:0; right:0; height:1.5px; background:rgba(255,255,255,0.4); transform:translateY(-50%); pointer-events:none;"></div>
                     <div style="position: absolute; top:50%; left:50%; width:60px; height:60px; border:1.5px solid rgba(255,255,255,0.4); border-radius:50%; transform:translate(-50%,-50%); pointer-events:none;"></div>
