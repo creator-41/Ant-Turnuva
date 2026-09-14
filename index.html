@@ -996,7 +996,7 @@
             } else if(tabName==='kadrolar') {
                 const playersRes = await supabaseClient.from('players').select('*').order('name'); 
                 const ps = playersRes.data || [];
-                let html = '<h5 class="text-info mb-3"><i class="bi bi-people me-2"></i>Takım Kadroları (Tıklayınca Açılır)</h5>';
+                let html = '<h5 class="text-info mb-3"><i class="bi bi-people me-2"></i>Takım Kadroları</h5>';
                 
                 teams.forEach((t, index) => {
                     const teamPlayers = ps.filter(p => p.team_id === t.id).sort((a,b) => a.name.localeCompare(b.name, 'tr'));
