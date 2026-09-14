@@ -150,6 +150,22 @@
         padding: 1px !important;
     }
 }
+/* MOBİL İÇİN PUAN DURUMU OKLARI VE SIRA NUMARASI DÜZELTMESİ */
+@media (max-width: 576px) {
+    .standings-table .col-rank {
+        width: 12% !important; /* Okların sığması için ilk sütuna biraz daha yer verdik */
+    }
+    .standings-table .col-team {
+        width: 28% !important; /* Takım isminin genişliğini dengeledik */
+    }
+    .standings-table td:first-child span {
+        min-width: auto !important; /* Sabit 38px sınırını kaldırdık ki özgür kalsın */
+        gap: 2px !important; /* Ok ile rakam arasındaki boşluğu iyice kıstık */
+    }
+    .standings-table td:first-child i {
+        font-size: 9px !important; /* Ok ikonunu bir tık küçülttük */
+    }
+}
     </style>
 </head>
 <body>
