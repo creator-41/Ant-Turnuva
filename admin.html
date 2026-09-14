@@ -161,7 +161,7 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
 </div><div class="modal-footer border-secondary"><button class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-info fw-bold" onclick="saveMatch()">Maçı Kaydet</button></div></div></div></div>
 
 <!-- EVENT MODAL -->
-<div class="modal fade" id="eventModal"><div class="modal-dialog"><div class="modal-content bg-dark text-white"><div class="modal-header"><h5>İstatistik Ekle</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="eventId">
+<div class="modal fade" id="eventModal"><div class="modal-dialog"><div class="modal-content bg-dark text-white"><div class="modal-header"><h5 id="eventModalTitle">İstatistik Ekle</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="eventId">
     <label class="form-label text-info">Maç (Tarih ve Saatli)</label><select id="eventMatch" class="form-select mb-3" onchange="onMatchChangeForEvents()"></select>
     <label class="form-label text-info">Oyuncu (Sadece Maç Kadrosundakiler)</label><select id="eventPlayer" class="form-select mb-3" onchange="fetchPlayerEventData()"></select>
     <div class="form-check mb-3 p-3 bg-secondary bg-opacity-25 rounded border border-secondary">
@@ -240,7 +240,7 @@ function renderAll(){
     $('teamsTable').innerHTML = teams.map(t => `<tr><td class="fw-bold">${esc(t.name)}</td><td>${esc(t.group_name || '-')}</td><td><span style="display:inline-block;width:18px;height:18px;border-radius:50%;background:${esc(t.color||'#0ea5e9')};"></span></td><td class="text-end"><button class="btn btn-sm btn-outline-info me-1" onclick="openTeamModal('${t.id}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteTeam('${t.id}')"><i class="bi bi-trash"></i></button></td></tr>`).join('') || empty('Takım yok.');
     $('playersTable').innerHTML = players.map(p => `<tr><td class="fw-bold">${esc(p.name)}</td><td>${esc(teamName(p.team_id))}</td><td>${esc(p.position || '-')}</td><td class="text-end"><button class="btn btn-sm btn-outline-info me-1" onclick="openPlayerModal('${p.id}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deletePlayer('${p.id}')"><i class="bi bi-trash"></i></button></td></tr>`).join('') || empty('Oyuncu yok.');
     $('matchesTable').innerHTML = matches.map(m => `<tr><td>${fmt(m.match_date)}</td><td>${esc(m.group_name||'-')}</td><td class="text-start">${esc(teamName(m.home_team_id))} <span class="text-warning">vs</span> ${esc(teamName(m.away_team_id))}</td><td class="fw-bold text-center">${m.played?`${m.home_score} - ${m.away_score}`:'-'}</td><td>${m.played?'<span class="badge text-bg-success">Oynandı</span>':'<span class="badge text-bg-warning">Gelecek</span>'}</td><td class="text-end"><button class="btn btn-sm btn-outline-info me-1" onclick="openMatchModal('${m.id}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteMatch('${m.id}')"><i class="bi bi-trash"></i></button></td></tr>`).join('') || empty('Maç yok.');
-    $('eventsTable').innerHTML = events.map(e => `<tr><td class="text-start">${matchName(e.match_id)}</td><td class="text-start fw-bold">${esc(playerName(e.player_id))} ${e.played?'<span class="badge bg-success" style="font-size:9px">Oynadı</span>':''}</td><td class="text-start">${esc(teamName(e.team_id))}</td><td>${e.goals||0} / ${e.assists||0}</td><td><span class="text-warning fw-bold">${e.yellow_cards||0}</span> / <span class="text-danger fw-bold">${e.red_cards||0}</span></td><td class="text-end"><button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${e.id}')"><i class="bi bi-trash"></i></button></td></tr>`).join('') || empty('Kayıt yok.');
+    $('eventsTable').innerHTML = events.map(e => `<tr><td class="text-start">${matchName(e.match_id)}</td><td class="text-start fw-bold">${esc(playerName(e.player_id))} ${e.played?'<span class="badge bg-success" style="font-size:9px">Oynadı</span>':''}</td><td class="text-start">${esc(teamName(e.team_id))}</td><td>${e.goals||0} / ${e.assists||0}</td><td><span class="text-warning fw-bold">${e.yellow_cards||0}</span> / <span class="text-danger fw-bold">${e.red_cards||0}</span></td><td class="text-end"><button class="btn btn-sm btn-outline-info me-1" onclick="openEventModal('${e.id}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${e.id}')"><i class="bi bi-trash"></i></button></td></tr>`).join('') || empty('Kayıt yok.');
 }
 
 function empty(x){ return `<tr><td colspan="6" class="text-center muted py-4">${x}</td></tr>`; }
@@ -346,10 +346,33 @@ async function saveMatch(){
 
 async function deleteMatch(id){ if(confirm('Emin misin?')){ await sb.from('matches').delete().eq('id', id); loadAll(); } }
 
-function openEventModal(){
+async function openEventModal(eventId = null){
     fillSelect('eventMatch', matches, m => `${matchName(m.id)} (${fmt(m.match_date)})`, m => m.id);
-    updatePlayerDropdownForMatch();
-    fetchPlayerEventData();
+    
+    if(eventId) {
+        let ev = events.find(x => x.id === eventId);
+        if(ev) {
+            $('eventId').value = ev.id;
+            $('eventMatch').value = ev.match_id;
+            await updatePlayerDropdownForMatch();
+            $('eventPlayer').value = ev.player_id;
+            $('eventPlayed').checked = !!ev.played;
+            $('eventGoals').value = ev.goals || 0;
+            $('eventAssists').value = ev.assists || 0;
+            $('eventYellow').value = ev.yellow_cards || 0;
+            $('eventRed').value = ev.red_cards || 0;
+            $('eventModalTitle').textContent = 'İstatistik Düzenle';
+        }
+    } else {
+        $('eventId').value = '';
+        await updatePlayerDropdownForMatch();
+        $('eventPlayed').checked = true;
+        $('eventGoals').value = 0;
+        $('eventAssists').value = 0;
+        $('eventYellow').value = 0;
+        $('eventRed').value = 0;
+        $('eventModalTitle').textContent = 'İstatistik Ekle';
+    }
     modal('eventModal').show();
 }
 
@@ -392,11 +415,11 @@ async function updatePlayerDropdownForMatch() {
     html += `</optgroup>`;
 
     $('eventPlayer').innerHTML = html;
-    fetchPlayerEventData();
 }
 
-function onMatchChangeForEvents() {
-    updatePlayerDropdownForMatch();
+async function onMatchChangeForEvents() {
+    await updatePlayerDropdownForMatch();
+    fetchPlayerEventData();
 }
 
 async function fetchPlayerEventData() {
@@ -404,12 +427,14 @@ async function fetchPlayerEventData() {
     if(!mid || !pid) return;
     const {data} = await sb.from('match_events').select('*').eq('match_id', mid).eq('player_id', pid).maybeSingle();
     
-    $('eventId').value = data?.id || '';
-    $('eventPlayed').checked = data ? data.played : true;
-    $('eventGoals').value = data?.goals || 0;
-    $('eventAssists').value = data?.assists || 0;
-    $('eventYellow').value = data?.yellow_cards || 0;
-    $('eventRed').value = data?.red_cards || 0;
+    if(data && !$('eventId').value) {
+        $('eventId').value = data.id;
+        $('eventPlayed').checked = data.played;
+        $('eventGoals').value = data.goals || 0;
+        $('eventAssists').value = data.assists || 0;
+        $('eventYellow').value = data.yellow_cards || 0;
+        $('eventRed').value = data.red_cards || 0;
+    }
 }
 
 async function saveEvent(){
