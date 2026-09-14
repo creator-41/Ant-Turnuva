@@ -35,7 +35,6 @@
             .jersey-icon { width: 24px !important; height: 24px !important; }
             .jersey-name-tag { font-size: 6px !important; max-width: 48px !important; padding: 1px 2px; }
             
-            /* MOBİL İÇİN PUAN DURUMU SIKIŞTIRMA VE OK DÜZELTMESİ */
             .standings-table th, .standings-table td { padding: 5px 2px !important; font-size: 10.5px !important; }
             .standings-table .badge { font-size: 10px !important; padding: 3px 4px !important; min-width: 22px !important; }
             .standings-table .col-rank { width: 12% !important; }
@@ -68,7 +67,25 @@
         .player-card { display: inline-flex; flex-direction: column; align-items: center; cursor: pointer; margin: 0; transition: transform 0.15s; }
         .player-card:hover { transform: scale(1.08); }
         .jersey-icon { width: 30px; height: 30px; filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.7)); }
-        .jersey-name-tag { background: rgba(15, 23, 42, 0.95); border: 1px solid #38bdf8; color: #fff; font-size: 7.5px; font-weight: bold; padding: 1px 4px; border-radius: 5px; margin-top: 1px; max-width: 65px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 2px 4px rgba(0,0,0,0.5); text-align: center; }
+        
+        /* Çizgilerle karışmaması için gölgeli ve koyu etiket yapısı */
+        .jersey-name-tag { 
+            background: rgba(15, 23, 42, 0.95); 
+            border: 1px solid #38bdf8; 
+            color: #fff; 
+            font-size: 7.5px; 
+            font-weight: bold; 
+            padding: 1px 4px; 
+            border-radius: 5px; 
+            margin-top: 1px; 
+            max-width: 65px; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.8); 
+            text-align: center; 
+        }
+
         .jersey-name-tag.is-captain-tag { border-color: #f59e0b; color: #fbbf24; }
         .captain-btn { font-size: 7px; padding: 0; color: #fbbf24; text-decoration: none; font-weight: bold; }
         .player-chip { background: rgba(15, 23, 42, 0.85); border: 1px solid #38bdf8; border-radius: 20px; padding: 5px 12px; font-size: 12px; display: inline-block; margin: 3px; cursor: pointer; transition: all 0.2s; }
@@ -127,9 +144,9 @@
         <a href="#" class="nav-bottom-item" onclick="showTab('puan-durumu', this)"><i class="bi bi-table"></i>Puan</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('fikstur', this)"><i class="bi bi-calendar-event"></i>Fikstür</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('istatistik', this)"><i class="bi bi-bar-chart-line-fill"></i>İstatistik</a>
-        <a href="#" class="nav-bottom-item" onclick="showTab('kadrolar', this)"><i class="bi bi-people-fill"></i>Kadrolar</a>
+        <a href="#" class="nav-bottom-item active" onclick="showTab('kadrolar', this)"><i class="bi bi-people-fill"></i>Kadrolar</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('siralama', this)"><i class="bi bi-trophy-fill"></i>Sıralama</a>
-        <a href="#" class="nav-bottom-item active" onclick="showTab('Fantezi', this)"><i class="bi bi-star-fill text-warning"></i>Takım Kur</a>
+        <a href="#" class="nav-bottom-item" onclick="showTab('Fantezi', this)"><i class="bi bi-star-fill text-warning"></i>Takım Kur</a>
     </div>
 
     <!-- Giriş / Kayıt Modalı -->
@@ -221,31 +238,26 @@
     <script>
         let teamsData = {};
         let dbPlayersGlobal = []; 
+        let rawTeamsGlobal = [];
 
-        // GÜÇLENDİRİLMİŞ KÜFÜR VE ARGO FİLTRE LİSTESİ
         const badWords = [
             "aq", "amina", "amk", "sik", "orospu", "piç", "oc", "oç", "amq", "göt", "yarrak", 
             "mal", "salak", "am", "meme", "kahpe", "geber", "sikik", "sikerim", "orospucocugu",
-            "yarak", "rak", "tasak", "sapla", "amcik", "got", "orospu", "orosbu", "pic", "siktir",
+            "yarak", "rak", "tasak", "sapla", "amcik", "got", "orosbu", "pic", "siktir",
             "vay anani", "ananin", "sikis", "sex"
         ];
 
         function containsBadWord(text) {
             if (!text) return false;
-            
-            // Türkçe karakterleri ve olası harf oyunlarını (örneğin rakam koyma, boşluk bırakma) normale çevirelim
             let cleanText = text.toLowerCase()
                 .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
                 .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
                 .replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a')
-                .replace(/[^a-z]/g, ''); // Harf dışındaki her şeyi (boşluklar dahil) silip kelimeleri birleştiriyoruz
+                .replace(/[^a-z]/g, '');
 
             for (let word of badWords) {
-                // Eğer girilen metin yasaklı kelimenin temizlenmiş halini içeriyorsa yakala
                 let cleanWord = word.toLowerCase().replace(/[^a-z]/g, '');
-                if (cleanText.includes(cleanWord)) {
-                    return true;
-                }
+                if (cleanText.includes(cleanWord)) return true;
             }
             return false;
         }
@@ -633,7 +645,6 @@
             
             newName = newName.trim();
 
-            // GÜÇLENDİRİLMİŞ KÜFÜR FİLTRESİ KONTROLÜ
             if(containsBadWord(newName)) {
                 alert("Uygunsuz kelime içeren takım adları kabul edilmez!");
                 return;
@@ -673,7 +684,6 @@
                     name = name.trim();
                 }
 
-                // GÜÇLENDİRİLMİŞ KÜFÜR FİLTRESİ KONTROLÜ
                 if(containsBadWord(name)) {
                     alert("Uygunsuz kelime içeren takım adları kabul edilmez!");
                     return;
@@ -771,18 +781,18 @@
 
                 if (teamsRes.error || playersRes.error || matchesRes.error || eventsRes.error) throw new Error("Veri okuma hatası");
 
-                const dbTeams = teamsRes.data || []; 
+                rawTeamsGlobal = teamsRes.data || []; 
                 dbPlayersGlobal = playersRes.data || []; 
                 const dbMatches = matchesRes.data || []; 
                 const dbEvents = eventsRes.data || [];
                 const dbProfiles = profilesRes.data || [];
                 const profileMap = Object.fromEntries(dbProfiles.map(pr => [pr.id, pr.username]));
 
-                const teamMap = Object.fromEntries(dbTeams.map(t => [t.id, t]));
+                const teamMap = Object.fromEntries(rawTeamsGlobal.map(t => [t.id, t]));
                 const playerMap = Object.fromEntries(dbPlayersGlobal.map(p => [p.id, p]));
 
                 Object.keys(teamsData).forEach(k => delete teamsData[k]);
-                dbTeams.forEach(t => {
+                rawTeamsGlobal.forEach(t => {
                     teamsData[t.name] = [];
                     if (t.color) teamColors[t.name] = { c1: t.color, c2: '#0f172a', collar: '#ffffff' };
                 });
@@ -828,7 +838,7 @@
                 
                 window.globalProfileMap = profileMap;
 
-                showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
+                showTab('kadrolar', document.querySelector('.nav-bottom-item.active'));
             } catch (err) { console.error('Supabase veri yükleme hatası:', err); }
         }
 
@@ -850,6 +860,50 @@
                 if(hs>as){h.wins++;h.points+=3;a.losses++;} else if(hs<as){a.wins++;a.points+=3;h.losses++;} else {h.draws++;a.draws++;h.points++;a.points++;}
             });
             return Object.values(rows).map(x=>({...x, gd:x.gf-x.ga})).sort((a,b)=>b.points-a.points||b.gd-a.gd||b.gf-a.gf||a.name.localeCompare(b.name,'tr'));
+        }
+
+        // --- TAKIMLARI ESNEK DİKEY SAHADA GÖSTERME (ÇİZGİLER ŞEFFAF, İSİMLER NET) ---
+        function generateTeamPitchHTML(teamName, playersList, teamColor) {
+            let gk = playersList.filter(p => String(p.position||'').toUpperCase() === 'GK' || p.name.includes('(K)'));
+            let def = playersList.filter(p => String(p.position||'').toUpperCase() === 'DEF' && !gk.includes(p));
+            let os = playersList.filter(p => String(p.position||'').toUpperCase() === 'ORTA SAHA' && !gk.includes(p) && !def.includes(p));
+            let fwd = playersList.filter(p => (String(p.position||'').toUpperCase() === 'FORVET' || (!['GK','DEF','ORTA SAHA'].includes(String(p.position||'').toUpperCase()))) && !gk.includes(p) && !def.includes(p) && !os.includes(p));
+
+            const chunkArray = (arr, size) => {
+                let results = [];
+                for (let i = 0; i < arr.length; i += size) {
+                    results.push(arr.slice(i, i + size));
+                }
+                return results;
+            };
+
+            const renderRowsHtml = (arr) => {
+                let chunks = chunkArray(arr, 4); // Satır başına max 4 oyuncu
+                return chunks.map(chunk => `
+                    <div class="d-flex justify-content-center flex-wrap gap-2 mb-2">
+                        ${chunk.map(p => `
+                            <div class="player-card" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')" style="margin: 2px;">
+                                ${generateJerseySVG(teamColor || '#38bdf8', '#0f172a', '#ffffff', p.name.includes('(K)'))}
+                                <div class="jersey-name-tag" style="font-size: 8px; max-width: 75px; white-space: normal; line-height: 1.1;">${esc(p.name)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('');
+            };
+
+            return `
+                <div style="background: repeating-linear-gradient(to bottom, #10b981, #10b981 26px, #059669 26px, #059669 52px); border: 2px solid #ffffff; border-radius: 8px; padding: 12px 6px; position: relative; overflow: hidden; max-width: 360px; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.4);">
+                    <!-- Çizgilerin şeffaflığı düşürüldü (0.4) ki isimler kusursuz okunsun -->
+                    <div style="position: absolute; top:0; left:50%; width:120px; height:45px; border:2px solid rgba(255,255,255,0.4); border-top:none; transform:translateX(-50%); pointer-events:none;"></div>
+                    <div style="position: absolute; top:50%; left:0; right:0; height:1.5px; background:rgba(255,255,255,0.4); transform:translateY(-50%); pointer-events:none;"></div>
+                    <div style="position: absolute; top:50%; left:50%; width:60px; height:60px; border:1.5px solid rgba(255,255,255,0.4); border-radius:50%; transform:translate(-50%,-50%); pointer-events:none;"></div>
+                    
+                    ${renderRowsHtml(fwd)}
+                    ${renderRowsHtml(os)}
+                    ${renderRowsHtml(def)}
+                    ${renderRowsHtml(gk)}
+                </div>
+            `;
         }
 
         async function renderLiveTab(tabName) {
@@ -878,7 +932,7 @@
             }
 
             const [tr, mr, er, ftRes, prRes] = await Promise.all([
-                supabaseClient.from('teams').select('*').order('group_name').order('name'),
+                supabaseClient.from('teams').select('*').order('name'),
                 supabaseClient.from('matches').select('*').order('match_date'),
                 supabaseClient.from('match_events').select('*'),
                 supabaseClient.from('fantasy_teams').select('id, name, user_id, captain_slot, fantasy_team_players(slot, player_id)'),
@@ -938,10 +992,34 @@
                 const list=(obj,label)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,v],i)=>{ const playerName=pr[id]?.name||'Bilinmiyor'; const safePlayer=playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); return `<li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary" style="cursor:pointer" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safePlayer}')"><div><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'} me-2">${i+1}</span><strong>${esc(playerName)}</strong> <small class="text-muted">(${esc(teamMap[pr[id]?.team_id]?.name||'')})</small></div><span class="badge bg-primary fs-6">${v} ${label}</span></li>`; }).join('')||'<li class="list-group-item bg-dark text-muted border-secondary">Henüz veri yok.</li>';
                 content.innerHTML=`<h5 class="text-info mb-3"><i class="bi bi-bar-chart-line-fill me-2"></i>İstatistikler</h5><div class="card p-3"><h6 class="text-warning">Gol Krallığı</h6><ul class="list-group">${list(goals,'Gol')}</ul></div><div class="card p-3"><h6 class="text-info">Asist Krallığı</h6><ul class="list-group">${list(assists,'Asist')}</ul></div>`;
             } else if(tabName==='kadrolar') {
-                const playersRes=await supabaseClient.from('players').select('*').order('name'); const ps=playersRes.data||[];
-                let html='<h5 class="text-info mb-3"><i class="bi bi-people me-2"></i>Takım Kadroları</h5>';
-                teams.forEach(t=>{ const arr=ps.filter(p=>p.team_id===t.id); html+=`<div class="card p-3"><h6 class="fw-bold text-warning">${esc(t.name)}</h6><div>${arr.map(p=>`<span class="player-chip" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')">${esc(p.name)}</span>`).join('')||'<span class="text-muted">Oyuncu yok</span>'}</div></div>`; });
-                content.innerHTML=html;
+                const playersRes = await supabaseClient.from('players').select('*').order('name'); 
+                const ps = playersRes.data || [];
+                let html = '<h5 class="text-info mb-3"><i class="bi bi-people me-2"></i>Takım Kadroları (Tıklayınca Açılır)</h5>';
+                
+                teams.forEach((t, index) => {
+                    const teamPlayers = ps.filter(p => p.team_id === t.id).sort((a,b) => a.name.localeCompare(b.name, 'tr'));
+                    const collapseId = 'teamCollapse_' + index;
+                    const tColor = t.color || '#38bdf8';
+                    const pitchHTML = generateTeamPitchHTML(t.name, teamPlayers, tColor);
+
+                    html += `
+                        <div class="card mb-2 overflow-hidden">
+                            <div class="p-3 d-flex justify-content-between align-items-center" style="cursor: pointer; background: #1e293b;" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${tColor};"></span>
+                                    <h6 class="mb-0 fw-bold text-white">${esc(t.name)}</h6>
+                                </div>
+                                <span class="badge bg-secondary">${teamPlayers.length} Oyuncu <i class="bi bi-chevron-down ms-1"></i></span>
+                            </div>
+                            <div id="${collapseId}" class="collapse">
+                                <div class="p-3 bg-dark border-top border-secondary text-center">
+                                    ${teamPlayers.length > 0 ? pitchHTML : '<span class="text-muted">Bu takımda henüz oyuncu yok.</span>'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                content.innerHTML = html;
             }
         }
 
