@@ -141,6 +141,10 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <div id="usernameFieldContainer" class="mb-3" style="display: none;">
+                        <label class="form-label small text-muted">Kullanıcı Adı</label>
+                        <input id="authUsername" type="text" class="form-control bg-dark text-white border-secondary" placeholder="Örn: FutbolKurdu">
+                    </div>
                     <div class="mb-3"><label class="form-label small text-muted">E-posta</label><input id="authEmail" type="email" class="form-control bg-dark text-white border-secondary" placeholder="ornek@mail.com"></div>
                     <div class="mb-3"><label class="form-label small text-muted">Şifre</label><input id="authPassword" type="password" class="form-control bg-dark text-white border-secondary" placeholder="En az 6 karakter"></div>
                     <button id="authSubmitBtn" class="btn btn-primary w-100 fw-bold" onclick="submitAuth()">Giriş Yap</button>
@@ -259,7 +263,6 @@
             return { goals, assists, totalContribution: goals + assists };
         }
 
-        // KADRODAN İSİM İLE SİLME FONKSİYONU (YENİ)
         function removePlayerFromSquadByName(playerName) {
             for(let key in mySquad) {
                 if(mySquad[key] === playerName) {
@@ -274,7 +277,6 @@
             }
         }
 
-        // SEÇİM EKRANINDAN PROFİLE GİTME (YENİ)
         function openPlayerProfileFromSelect(playerName) {
             const playerModalEl = document.getElementById('playerModal');
             if(playerModalEl) {
@@ -320,7 +322,7 @@
             new bootstrap.Modal(document.getElementById('playerProfileModal')).show();
         }
 
-        function openMatchDetail(matchKey) { } // Dinamik veride override edilecek
+        function openMatchDetail(matchKey) { } 
 
         function openSlotChoiceForPlayerFromProfile(playerName) {
             bootstrap.Modal.getInstance(document.getElementById('playerProfileModal')).hide();
@@ -499,30 +501,68 @@
         let currentUser = null;
         let fantasyTeamName = 'Rüya Takımını Kur';
         let isTeamNameChanged = false; 
-        let authMode = 'login';
+        let authMode = 'login'; // 'login' veya 'signup'
 
-        function openAuthModal() { document.getElementById('authMessage').innerHTML = ''; new bootstrap.Modal(document.getElementById('authModal')).show(); }
+        function openAuthModal() { 
+            document.getElementById('authMessage').innerHTML = ''; 
+            document.getElementById('authEmail').value = '';
+            document.getElementById('authPassword').value = '';
+            document.getElementById('authUsername').value = '';
+            authMode = 'login';
+            document.getElementById('authTitle').innerHTML = '<i class="bi bi-person-circle text-info me-2"></i>Giriş Yap';
+            document.getElementById('authSubmitBtn').innerText = 'Giriş Yap';
+            document.getElementById('authToggleBtn').innerText = 'Hesabın yok mu? Kayıt ol';
+            document.getElementById('usernameFieldContainer').style.display = 'none';
+            new bootstrap.Modal(document.getElementById('authModal')).show(); 
+        }
 
         function toggleAuthMode() {
             authMode = authMode === 'login' ? 'signup' : 'login';
             document.getElementById('authTitle').innerHTML = authMode === 'login' ? '<i class="bi bi-person-circle text-info me-2"></i>Giriş Yap' : '<i class="bi bi-person-plus text-info me-2"></i>Kayıt Ol';
             document.getElementById('authSubmitBtn').innerText = authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol';
             document.getElementById('authToggleBtn').innerText = authMode === 'login' ? 'Hesabın yok mu? Kayıt ol' : 'Zaten hesabın var mı? Giriş yap';
+            document.getElementById('usernameFieldContainer').style.display = authMode === 'login' ? 'none' : 'block';
             document.getElementById('authMessage').innerHTML = '';
         }
 
         async function submitAuth() {
             const email = document.getElementById('authEmail').value.trim();
             const password = document.getElementById('authPassword').value;
+            const username = document.getElementById('authUsername').value.trim();
             const msg = document.getElementById('authMessage');
+
             if(!email || !password) { msg.innerHTML='<span class="text-warning">E-posta ve şifre gerekli.</span>'; return; }
-            const btn=document.getElementById('authSubmitBtn'); btn.disabled=true;
-            const result = authMode === 'login' ? await supabaseClient.auth.signInWithPassword({email,password}) : await supabaseClient.auth.signUp({email,password});
-            btn.disabled=false;
-            if(result.error) { msg.innerHTML='<span class="text-danger">'+result.error.message+'</span>'; return; }
-            if(authMode === 'signup' && !result.data.session) { msg.innerHTML='<span class="text-success">Kayıt başarılı. E-postanı doğruladıktan sonra giriş yapabilirsin.</span>'; return; }
-            currentUser=result.data.user;
-            updateAuthArea(); await loadSavedFantasyTeam();
+            if(authMode === 'signup' && !username) { msg.innerHTML='<span class="text-warning">Kayıt olmak için kullanıcı adı gerekli.</span>'; return; }
+
+            const btn = document.getElementById('authSubmitBtn'); btn.disabled = true;
+
+            if(authMode === 'login') {
+                const result = await supabaseClient.auth.signInWithPassword({email, password});
+                btn.disabled = false;
+                if(result.error) { msg.innerHTML='<span class="text-danger">'+result.error.message+'</span>'; return; }
+                currentUser = result.data.user;
+            } else {
+                const result = await supabaseClient.auth.signUp({
+                    email, 
+                    password,
+                    options: { data: { username: username } }
+                });
+                btn.disabled = false;
+                if(result.error) { msg.innerHTML='<span class="text-danger">'+result.error.message+'</span>'; return; }
+                
+                if(result.data.user) {
+                    await supabaseClient.from('profiles').upsert({ id: result.data.user.id, username: username });
+                }
+
+                if(!result.data.session) { 
+                    msg.innerHTML='<span class="text-success">Kayıt başarılı! E-postanı doğruladıktan sonra giriş yapabilirsin.</span>'; 
+                    return; 
+                }
+                currentUser = result.data.user;
+            }
+
+            updateAuthArea(); 
+            await loadSavedFantasyTeam();
             bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
             alert(authMode === 'login' ? 'Giriş başarılı!' : 'Kayıt ve giriş başarılı!');
         }
@@ -537,12 +577,15 @@
             showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
         }
 
-        function updateAuthArea() {
+        async function updateAuthArea() {
             const area=document.getElementById('authArea');
             if(!area) return;
             if(currentUser) {
-                const email=currentUser.email || 'Kullanıcı';
-                area.innerHTML='<div class="auth-user"><i class="bi bi-person-check-fill text-success"></i><span>'+email+'</span><button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="logout()">Çıkış</button></div>';
+                let displayName = currentUser.email;
+                const {data: prof} = await supabaseClient.from('profiles').select('username').eq('id', currentUser.id).maybeSingle();
+                if(prof && prof.username) displayName = prof.username;
+
+                area.innerHTML=`<div class="auth-user"><i class="bi bi-person-check-fill text-success"></i><span>${esc(displayName)}</span><button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="logout()">Çıkış</button></div>`;
             } else {
                 area.innerHTML='<button class="auth-btn" onclick="openAuthModal()"><i class="bi bi-person-circle me-1"></i>Giriş Yap</button>';
             }
@@ -603,7 +646,7 @@
                     const playerName=mySquad[slot];
                     if(!playerName || playerName.startsWith('+')) continue;
                     let found=null;
-                    for(const team in teamsData){ const clean=teamsData[team].find(p=>p===playerName); if(clean){found=clean;break;} }
+                    for(let team in teamsData){ const clean=teamsData[team].find(p=>p===playerName); if(clean){found=clean;break;} }
                     if(!found) continue;
                     const playerRow = await supabaseClient.from('players').select('id').eq('name',playerName.replace(' (K)','')).maybeSingle();
                     if(playerRow.data) rows.push({fantasy_team_id:teamId,player_id:playerRow.data.id,slot});
@@ -660,17 +703,21 @@
 
         async function loadLiveData() {
             try {
-                const [teamsRes, playersRes, matchesRes, eventsRes] = await Promise.all([
+                const [teamsRes, playersRes, matchesRes, eventsRes, profilesRes] = await Promise.all([
                     supabaseClient.from('teams').select('*').order('name'),
                     supabaseClient.from('players').select('*').order('name'),
                     supabaseClient.from('matches').select('*').order('match_date'),
-                    supabaseClient.from('match_events').select('*')
+                    supabaseClient.from('match_events').select('*'),
+                    supabaseClient.from('profiles').select('*')
                 ]);
 
                 if (teamsRes.error || playersRes.error || matchesRes.error || eventsRes.error) throw new Error("Veri okuma hatası");
 
                 const dbTeams = teamsRes.data || []; const dbPlayers = playersRes.data || [];
                 const dbMatches = matchesRes.data || []; const dbEvents = eventsRes.data || [];
+                const dbProfiles = profilesRes.data || [];
+                const profileMap = Object.fromEntries(dbProfiles.map(pr => [pr.id, pr.username]));
+
                 const teamMap = Object.fromEntries(dbTeams.map(t => [t.id, t]));
                 const playerMap = Object.fromEntries(dbPlayers.map(p => [p.id, p]));
 
@@ -715,6 +762,9 @@
                         assists: evs.filter(e => Number(e.assists || 0) > 0).map(e => ({ player: playerMap[e.player_id]?.name || 'Bilinmiyor', team: teamMap[e.team_id]?.name || 'Bilinmiyor', count: Number(e.assists) }))
                     };
                 });
+                
+                window.globalProfileMap = profileMap;
+
                 showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
             } catch (err) { console.error('Supabase veri yükleme hatası:', err); }
         }
@@ -764,22 +814,24 @@
                 return;
             }
 
-            const [tr, mr, er, ftRes] = await Promise.all([
+            const [tr, mr, er, ftRes, prRes] = await Promise.all([
                 supabaseClient.from('teams').select('*').order('group_name').order('name'),
                 supabaseClient.from('matches').select('*').order('match_date'),
                 supabaseClient.from('match_events').select('*'),
-                supabaseClient.from('fantasy_teams').select('id, name, captain_slot, fantasy_team_players(slot, player_id)')
+                supabaseClient.from('fantasy_teams').select('id, name, user_id, captain_slot, fantasy_team_players(slot, player_id)'),
+                supabaseClient.from('profiles').select('*')
             ]);
             if (tr.error || mr.error || er.error) { content.innerHTML='<div class="alert alert-danger">Supabase verisi okunamadı.</div>'; return; }
             
             const teams=tr.data||[], matches=mr.data||[], events=er.data||[], fantasyTeams=ftRes.data||[];
+            const profiles = prRes.data||[];
+            const profileMap = Object.fromEntries(profiles.map(p => [p.id, p.username]));
             const teamMap=Object.fromEntries(teams.map(t=>[t.id,t]));
 
             if(tabName === 'siralama') {
                 const playerTotalPoints = {};
                 events.forEach(e => { playerTotalPoints[e.player_id] = (playerTotalPoints[e.player_id] || 0) + (e.fantasy_points || 0); });
                 
-                let leaderboardHTML = '';
                 const leaderboard = fantasyTeams.map(team => {
                     let totalScore = 0;
                     (team.fantasy_team_players || []).forEach(ftp => {
@@ -787,13 +839,23 @@
                         if(ftp.slot === team.captain_slot) pts *= 2;
                         totalScore += pts;
                     });
-                    return { teamName: team.name, score: totalScore };
+                    const userName = profileMap[team.user_id] || 'Kullanıcı';
+                    return { teamName: team.name, userName: userName, score: totalScore };
                 }).sort((a,b) => b.score - a.score);
 
-                let rowsHTML = leaderboard.map((l, i) => `<tr><td><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'}">${i+1}</span></td><td class="text-start fw-bold text-white">${esc(l.teamName)}</td><td><span class="badge bg-success fs-6">${l.score} P</span></td></tr>`).join('');
+                let rowsHTML = leaderboard.map((l, i) => `
+                    <tr>
+                        <td><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'}">${i+1}</span></td>
+                        <td class="text-start">
+                            <div class="fw-bold text-white">${esc(l.teamName)}</div>
+                            <div class="small text-muted" style="font-size:10px;"><i class="bi bi-person me-1"></i>${esc(l.userName)}</div>
+                        </td>
+                        <td><span class="badge bg-success fs-6">${l.score} P</span></td>
+                    </tr>
+                `).join('');
                 if(!rowsHTML) rowsHTML = '<tr><td colspan="3" class="text-muted py-3">Henüz fantezi takımı kurulmadı.</td></tr>';
                 
-                content.innerHTML = `<h5 class="text-warning mb-3 mt-1"><i class="bi bi-trophy-fill me-2"></i>Fantezi Ligi Sıralaması</h5><div class="card p-2 mb-4"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:13px"><colgroup><col style="width:15%"><col style="width:55%"><col style="width:30%"></colgroup><thead><tr><th>Sıra</th><th class="text-start">Takım</th><th>Toplam Puan</th></tr></thead><tbody>${rowsHTML}</tbody></table></div></div>`;
+                content.innerHTML = `<h5 class="text-warning mb-3 mt-1"><i class="bi bi-trophy-fill me-2"></i>Fantezi Ligi Sıralaması</h5><div class="card p-2 mb-4"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:13px"><colgroup><col style="width:15%"><col style="width:55%"><col style="width:30%"></colgroup><thead><tr><th>Sıra</th><th class="text-start">Takım / Menajer</th><th>Toplam Puan</th></tr></thead><tbody>${rowsHTML}</tbody></table></div></div>`;
 
             } else if(tabName === 'puan-durumu') {
                 const html=['A','B'].map(group=>{
