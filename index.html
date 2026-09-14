@@ -220,6 +220,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         let teamsData = {};
+        let dbPlayersGlobal = []; 
 
         const slotLabels = {
             st: "Forvet (ST)", os1: "Orta Saha 1 (OS)", os2: "Orta Saha 2 (OS)", os3: "Orta Saha 3 (OS)",
@@ -250,7 +251,10 @@
         let selectedPlayerForPlacement = null;
 
         function getPlayerTeam(playerName) {
-            for(let team in teamsData) { if(teamsData[team].includes(playerName)) return team; }
+            let cleanName = playerName.trim();
+            for(let team in teamsData) { 
+                if(teamsData[team].some(p => p.trim() === cleanName)) return team; 
+            }
             return "Bilinmiyor";
         }
 
@@ -501,7 +505,7 @@
         let currentUser = null;
         let fantasyTeamName = 'Rüya Takımını Kur';
         let isTeamNameChanged = false; 
-        let authMode = 'login'; // 'login' veya 'signup'
+        let authMode = 'login'; 
 
         function openAuthModal() { 
             document.getElementById('authMessage').innerHTML = ''; 
@@ -645,11 +649,13 @@
                 for(const slot in mySquad) {
                     const playerName=mySquad[slot];
                     if(!playerName || playerName.startsWith('+')) continue;
-                    let found=null;
-                    for(let team in teamsData){ const clean=teamsData[team].find(p=>p===playerName); if(clean){found=clean;break;} }
-                    if(!found) continue;
-                    const playerRow = await supabaseClient.from('players').select('id').eq('name',playerName.replace(' (K)','')).maybeSingle();
-                    if(playerRow.data) rows.push({fantasy_team_id:teamId,player_id:playerRow.data.id,slot});
+                    
+                    // Doğrudan veritabanındaki tam adıyla (örn: MEHMET KAĞNICI (K)) eşleştiriyoruz
+                    let matchedPlayer = dbPlayersGlobal.find(p => p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
+
+                    if(matchedPlayer) {
+                        rows.push({ fantasy_team_id: teamId, player_id: matchedPlayer.id, slot });
+                    }
                 }
                 
                 if(rows.length){ 
@@ -689,7 +695,13 @@
             
             const {data: rows}=await supabaseClient.from('fantasy_team_players').select('slot,players(name)').eq('fantasy_team_id',team.id);
             mySquad={...defaultSquad};
-            (rows||[]).forEach(r=>{ if(r.players && slotLabels[r.slot]) mySquad[r.slot]=r.players.name; });
+            
+            (rows||[]).forEach(r=>{ 
+                if(r.players && slotLabels[r.slot]) {
+                    mySquad[r.slot] = r.players.name; 
+                }
+            });
+
             captainSlot=team.captain_slot || null;
             renderPitch();
             showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
@@ -713,22 +725,27 @@
 
                 if (teamsRes.error || playersRes.error || matchesRes.error || eventsRes.error) throw new Error("Veri okuma hatası");
 
-                const dbTeams = teamsRes.data || []; const dbPlayers = playersRes.data || [];
-                const dbMatches = matchesRes.data || []; const dbEvents = eventsRes.data || [];
+                const dbTeams = teamsRes.data || []; 
+                dbPlayersGlobal = playersRes.data || []; 
+                const dbMatches = matchesRes.data || []; 
+                const dbEvents = eventsRes.data || [];
                 const dbProfiles = profilesRes.data || [];
                 const profileMap = Object.fromEntries(dbProfiles.map(pr => [pr.id, pr.username]));
 
                 const teamMap = Object.fromEntries(dbTeams.map(t => [t.id, t]));
-                const playerMap = Object.fromEntries(dbPlayers.map(p => [p.id, p]));
+                const playerMap = Object.fromEntries(dbPlayersGlobal.map(p => [p.id, p]));
 
                 Object.keys(teamsData).forEach(k => delete teamsData[k]);
                 dbTeams.forEach(t => {
                     teamsData[t.name] = [];
                     if (t.color) teamColors[t.name] = { c1: t.color, c2: '#0f172a', collar: '#ffffff' };
                 });
-                dbPlayers.forEach(p => {
+                
+                dbPlayersGlobal.forEach(p => {
                     const team = teamMap[p.team_id];
-                    if (team) teamsData[team.name].push(p.name + (String(p.position || '').toUpperCase() === 'GK' && !p.name.includes('(K)') ? ' (K)' : ''));
+                    if (team) {
+                        teamsData[team.name].push(p.name);
+                    }
                 });
 
                 const validNames = new Set(Object.values(teamsData).flat());
@@ -736,7 +753,7 @@
                 if (captainSlot && !validNames.has(mySquad[captainSlot])) captainSlot = null;
 
                 const stats = {};
-                dbPlayers.forEach(p => { stats[p.id] = { name: p.name, team: teamMap[p.team_id]?.name || 'Bilinmiyor', goals: 0, assists: 0 }; });
+                dbPlayersGlobal.forEach(p => { stats[p.id] = { name: p.name, team: teamMap[p.team_id]?.name || 'Bilinmiyor', goals: 0, assists: 0 }; });
                 dbEvents.forEach(e => {
                     if (!stats[e.player_id]) stats[e.player_id] = { name: playerMap[e.player_id]?.name || 'Bilinmiyor', team: teamMap[e.team_id]?.name || 'Bilinmiyor', goals: 0, assists: 0 };
                     stats[e.player_id].goals += Number(e.goals || 0);
@@ -877,7 +894,7 @@
             } else if(tabName==='kadrolar') {
                 const playersRes=await supabaseClient.from('players').select('*').order('name'); const ps=playersRes.data||[];
                 let html='<h5 class="text-info mb-3"><i class="bi bi-people me-2"></i>Takım Kadroları</h5>';
-                teams.forEach(t=>{ const arr=ps.filter(p=>p.team_id===t.id); html+=`<div class="card p-3"><h6 class="fw-bold text-warning">${esc(t.name)}</h6><div>${arr.map(p=>`<span class="player-chip" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')">${esc(p.name)}${String(p.position||'').toUpperCase()==='GK'?' (K)':''}</span>`).join('')||'<span class="text-muted">Oyuncu yok</span>'}</div></div>`; });
+                teams.forEach(t=>{ const arr=ps.filter(p=>p.team_id===t.id); html+=`<div class="card p-3"><h6 class="fw-bold text-warning">${esc(t.name)}</h6><div>${arr.map(p=>`<span class="player-chip" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')">${esc(p.name)}</span>`).join('')||'<span class="text-muted">Oyuncu yok</span>'}</div></div>`; });
                 content.innerHTML=html;
             }
         }
