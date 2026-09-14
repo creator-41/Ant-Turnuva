@@ -134,7 +134,7 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
 <div class="modal fade" id="playerModal"><div class="modal-dialog"><div class="modal-content bg-dark text-white"><div class="modal-header"><h5 id="playerModalTitle">Oyuncu Ekle</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="playerId"><label class="form-label">Oyuncu adı</label><input id="playerName" class="form-control mb-3"><label class="form-label">Takım</label><select id="playerTeam" class="form-select mb-3"></select><label class="form-label">Mevki</label><select id="playerPosition" class="form-select"><option>Kaleci</option><option>Defans</option><option>Orta Saha</option><option>Forvet</option></select></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-info" onclick="savePlayer()">Kaydet</button></div></div></div></div>
 
 <!-- MATCH MODAL -->
-<div class="modal fade" id="matchModal"><div class="modal-dialog"><div class="modal-content bg-dark text-white"><div class="modal-header"><h5 id="matchModalTitle">Maç Oluştur</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="matchId"><label class="form-label">Tarih / saat</label><input id="matchDate" type="datetime-local" class="form-control mb-3"><div class="row"><div class="col-6"><label class="form-label text-warning">Ev sahibi</label><select id="homeTeam" class="form-select mb-3"></select></div><div class="col-6"><label class="form-label text-warning">Deplasman</label><select id="awayTeam" class="form-select mb-3"></select></div></div><label class="form-label">Grup</label><select id="matchGroup" class="form-select mb-3"><option value="A">A</option><option value="B">B</option></select>
+<div class="modal fade" id="matchModal"><div class="modal-dialog"><div class="modal-content bg-dark text-white"><div class="modal-header"><h5 id="matchModalTitle">Maç Oluştur</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="matchId"><label class="form-label">Tarih / saat</label><input id="matchDate" type="datetime-local" class="form-control mb-3"><div class="row"><div class="col-6"><label class="form-label text-warning">Ev sahibi</label><select id="homeTeam" class="form-select mb-3" onchange="renderSquadLists()"></select></div><div class="col-6"><label class="form-label text-warning">Deplasman</label><select id="awayTeam" class="form-select mb-3" onchange="renderSquadLists()"></select></div></div><label class="form-label">Grup</label><select id="matchGroup" class="form-select mb-3"><option value="A">A</option><option value="B">B</option></select>
     
     <div class="form-check p-3 bg-secondary bg-opacity-25 rounded border border-secondary mb-3">
         <input id="matchPlayed" class="form-check-input ms-1" type="checkbox">
@@ -160,10 +160,10 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
 
 </div><div class="modal-footer border-secondary"><button class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-info fw-bold" onclick="saveMatch()">Maçı Kaydet</button></div></div></div></div>
 
-<!-- EVENT MODAL (TARİHLİ MAÇ SEÇİMİ İLE) -->
+<!-- EVENT MODAL -->
 <div class="modal fade" id="eventModal"><div class="modal-dialog"><div class="modal-content bg-dark text-white"><div class="modal-header"><h5>İstatistik Ekle</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="eventId">
     <label class="form-label text-info">Maç (Tarih ve Saatli)</label><select id="eventMatch" class="form-select mb-3" onchange="onMatchChangeForEvents()"></select>
-    <label class="form-label text-info">Oyuncu (Takım Takım Gruplanmış)</label><select id="eventPlayer" class="form-select mb-3"></select>
+    <label class="form-label text-info">Oyuncu (Sadece Maç Kadrosundakiler)</label><select id="eventPlayer" class="form-select mb-3" onchange="fetchPlayerEventData()"></select>
     <div class="form-check mb-3 p-3 bg-secondary bg-opacity-25 rounded border border-secondary">
         <input id="eventPlayed" class="form-check-input ms-1" type="checkbox" checked>
         <label class="form-check-label ms-2 fw-bold text-success">Maçta Oynadı (+2 Puan)</label>
@@ -180,7 +180,6 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// SUPABASE AYARLARI
 const SUPABASE_URL = 'https://rmoalquwkfsyrsoqenzb.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_A8-3DVa2k_Nmow4W8h_Reg_qITGWrRf';
 const configured = !SUPABASE_URL.includes('BURAYA_');
@@ -192,7 +191,6 @@ const modal = id => bootstrap.Modal.getOrCreateInstance(document.getElementById(
 function $(id){ return document.getElementById(id); }
 function esc(v){ return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 
-// ADMIN KONTROLÜ
 async function checkAdmin(){
     if(!sb) return false;
     const { data: { user }, error } = await sb.auth.getUser();
@@ -254,7 +252,6 @@ function toTurkeyDateTimeLocal(value){ if(!value) return ''; const date = new Da
 function turkeyLocalToISO(value){ if(!value) return null; const iso = new Date(value + ':00+03:00'); if(isNaN(iso.getTime())) return null; return iso.toISOString(); }
 function fillSelect(id, arr, labelFn, valueFn){ $(id).innerHTML = arr.map(x => `<option value="${valueFn(x)}">${esc(labelFn(x))}</option>`).join(''); }
 
-// TAKIM & OYUNCU FONKSİYONLARI
 function openTeamModal(id){ let t=teams.find(x=>x.id===id); $('teamId').value=t?.id||''; $('teamName').value=t?.name||''; $('teamGroup').value=t?.group_name||'A'; $('teamColor').value=t?.color||'#0ea5e9'; $('teamModalTitle').textContent=t?'Takımı Düzenle':'Takım Ekle'; modal('teamModal').show(); }
 async function saveTeam(){ let id=$('teamId').value, obj={name:$('teamName').value.trim(), group_name:$('teamGroup').value, color:$('teamColor').value}; if(!obj.name) return; let r=id?await sb.from('teams').update(obj).eq('id',id):await sb.from('teams').insert(obj); if(r.error) alert(r.error.message); else{ modal('teamModal').hide(); loadAll();} }
 async function deleteTeam(id){ if(confirm('Silinsin mi?')) { let r=await sb.from('teams').delete().eq('id',id); if(!r.error) loadAll(); } }
@@ -262,7 +259,6 @@ function openPlayerModal(id){ fillSelect('playerTeam',teams,t=>t.name,t=>t.id); 
 async function savePlayer(){ let id=$('playerId').value, obj={name:$('playerName').value.trim(), team_id:$('playerTeam').value, position:$('playerPosition').value}; if(!obj.name) return; let r=id?await sb.from('players').update(obj).eq('id',id):await sb.from('players').insert(obj); if(!r.error) { modal('playerModal').hide(); loadAll();} }
 async function deletePlayer(id){ if(confirm('Silinsin mi?')) { let r=await sb.from('players').delete().eq('id',id); if(!r.error) loadAll(); } }
 
-// MAÇ SİSTEMİ (KADRO VE OTO-YENİLEN GOL)
 async function openMatchModal(id){
     fillSelect('homeTeam', teams, t=>t.name, t=>t.id);
     fillSelect('awayTeam', teams, t=>t.name, t=>t.id);
@@ -271,7 +267,9 @@ async function openMatchModal(id){
     currentMatchEventsMap = {};
     if(id) {
         const {data} = await sb.from('match_events').select('player_id, played').eq('match_id', id);
-        (data||[]).forEach(e => currentMatchEventsMap[e.player_id] = e.played);
+        (data||[]).forEach(e => {
+            currentMatchEventsMap[e.player_id] = !!e.played;
+        });
     }
 
     $('matchId').value = m?.id||''; $('matchDate').value = toTurkeyDateTimeLocal(m?.match_date);
@@ -283,8 +281,6 @@ async function openMatchModal(id){
     renderSquadLists();
     
     $('matchPlayed').onchange = toggleMatchAreas;
-    $('homeTeam').onchange = renderSquadLists;
-    $('awayTeam').onchange = renderSquadLists;
     
     $('matchModalTitle').textContent = m ? 'Maçı Düzenle' : 'Maç Oluştur';
     modal('matchModal').show();
@@ -329,19 +325,21 @@ async function saveMatch(){
             let conceded = (tid === home) ? awayS : homeS;
             
             if(eMap[pid]) {
-                upsertData.push({...eMap[pid], played: isP, goals_conceded: conceded});
-            } else if(isP) {
-                upsertData.push({ match_id: finalMatchId, player_id: pid, team_id: tid, played: true, goals: 0, assists: 0, yellow_cards: 0, red_cards: 0, goals_conceded: conceded });
+                upsertData.push({ id: eMap[pid].id, match_id: finalMatchId, player_id: pid, team_id: tid, played: isP, goals: eMap[pid].goals || 0, assists: eMap[pid].assists || 0, yellow_cards: eMap[pid].yellow_cards || 0, red_cards: eMap[pid].red_cards || 0, goals_conceded: conceded });
+            } else {
+                upsertData.push({ match_id: finalMatchId, player_id: pid, team_id: tid, played: isP, goals: 0, assists: 0, yellow_cards: 0, red_cards: 0, goals_conceded: conceded });
             }
         });
-        if(upsertData.length > 0) await sb.from('match_events').upsert(upsertData);
+        if(upsertData.length > 0) {
+            const { error: upsErr } = await sb.from('match_events').upsert(upsertData);
+            if(upsErr) { alert('Kadro kaydedilemedi: ' + upsErr.message); return; }
+        }
     }
     modal('matchModal').hide(); await loadAll();
 }
 
 async function deleteMatch(id){ if(confirm('Emin misin?')){ await sb.from('matches').delete().eq('id', id); loadAll(); } }
 
-// İSTATİSTİK EKLEME: MAÇLARIN YANINDA TARİH VE SAAT GÖSTERİMİ
 function openEventModal(){
     fillSelect('eventMatch', matches, m => `${matchName(m.id)} (${fmt(m.match_date)})`, m => m.id);
     updatePlayerDropdownForMatch();
@@ -349,7 +347,7 @@ function openEventModal(){
     modal('eventModal').show();
 }
 
-function updatePlayerDropdownForMatch() {
+async function updatePlayerDropdownForMatch() {
     let mid = $('eventMatch').value;
     let m = matches.find(x => x.id === mid);
     if (!m) {
@@ -362,19 +360,20 @@ function updatePlayerDropdownForMatch() {
     let hTeamName = teamName(homeTeamId);
     let aTeamName = teamName(awayTeamId);
 
-    // Ev sahibi oyuncuları (alfabetik sıralı)
-    let homePlayers = players.filter(p => p.team_id === homeTeamId)
+    const {data: squadEvents} = await sb.from('match_events').select('player_id').eq('match_id', mid).eq('played', true);
+    const squadPlayerIds = new Set((squadEvents || []).map(e => e.player_id));
+
+    let homePlayers = players.filter(p => p.team_id === homeTeamId && squadPlayerIds.has(p.id))
         .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
 
-    // Deplasman oyuncuları (alfabetik sıralı)
-    let awayPlayers = players.filter(p => p.team_id === awayTeamId)
+    let awayPlayers = players.filter(p => p.team_id === awayTeamId && squadPlayerIds.has(p.id))
         .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
 
     let html = `<optgroup label="🏠 ${esc(hTeamName)}">`;
     if(homePlayers.length > 0) {
         html += homePlayers.map(p => `<option value="${p.id}">${esc(p.name)} (${esc(p.position)})</option>`).join('');
     } else {
-        html += `<option disabled>Oyuncu yok</option>`;
+        html += `<option disabled>Bu maçta kadroda oynayan oyuncu yok</option>`;
     }
     html += `</optgroup>`;
 
@@ -382,16 +381,16 @@ function updatePlayerDropdownForMatch() {
     if(awayPlayers.length > 0) {
         html += awayPlayers.map(p => `<option value="${p.id}">${esc(p.name)} (${esc(p.position)})</option>`).join('');
     } else {
-        html += `<option disabled>Oyuncu yok</option>`;
+        html += `<option disabled>Bu maçta kadroda oynayan oyuncu yok</option>`;
     }
     html += `</optgroup>`;
 
     $('eventPlayer').innerHTML = html;
+    fetchPlayerEventData();
 }
 
 function onMatchChangeForEvents() {
     updatePlayerDropdownForMatch();
-    fetchPlayerEventData();
 }
 
 async function fetchPlayerEventData() {
