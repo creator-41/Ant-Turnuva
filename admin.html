@@ -265,6 +265,13 @@ async function init(){
 
 async function loadAll(){
     if(!sb){ renderAll(); return; }
+
+    // Mevcut filtre tercihlerini kaydet
+    let prevTeam = $('filterTeamSelect')?.value || '';
+    let prevMatch = $('filterMatchSelect')?.value || '';
+    let prevSort = $('eventSortSelect')?.value || 'newest';
+    let prevSearch = $('eventSearchInput')?.value || '';
+
     const [t, p, m, e] = await Promise.all([
         sb.from('teams').select('*').order('name'),
         sb.from('players').select('*').order('name'),
@@ -274,12 +281,17 @@ async function loadAll(){
     if(t.error || p.error || m.error || e.error){ alert('Veri okunamadı!'); return; }
     teams = t.data || []; players = p.data || []; matches = m.data || []; events = e.data || [];
     
-    // Filtre select'lerini doldur
+    // Filtre select'lerini doldur ve önceki seçimi koru
     fillSelect('filterTeamSelect', teams, t => t.name, t => t.id);
     $('filterTeamSelect').insertAdjacentHTML('afterbegin', '<option value="">🛡️ Tüm Takımlar</option>');
+    $('filterTeamSelect').value = prevTeam;
     
     fillSelect('filterMatchSelect', matches, m => `${matchName(m.id)} (${fmt(m.match_date)})`, m => m.id);
     $('filterMatchSelect').insertAdjacentHTML('afterbegin', '<option value="">🏟️ Tüm Maçlar</option>');
+    $('filterMatchSelect').value = prevMatch;
+
+    if($('eventSortSelect')) $('eventSortSelect').value = prevSort;
+    if($('eventSearchInput')) $('eventSearchInput').value = prevSearch;
 
     renderAll();
 }
