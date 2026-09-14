@@ -446,7 +446,13 @@ async function saveEvent(){
     obj.team_id = players.find(x => x.id === obj.player_id)?.team_id;
 
     let eId = $('eventId').value;
-    let r = eId ? await sb.from('match_events').update(obj).eq('id', eId) : await sb.from('match_events').insert(obj);
+    let r;
+    if(eId) {
+        r = await sb.from('match_events').update(obj).eq('id', eId);
+    } else {
+        r = await sb.from('match_events').upsert(obj, { onConflict: 'match_id,player_id' });
+    }
+
     if(r.error) alert(r.error.message); else { modal('eventModal').hide(); loadAll(); }
 }
 
