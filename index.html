@@ -12,7 +12,7 @@
         .card { background-color: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 12px; margin-bottom: 15px; }
         .table-dark { --bs-table-bg: #1e293b; --bs-table-border-color: #334155; }
         
-        /* ALT MENÜ (6 Buton için optimize edildi) */
+        /* ALT MENÜ */
         .nav-bottom { position: fixed; bottom: 0; left: 0; right: 0; background-color: #0f172a; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 6px 0; z-index: 1000; }
         .nav-bottom-item { color: #94a3b8; text-decoration: none; text-align: center; font-size: 10px; flex: 1; }
         .nav-bottom-item.active { color: #38bdf8; font-weight: bold; }
@@ -20,19 +20,30 @@
 
         /* ANA DÜZEN CONTAINER */
         .pitch-layout-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 8px; max-width: 520px; margin: 0 auto; position: relative; }
+        
+        /* MOBİL İÇİN TAKIM KURMA EKRANI DÜZELTMELERİ */
         @media (max-width: 576px) {
-            .pitch-layout-wrapper { width: 100%; max-width: 100%; gap: 3px; overflow: hidden; }
-            .left-bench { width: 58px; flex: 0 0 58px; padding: 5px 2px; }
-            .perspective-container { flex: 1 1 auto; width: auto; min-width: 0; }
-            .right-bench { width: 76px; flex: 0 0 76px; padding: 5px 2px; }
-            .left-bench-title, .right-bench-title { font-size: 7px; }
+            .pitch-layout-wrapper { gap: 2px !important; padding: 0 2px !important; overflow-x: hidden !important; width: 100%; max-width: 100%; }
+            .left-bench { width: 52px !important; flex: 0 0 52px !important; padding: 4px 1px !important; }
+            .perspective-container { flex: 1 1 0% !important; min-width: 0 !important; width: auto; }
+            .right-bench { width: 70px !important; flex: 0 0 70px !important; padding: 4px 1px !important; }
+            .left-bench-title, .right-bench-title { font-size: 6px !important; }
             .top-player-card { padding: 3px 2px; }
-            .top-player-name { font-size: 7px; }
+            .top-player-name { font-size: 6.5px !important; }
             .top-player-stat { font-size: 6.5px; }
-            .add-to-squad-btn { font-size: 6.5px; padding: 1px 2px; }
-            .jersey-icon { width: 27px; height: 27px; }
-            .jersey-name-tag { font-size: 6.5px; max-width: 52px; padding: 1px 2px; }
+            .add-to-squad-btn { font-size: 6px !important; padding: 1px !important; }
+            .jersey-icon { width: 24px !important; height: 24px !important; }
+            .jersey-name-tag { font-size: 6px !important; max-width: 48px !important; padding: 1px 2px; }
+            
+            /* MOBİL İÇİN PUAN DURUMU SIKIŞTIRMA VE OK DÜZELTMESİ */
+            .standings-table th, .standings-table td { padding: 5px 2px !important; font-size: 10.5px !important; }
+            .standings-table .badge { font-size: 10px !important; padding: 3px 4px !important; min-width: 22px !important; }
+            .standings-table .col-rank { width: 12% !important; }
+            .standings-table .col-team { width: 28% !important; }
+            .standings-table td:first-child span { min-width: auto !important; gap: 2px !important; }
+            .standings-table td:first-child i { font-size: 9px !important; }
         }
+
         .left-bench { width: 90px; flex: 0 0 90px; background: #1e293b; border: 1px dashed #334155; border-radius: 10px; padding: 6px 2px; display: flex; flex-direction: column; justify-content: space-around; align-items: center; height: 420px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .left-bench-title { font-size: 9px; font-weight: bold; color: #94a3b8; text-transform: uppercase; text-align: center; border-bottom: 1px solid #334155; padding-bottom: 3px; width: 100%; }
         .perspective-container { flex: 0 0 280px; width: 280px; display: flex; flex-direction: column; align-items: center; }
@@ -98,74 +109,6 @@
         .standings-table .col-team { width: 30%; }
         .standings-table th:not(:nth-child(1)):not(:nth-child(2)), .standings-table td:not(:nth-child(1)):not(:nth-child(2)) { width: 7.222%; }
         .standings-table .col-team { text-align: left; }
-/* MOBİL İÇİN PUAN DURUMU SIKIŞTIRMA */
-@media (max-width: 576px) {
-    .standings-table th, .standings-table td {
-        padding: 5px 2px !important; /* Hücre sağ-sol boşluklarını iyice daralt */
-        font-size: 10.5px !important; /* Yazı boyutunu bir tık küçült */
-    }
-    .standings-table .badge {
-        font-size: 10px !important;
-        padding: 3px 4px !important;
-        min-width: 22px !important; /* En sağdaki puan rozetini daralt */
-    }
-}
-/* MOBİL İÇİN TAKIM KURMA (SAHA) EKRANINI TAM SIĞDIRMA */
-@media (max-width: 576px) {
-    .pitch-layout-wrapper {
-        gap: 2px !important; /* Aradaki boşluğu iyice kıstık */
-        padding: 0 2px !important;
-        overflow-x: hidden !important;
-    }
-    .left-bench {
-        width: 52px !important; /* Sol yedeği biraz daralttık */
-        flex: 0 0 52px !important;
-        padding: 4px 1px !important;
-    }
-    .right-bench {
-        width: 70px !important; /* Sağ formda panelini daralttık */
-        flex: 0 0 70px !important;
-        padding: 4px 1px !important;
-    }
-    .perspective-container {
-        flex: 1 1 0% !important; /* Saha kısmının ekranı taşırmasını kesin olarak engeller */
-        min-width: 0 !important;
-    }
-    .jersey-icon {
-        width: 24px !important; /* Formaları ufak bir tık küçülttük */
-        height: 24px !important;
-    }
-    .jersey-name-tag {
-        font-size: 6px !important;
-        max-width: 48px !important;
-    }
-    .left-bench-title, .right-bench-title {
-        font-size: 6px !important;
-    }
-    .top-player-name {
-        font-size: 6.5px !important;
-    }
-    .add-to-squad-btn {
-        font-size: 6px !important;
-        padding: 1px !important;
-    }
-}
-/* MOBİL İÇİN PUAN DURUMU OKLARI VE SIRA NUMARASI DÜZELTMESİ */
-@media (max-width: 576px) {
-    .standings-table .col-rank {
-        width: 12% !important; /* Okların sığması için ilk sütuna biraz daha yer verdik */
-    }
-    .standings-table .col-team {
-        width: 28% !important; /* Takım isminin genişliğini dengeledik */
-    }
-    .standings-table td:first-child span {
-        min-width: auto !important; /* Sabit 38px sınırını kaldırdık ki özgür kalsın */
-        gap: 2px !important; /* Ok ile rakam arasındaki boşluğu iyice kıstık */
-    }
-    .standings-table td:first-child i {
-        font-size: 9px !important; /* Ok ikonunu bir tık küçülttük */
-    }
-}
     </style>
 </head>
 <body>
@@ -517,6 +460,7 @@
 
         let currentUser = null;
         let fantasyTeamName = 'Rüya Takımını Kur';
+        let isTeamNameChanged = false; // TAKIM ADI DEĞİŞTİRİLME HAKKI KONTROLÜ
         let authMode = 'login';
 
         function openAuthModal() { document.getElementById('authMessage').innerHTML = ''; new bootstrap.Modal(document.getElementById('authModal')).show(); }
@@ -547,11 +491,12 @@
 
         async function logout() {
             await supabaseClient.auth.signOut();
-            currentUser=null; fantasyTeamName='Rüya Takımını Kur';
+            currentUser=null; fantasyTeamName='Rüya Takımını Kur'; isTeamNameChanged = false;
             mySquad={...defaultSquad}; captainSlot=null;
             updateAuthArea(); renderPitch();
             const titleEl=document.getElementById('fantasy-team-title');
             if(titleEl) titleEl.textContent=fantasyTeamName;
+            showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
         }
 
         function updateAuthArea() {
@@ -565,15 +510,37 @@
             }
         }
 
+        // YENİ EKLENEN İSİM DEĞİŞTİRME FONKSİYONU
+        async function renameTeam() {
+            if(!currentUser) return;
+            const newName = prompt("Yeni takım adını girin:\n(DİKKAT: Bu işlemi sadece 1 kez yapabilirsiniz!)", fantasyTeamName);
+            if(!newName || newName.trim() === "" || newName.trim() === fantasyTeamName) return;
+            
+            const { error } = await supabaseClient
+                .from('fantasy_teams')
+                .update({ name: newName.trim(), is_name_changed: true })
+                .eq('user_id', currentUser.id);
+                
+            if(error) {
+                alert("Takım adı değiştirilemedi: " + error.message);
+            } else {
+                alert("Takım adı başarıyla değiştirildi!");
+                fantasyTeamName = newName.trim();
+                isTeamNameChanged = true;
+                showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
+            }
+        }
+
         async function saveSquadToSupabase() {
             if(!currentUser) { openAuthModal(); return; }
-            const {data: existing, error: findError} = await supabaseClient.from('fantasy_teams').select('id, name').eq('user_id',currentUser.id).maybeSingle();
+            const {data: existing, error: findError} = await supabaseClient.from('fantasy_teams').select('id, name, is_name_changed').eq('user_id',currentUser.id).maybeSingle();
             if(findError) { alert('Takım kontrol edilemedi: '+findError.message); return; }
             let teamId;
             let name = existing?.name || '';
             if(!existing) { name = prompt('Takımının adı:', 'Takımım'); if(name === null) return; name = name.trim() || 'Takımım'; }
             if(existing) {
                 teamId=existing.id;
+                isTeamNameChanged = existing.is_name_changed || false;
                 const {error}=await supabaseClient.from('fantasy_teams').update({name:name.trim() || 'Takımım',captain_slot:captainSlot,updated_at:new Date().toISOString()}).eq('id',teamId);
                 if(error){alert('Takım güncellenemedi: '+error.message);return;}
                 await supabaseClient.from('fantasy_team_players').delete().eq('fantasy_team_id',teamId);
@@ -581,6 +548,7 @@
                 const {data,error}=await supabaseClient.from('fantasy_teams').insert({user_id:currentUser.id,name:name.trim() || 'Takımım',captain_slot:captainSlot}).select('id').single();
                 if(error){alert('Takım oluşturulamadı: '+error.message);return;}
                 teamId=data.id;
+                isTeamNameChanged = false; // Yeni takım kurulduğunda henüz değiştirilmedi.
             }
             const rows=[];
             for(const slot in mySquad) {
@@ -594,23 +562,34 @@
             }
             if(rows.length){ const {error}=await supabaseClient.from('fantasy_team_players').insert(rows); if(error){alert('Oyuncular kaydedilemedi: '+error.message);return;} }
             fantasyTeamName = name;
-            const titleEl = document.getElementById('fantasy-team-title');
-            if(titleEl) titleEl.textContent = fantasyTeamName;
             alert('Kadron Supabase hesabına başarıyla kaydedildi!');
+            showTab('Fantezi', document.querySelector('.nav-bottom-item.active')); // Güncelleme sonrası butonu çiz
         }
 
         async function loadSavedFantasyTeam() {
             if(!currentUser) return;
-            const {data: team, error}=await supabaseClient.from('fantasy_teams').select('id,name,captain_slot').eq('user_id',currentUser.id).maybeSingle();
-            if(error || !team) { fantasyTeamName = 'Rüya Takımını Kur'; const titleEl = document.getElementById('fantasy-team-title'); if(titleEl) titleEl.textContent = fantasyTeamName; return; }
+            const {data: team, error}=await supabaseClient.from('fantasy_teams').select('id,name,captain_slot,is_name_changed').eq('user_id',currentUser.id).maybeSingle();
+            
+            if(error || !team) { 
+                fantasyTeamName = 'Rüya Takımını Kur'; 
+                isTeamNameChanged = false;
+                const titleEl = document.getElementById('fantasy-team-title'); 
+                if(titleEl) titleEl.textContent = fantasyTeamName; 
+                return; 
+            }
+            
             fantasyTeamName = team.name || 'Takımım';
+            isTeamNameChanged = team.is_name_changed || false;
+            
             const titleEl = document.getElementById('fantasy-team-title');
             if(titleEl) titleEl.textContent = fantasyTeamName;
+            
             const {data: rows}=await supabaseClient.from('fantasy_team_players').select('slot,players(name)').eq('fantasy_team_id',team.id);
             mySquad={...defaultSquad};
             (rows||[]).forEach(r=>{ if(r.players && slotLabels[r.slot]) mySquad[r.slot]=r.players.name; });
             captainSlot=team.captain_slot || null;
             renderPitch();
+            showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
         }
 
         supabaseClient.auth.getSession().then(async ({data})=>{
@@ -704,8 +683,20 @@
             const content = document.getElementById('main-content');
             
             if(tabName === 'Fantezi') {
+                
+                // Eğer takım kurulmuşsa ve daha önce isim değiştirilmemişse Değiştir butonu görünür.
+                const renameBtnHTML = (!isTeamNameChanged && fantasyTeamName !== 'Rüya Takımını Kur' && currentUser) 
+                    ? `<button class="btn btn-sm btn-outline-warning py-0 px-2 ms-2" style="font-size: 10px;" onclick="renameTeam()"><i class="bi bi-pencil"></i> Adı Değiştir (1 Hak)</button>` 
+                    : '';
+
                 content.innerHTML = `
-                    <div class="text-center mb-2"><h6 class="text-info mb-0"><i class="bi bi-star me-1"></i><span id="fantasy-team-title">${fantasyTeamName}</span></h6></div>
+                    <div class="text-center mb-2">
+                        <h6 class="text-info mb-0 d-flex justify-content-center align-items-center">
+                            <i class="bi bi-star me-1"></i>
+                            <span id="fantasy-team-title">${esc(fantasyTeamName)}</span>
+                            ${renameBtnHTML}
+                        </h6>
+                    </div>
                     <div id="pitch-container"></div>
                     <div class="d-flex gap-2 mt-3 justify-content-center" style="max-width:480px; margin: 10px auto 0 auto;">
                         <button class="btn btn-success btn-sm w-100" onclick="saveSquadToSupabase()"><i class="bi bi-check-circle me-1"></i> Kadroyu Kaydet</button>
@@ -727,7 +718,6 @@
             const teamMap=Object.fromEntries(teams.map(t=>[t.id,t]));
 
             if(tabName === 'siralama') {
-                // 1. FANTEZİ LİDERLİK TABLOSU YENİ SEKMEDE
                 const playerTotalPoints = {};
                 events.forEach(e => { playerTotalPoints[e.player_id] = (playerTotalPoints[e.player_id] || 0) + (e.fantasy_points || 0); });
                 
@@ -748,12 +738,10 @@
                 content.innerHTML = `<h5 class="text-warning mb-3 mt-1"><i class="bi bi-trophy-fill me-2"></i>Fantezi Ligi Sıralaması</h5><div class="card p-2 mb-4"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:13px"><colgroup><col style="width:15%"><col style="width:55%"><col style="width:30%"></colgroup><thead><tr><th>Sıra</th><th class="text-start">Takım</th><th>Toplam Puan</th></tr></thead><tbody>${rowsHTML}</tbody></table></div></div>`;
 
             } else if(tabName === 'puan-durumu') {
-                // 2. TURNUVA PUAN DURUMU (Eski yerine döndü)
                 const html=['A','B'].map(group=>{
                     const data=buildStandings(teams.filter(t=>t.group_name===group), matches.filter(m=>m.group_name===group));
                     return `<h5 class="text-info mb-3 mt-2"><i class="bi bi-shield-fill me-2"></i>${group} GRUBU</h5><div class="card p-2 mb-3"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle standings-table" style="font-size:12px"><colgroup><col class="col-rank"><col class="col-team"><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody>${data.map((x,i)=>`<tr><td><span class="d-inline-flex align-items-center justify-content-center gap-1" style="min-width:38px"><i class="bi ${i<2?'bi-arrow-up-circle-fill text-success':'bi-arrow-down-circle-fill text-danger'}" title="${i<2?'Üst tura çıkıyor':'Elenecek sıra'}"></i><strong>${i+1}</strong></span></td><td class="text-start fw-bold">${esc(x.name)}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gd>0?'+'+x.gd:x.gd}</td><td><span class="badge" style="background-color:${teams.find(t=>t.name===x.name)?.color||teamColors[x.name]?.c1||'#475569'};color:#fff;min-width:32px;">${x.points}</span></td></tr>`).join('')||'<tr><td colspan="10" class="text-muted">Takım yok</td></tr>'}</tbody></table></div></div>`;
                 }).join('');
-                
                 content.innerHTML = '<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Turnuva Puan Durumu</h5>' + html;
 
             } else if(tabName==='fikstur') {
