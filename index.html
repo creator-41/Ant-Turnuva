@@ -15,10 +15,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        html, body { height: 100%; margin: 0; }
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; min-height: 100vh; padding-top: 10px; padding-bottom: 190px !important; -webkit-tap-highlight-color: transparent; }
+        html { height: auto; min-height: 100%; margin: 0; }
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; min-height: 100vh; margin: 0; padding-top: 10px; padding-bottom: 140px !important; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         
-        #main-content { flex: 1; }
+        #main-content { flex: 1; width: 100%; }
         .navbar { background-color: #1e293b !important; border-bottom: 2px solid #3b82f6; margin-bottom: 10px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
         .card { background-color: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 12px; margin-bottom: 15px; }
         .table-dark { --bs-table-bg: #1e293b; --bs-table-border-color: #334155; }
@@ -952,7 +952,7 @@
                     ? `<button class="btn btn-sm btn-outline-warning py-0 px-2 ms-2" style="font-size: 10px;" onclick="renameTeam()"><i class="bi bi-pencil"></i> Adı Değiştir (1 Hak)</button>` 
                     : '';
 
-                content.innerHTML = `
+                let html = `
                     <div class="text-center mb-2">
                         <h6 class="text-info mb-0 d-flex justify-content-center align-items-center">
                             <i class="bi bi-star me-1"></i>
@@ -962,10 +962,11 @@
                     </div>
                     <div id="pitch-container"></div>
                     <div id="lockMessage" class="mt-2 text-center w-100 px-2"></div>
-                    <div class="d-flex gap-2 mt-2 pb-5 mb-5 justify-content-center" style="max-width:480px; margin: 0 auto;">
+                    <div class="d-flex gap-2 mt-2 pb-2 justify-content-center" style="max-width:480px; margin: 0 auto;">
                         <button id="saveSquadBtn" class="btn btn-success btn-sm w-100" onclick="saveSquadToSupabase()"><i class="bi bi-check-circle me-1"></i> Kadroyu Kaydet</button>
                         <button class="btn btn-outline-danger btn-sm w-100" onclick="resetSquad()"><i class="bi bi-trash me-1"></i> Sıfırla</button>
                     </div>`;
+                content.innerHTML = html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
                 renderPitch();
                 checkGameweekLock();
                 return;
@@ -1036,7 +1037,7 @@
                         `).join('');
                         
                         html += `<div class="card p-2 mb-4"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:13px"><colgroup><col style="width:15%"><col style="width:55%"><col style="width:30%"></colgroup><thead><tr><th>Sıra</th><th class="text-start">Takım / Menajer</th><th>Toplam Puan</th></tr></thead><tbody>${rowsHTML || '<tr><td colspan="3" class="text-muted py-3">Henüz takım kurulmadı.</td></tr>'}</tbody></table></div></div>`;
-                    
+                        html += '<div style="height: 100px; width: 100%; display: block;"></div>';
                     } else {
                         // MVP MODU
                         let currentGwStr = String(window.currentMvpGw);
@@ -1062,28 +1063,26 @@
                         
                         let mvpManager = managerScores[0];
                         let managerHTML = mvpManager && mvpManager.score > 0 
-                            ? `<div class="alert alert-warning text-center p-2 mb-3 border-warning"><h6 class="mb-1 text-dark fw-bold"><i class="bi bi-trophy-fill"></i> Haftanın Menajeri</h6><div class="fs-5 fw-bold text-dark">${esc(mvpManager.teamName)}</div><div class="small text-dark fw-bold">${esc(mvpManager.userName)} • <span class="badge bg-success">${mvpManager.score} Puan</span></div></div>` 
-                            : `<div class="alert alert-secondary text-center p-2 mb-3 small border-secondary">Bu hafta henüz fantezi puanı oluşmamış.</div>`;
+                            ? `<div class="alert alert-warning text-center p-2 mb-2 border-warning"><div class="small fw-bold text-dark"><i class="bi bi-trophy-fill"></i> Haftanın Menajeri</div><div class="fs-6 fw-bold text-dark mb-0">${esc(mvpManager.teamName)}</div><div style="font-size:11px;" class="text-dark">${esc(mvpManager.userName)} • <span class="badge bg-success" style="font-size:10px;">${mvpManager.score} P</span></div></div>` 
+                            : `<div class="alert alert-secondary text-center p-2 mb-2 small border-secondary">Bu hafta henüz fantezi puanı oluşmamış.</div>`;
                             
                         let playersArr = Object.keys(playerPts).map(pid => {
                             let dbP = dbPlayersGlobal.find(p => p.id === pid);
                             return { id: pid, name: dbP?.name||'Bilinmiyor', pos: dbP?.position||'', pts: playerPts[pid], team_id: dbP?.team_id };
                         }).sort((a,b) => b.pts - a.pts);
 
-                        // Sub-Tab Tasarımı ve Sahalar
                         let subTabHTML = '';
                         let displayedPitchHTML = '';
 
                         if (mvpManager && mvpManager.score > 0) {
                             subTabHTML = `
-                                <div class="d-flex justify-content-center gap-2 mb-3">
-                                    <button class="btn btn-sm ${window.currentMvpTab === 'manager' ? 'btn-success fw-bold' : 'btn-outline-success'}" onclick="window.currentMvpTab='manager'; renderLeaderboardUI();"><i class="bi bi-person-badge"></i> Menajerin Kadrosu</button>
-                                    <button class="btn btn-sm ${window.currentMvpTab === 'dream' ? 'btn-warning text-dark fw-bold' : 'btn-outline-warning'}" onclick="window.currentMvpTab='dream'; renderLeaderboardUI();"><i class="bi bi-stars"></i> Haftanın Rüya 11'i</button>
+                                <div class="d-flex justify-content-center gap-2 mb-2">
+                                    <button class="btn btn-sm py-1 px-2 ${window.currentMvpTab === 'manager' ? 'btn-success fw-bold' : 'btn-outline-success'}" style="font-size:11px;" onclick="window.currentMvpTab='manager'; renderLeaderboardUI();"><i class="bi bi-person-badge"></i> Menajerin Kadrosu</button>
+                                    <button class="btn btn-sm py-1 px-2 ${window.currentMvpTab === 'dream' ? 'btn-warning text-dark fw-bold' : 'btn-outline-warning'}" style="font-size:11px;" onclick="window.currentMvpTab='dream'; renderLeaderboardUI();"><i class="bi bi-stars"></i> Haftanın Rüya 11'i</button>
                                 </div>
                             `;
                             
                             if (window.currentMvpTab === 'manager') {
-                                // Menajer Kadrosu (As takım + Yedekler)
                                 let ftpMap = {};
                                 mvpManager.ftpForGw.forEach(ftp => ftpMap[ftp.slot] = ftp);
                                 
@@ -1107,7 +1106,7 @@
                                 };
 
                                 displayedPitchHTML = `
-                                    <div class="text-center mb-2 text-success fw-bold"><i class="bi bi-shield-check"></i> Şampiyonun Sahadaki Dizilişi</div>
+                                    <div class="text-center mb-1 text-success fw-bold" style="font-size:11px;"><i class="bi bi-shield-check"></i> Şampiyonun Sahadaki Dizilişi</div>
                                     <div class="pitch-layout-wrapper">
                                         <div class="left-bench"><div class="left-bench-title"><i class="bi bi-people-fill"></i> YEDEKLER</div>${createReadonlySlot('sub1')}${createReadonlySlot('sub2')}${createReadonlySlot('sub3')}${createReadonlySlot('sub4')}</div>
                                         <div class="perspective-container">
@@ -1126,7 +1125,6 @@
                                         </div>
                                     </div>`;
                             } else {
-                                // Sadece GK ve Saha Oyuncuları Kuralıyla Rüya 11 (1 GK + 10 Saha)
                                 let gk = [], field = [];
                                 playersArr.forEach(p => {
                                     let pPos = p.pos.toLowerCase();
@@ -1137,7 +1135,6 @@
                                     } 
                                 });
 
-                                // Saha oyuncularını görsel olarak 3-4-3 gibi satırlara dağıtıyoruz (Görsellik için)
                                 let fwd = field.slice(0, 3);
                                 let mid = field.slice(3, 7);
                                 let def = field.slice(7, 10);
@@ -1157,7 +1154,7 @@
                                 };
 
                                 displayedPitchHTML = `
-                                    <div class="text-center mb-2 text-warning fw-bold"><i class="bi bi-stars text-warning"></i> Haftanın Rüya 11'i</div>
+                                    <div class="text-center mb-1 text-warning fw-bold" style="font-size:11px;"><i class="bi bi-stars text-warning"></i> Haftanın Rüya 11'i</div>
                                     <div style="background: repeating-linear-gradient(to bottom, #10b981, #10b981 26px, #059669 26px, #059669 52px); border: 2px solid #ffffff; border-radius: 8px; padding: 12px 6px; position: relative; overflow: hidden; max-width: 360px; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.4);">
                                         <div style="position: absolute; top:0; left:50%; width:120px; height:45px; border:2px solid rgba(255,255,255,0.4); border-top:none; transform:translateX(-50%); pointer-events:none;"></div>
                                         <div style="position: absolute; top:50%; left:0; right:0; height:1.5px; background:rgba(255,255,255,0.4); transform:translateY(-50%); pointer-events:none;"></div>
@@ -1170,14 +1167,15 @@
                         }
 
                         html += `
-                            <div class="card p-3 mb-4 border-info">
-                                <select class="form-select bg-dark text-info border-secondary mb-3 w-50 mx-auto text-center fw-bold shadow-none" onchange="window.currentMvpGw=this.value; renderLeaderboardUI();">
+                            <div class="card p-2 mb-2 border-info">
+                                <select class="form-select form-select-sm bg-dark text-info border-secondary mb-2 w-50 mx-auto text-center fw-bold shadow-none" onchange="window.currentMvpGw=this.value; renderLeaderboardUI();">
                                     ${gwOptions}
                                 </select>
                                 ${managerHTML}
                                 ${subTabHTML}
                                 ${displayedPitchHTML}
                             </div>
+                            <div style="height: 100px; width: 100%; display: block;"></div>
                         `;
                     }
                     content.innerHTML = html;
@@ -1189,18 +1187,20 @@
                     const data=buildStandings(teams.filter(t=>t.group_name===group), matches.filter(m=>m.group_name===group));
                     return `<h5 class="text-info mb-3 mt-2"><i class="bi bi-shield-fill me-2"></i>${group} GRUBU</h5><div class="card p-2 mb-3"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle standings-table" style="font-size:12px"><colgroup><col class="col-rank"><col class="col-team"><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody>${data.map((x,i)=>`<tr><td><span class="d-inline-flex align-items-center justify-content-center gap-1" style="min-width:38px"><i class="bi ${i<2?'bi-arrow-up-circle-fill text-success':'bi-arrow-down-circle-fill text-danger'}" title="${i<2?'Üst tura çıkıyor':'Elenecek sıra'}"></i><strong>${i+1}</strong></span></td><td class="text-start fw-bold">${esc(x.name)}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gd>0?'+'+x.gd:x.gd}</td><td><span class="badge" style="background-color:${teams.find(t=>t.name===x.name)?.color||teamColors[x.name]?.c1||'#475569'};color:#fff;min-width:32px;">${x.points}</span></td></tr>`).join('')||'<tr><td colspan="10" class="text-muted">Takım yok</td></tr>'}</tbody></table></div></div>`;
                 }).join('');
-                content.innerHTML = '<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Turnuva Puan Durumu</h5>' + html;
+                content.innerHTML = '<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Turnuva Puan Durumu</h5>' + html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
 
             } else if(tabName==='fikstur') {
                 const played=matches.filter(m=>m.played), upcoming=matches.filter(m=>!m.played);
                 const card=m=>`<div class="card p-3 match-card" onclick="${m.played?`openMatchDetail('${m.id}')`:''}"><div class="d-flex justify-content-between align-items-center border-bottom border-secondary pb-2 mb-2 gap-2"><small class="text-muted fixture-date"><i class="bi bi-calendar-event me-1"></i><strong>${fmt(m.match_date)}</strong><br><span>(Grup ${esc(m.group_name)})</span></small><span class="badge ${m.played?'bg-success':'bg-warning text-dark'}">${m.played?'Oynandı (Detay)':'Gelecek Maç'}</span></div><div class="fixture-teams-row fw-bold"><span class="fixture-team home">${esc(teamMap[m.home_team_id]?.name||'Bilinmiyor')}</span><span class="fixture-score fs-5 text-warning">${m.played?`${Number(m.home_score??0)} - ${Number(m.away_score??0)}`:'VS'}</span><span class="fixture-team away">${esc(teamMap[m.away_team_id]?.name||'Bilinmiyor')}</span></div></div>`;
-                content.innerHTML='<h5 class="text-info mb-3"><i class="bi bi-calendar3 me-2"></i>Fikstür ve Sonuçlar</h5><h6 class="text-warning mt-3 mb-2"><i class="bi bi-clock-history me-1"></i>Oynanan Maçlar</h6>'+ (played.map(card).join('')||'<div class="text-muted">Henüz oynanan maç yok.</div>') + '<h6 class="text-info mt-4 mb-2"><i class="bi bi-calendar-check me-1"></i>Gelecek Maçlar</h6>'+ (upcoming.map(card).join('')||'<div class="text-muted">Planlanmış maç yok.</div>');
+                let html = '<h5 class="text-info mb-3"><i class="bi bi-calendar3 me-2"></i>Fikstür ve Sonuçlar</h5><h6 class="text-warning mt-3 mb-2"><i class="bi bi-clock-history me-1"></i>Oynanan Maçlar</h6>'+ (played.map(card).join('')||'<div class="text-muted">Henüz oynanan maç yok.</div>') + '<h6 class="text-info mt-4 mb-2"><i class="bi bi-calendar-check me-1"></i>Gelecek Maçlar</h6>'+ (upcoming.map(card).join('')||'<div class="text-muted">Planlanmış maç yok.</div>');
+                content.innerHTML = html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
             } else if(tabName==='istatistik') {
                 const goals={}, assists={};
                 events.forEach(e=>{ if(Number(e.goals||0)>0) goals[e.player_id]=(goals[e.player_id]||0)+Number(e.goals); if(Number(e.assists||0)>0) assists[e.player_id]=(assists[e.player_id]||0)+Number(e.assists); });
                 const pr=Object.fromEntries((await supabaseClient.from('players').select('*')).data?.map(p=>[p.id,p])||[]);
                 const list=(obj,label)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,v],i)=>{ const playerName=pr[id]?.name||'Bilinmiyor'; const safePlayer=playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); return `<li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary" style="cursor:pointer" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safePlayer}')"><div><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'} me-2">${i+1}</span><strong>${esc(playerName)}</strong> <small class="text-muted">(${esc(teamMap[pr[id]?.team_id]?.name||'')})</small></div><span class="badge bg-primary fs-6">${v} ${label}</span></li>`; }).join('')||'<li class="list-group-item bg-dark text-muted border-secondary">Henüz veri yok.</li>';
-                content.innerHTML=`<h5 class="text-info mb-3"><i class="bi bi-bar-chart-line-fill me-2"></i>İstatistikler</h5><div class="card p-3"><h6 class="text-warning">Gol Krallığı</h6><ul class="list-group">${list(goals,'Gol')}</ul></div><div class="card p-3"><h6 class="text-info">Asist Krallığı</h6><ul class="list-group">${list(assists,'Asist')}</ul></div>`;
+                let html = `<h5 class="text-info mb-3"><i class="bi bi-bar-chart-line-fill me-2"></i>İstatistikler</h5><div class="card p-3"><h6 class="text-warning">Gol Krallığı</h6><ul class="list-group">${list(goals,'Gol')}</ul></div><div class="card p-3"><h6 class="text-info">Asist Krallığı</h6><ul class="list-group">${list(assists,'Asist')}</ul></div>`;
+                content.innerHTML = html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
             } else if(tabName==='kadrolar') {
                 const playersRes = await supabaseClient.from('players').select('*').order('name'); 
                 const ps = playersRes.data || [];
@@ -1229,7 +1229,7 @@
                         </div>
                     `;
                 });
-                content.innerHTML = html;
+                content.innerHTML = html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
             }
         }
 
