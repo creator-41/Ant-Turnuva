@@ -18,7 +18,7 @@
     <style>
         /* KISA SAYFALARDA MENÜNÜN YUKARI ÇIKMASINI ÖNLEYEN MİN-HEIGHT VE İÇERİK BOŞLUĞU */
         html, body { height: 100%; margin: 0; }
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; min-height: 100vh; padding-top: 10px; padding-bottom: 140px; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; min-height: 100vh; padding-top: 10px; padding-bottom: 160px; -webkit-tap-highlight-color: transparent; }
         
         #main-content { flex: 1; }
 
@@ -36,8 +36,8 @@
         .custom-toast.error { border-left-color: #ef4444; }
         .custom-toast.warning { border-left-color: #f59e0b; }
 
-        /* ALT MENÜ (HER ZAMAN EKRANIN EN DİBİNDE SABİT) */
-        .nav-bottom { position: fixed; bottom: 0; left: 0; right: 0; background-color: #0f172a !important; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 8px 0; z-index: 99999; box-shadow: 0 -4px 15px rgba(0,0,0,0.8); }
+        /* ALT MENÜ (İOS HOME ÇİZGİSİ/TUŞU İÇİN ALTTAN EKSTRA 25PX BOŞLUK VERİLDİ) */
+        .nav-bottom { position: fixed; bottom: 0; left: 0; right: 0; background-color: #0f172a !important; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 10px 0 25px 0; z-index: 99999; box-shadow: 0 -4px 15px rgba(0,0,0,0.8); }
         .nav-bottom-item { color: #94a3b8; text-decoration: none; text-align: center; font-size: 11px; flex: 1; cursor: pointer; transition: color 0.2s; }
         .nav-bottom-item.active { color: #38bdf8; font-weight: bold; }
         .nav-bottom-item i { font-size: 20px; display: block; margin-bottom: 2px; }
