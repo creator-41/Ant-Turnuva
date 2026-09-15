@@ -147,7 +147,6 @@
         <a href="#" class="nav-bottom-item active" onclick="showTab('Fantezi', this)"><i class="bi bi-star-fill text-warning"></i>Takım Kur</a>
     </div>
 
-    <!-- Modeller -->
     <div class="modal fade" id="authModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -811,12 +810,13 @@
                     supabaseClient.from('matches').select('*').order('match_date'),
                     supabaseClient.from('match_events').select('*'),
                     supabaseClient.from('profiles').select('*'),
-                    supabaseClient.from('gameweeks').select('*').eq('is_current', true).maybeSingle()
+                    supabaseClient.from('gameweeks').select('*').order('id')
                 ]);
 
                 if (teamsRes.error || playersRes.error || matchesRes.error || eventsRes.error) throw new Error("Veri okuma hatası");
 
-                currentGameweek = gameweeksRes.data || null;
+                const gameweeksData = gameweeksRes.data || [];
+                currentGameweek = gameweeksData.find(g => g.is_current) || null;
 
                 rawTeamsGlobal = teamsRes.data || []; 
                 dbPlayersGlobal = playersRes.data || []; 
@@ -1036,12 +1036,14 @@
                         html += `<div class="card p-2 mb-4"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:13px"><colgroup><col style="width:15%"><col style="width:55%"><col style="width:30%"></colgroup><thead><tr><th>Sıra</th><th class="text-start">Takım / Menajer</th><th>Toplam Puan</th></tr></thead><tbody>${rowsHTML || '<tr><td colspan="3" class="text-muted py-3">Henüz takım kurulmadı.</td></tr>'}</tbody></table></div></div>`;
                     
                     } else {
-                        // MVP MODU
-                        let gwOptions = ctx.gameweeks.map(g => `<option value="${g.id}" ${g.id === window.currentMvpGw ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
+                        // MVP MODU KESİN ÇÖZÜMÜ
+                        let currentGwStr = String(window.currentMvpGw);
+
+                        let gwOptions = ctx.gameweeks.map(g => `<option value="${g.id}" ${String(g.id) === currentGwStr ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
                         
                         const playerPts = {};
                         ctx.events.forEach(e => {
-                            if (ctx.matchGameweekMap[e.match_id] === window.currentMvpGw) {
+                            if (String(ctx.matchGameweekMap[e.match_id]) === currentGwStr) {
                                 playerPts[e.player_id] = (playerPts[e.player_id] || 0) + Number(e.fantasy_points || 0);
                             }
                         });
@@ -1049,7 +1051,7 @@
                         const managerScores = ctx.fantasyTeams.map(team => {
                             let score = 0;
                             (team.fantasy_team_players || []).forEach(ftp => {
-                                if (ftp.gameweek_id === window.currentMvpGw) {
+                                if (String(ftp.gameweek_id) === currentGwStr) {
                                     let pts = playerPts[ftp.player_id] || 0;
                                     if(ftp.slot === team.captain_slot) pts *= 2;
                                     score += pts;
