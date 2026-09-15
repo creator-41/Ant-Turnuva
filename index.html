@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ANT Fantezi Lig & Turnuva</title>
     
-    <!-- PWA / Mobil Uygulama Meta Etiketleri -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ANT Fantezi">
@@ -16,19 +15,14 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        /* KISA SAYFALARDA MENÜNÜN YUKARI ÇIKMASINI ÖNLEYEN MİN-HEIGHT VE İÇERİK BOŞLUĞU */
         html, body { height: 100%; margin: 0; }
         body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; min-height: 100vh; padding-top: 10px; padding-bottom: 160px; -webkit-tap-highlight-color: transparent; }
         
         #main-content { flex: 1; }
-
-        /* NAVBAR ÜST BOŞLUK VE GÜVENLİ ALAN DÜZELTMESİ */
         .navbar { background-color: #1e293b !important; border-bottom: 2px solid #3b82f6; margin-bottom: 10px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
-        
         .card { background-color: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 12px; margin-bottom: 15px; }
         .table-dark { --bs-table-bg: #1e293b; --bs-table-border-color: #334155; }
         
-        /* ÖZEL BİLDİRİM (TOAST) SİSTEMİ */
         #notification-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: 320px; }
         .custom-toast { background: #1e293b; border-left: 4px solid #38bdf8; color: #f8fafc; padding: 12px 16px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 13px; display: flex; align-items: center; justify-content: space-between; opacity: 0; transform: translateY(-20px); transition: all 0.3s ease; }
         .custom-toast.show { opacity: 1; transform: translateY(0); }
@@ -36,16 +30,13 @@
         .custom-toast.error { border-left-color: #ef4444; }
         .custom-toast.warning { border-left-color: #f59e0b; }
 
-        /* ALT MENÜ (İOS HOME ÇİZGİSİ/TUŞU İÇİN ALTTAN EKSTRA 25PX BOŞLUK VERİLDİ) */
         .nav-bottom { position: fixed; bottom: 0; left: 0; right: 0; background-color: #0f172a !important; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 10px 0 25px 0; z-index: 99999; box-shadow: 0 -4px 15px rgba(0,0,0,0.8); }
         .nav-bottom-item { color: #94a3b8; text-decoration: none; text-align: center; font-size: 11px; flex: 1; cursor: pointer; transition: color 0.2s; }
         .nav-bottom-item.active { color: #38bdf8; font-weight: bold; }
         .nav-bottom-item i { font-size: 20px; display: block; margin-bottom: 2px; }
 
-        /* ANA DÜZEN CONTAINER */
         .pitch-layout-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 8px; max-width: 520px; margin: 0 auto; position: relative; }
         
-        /* MOBİL İÇİN TAKIM KURMA EKRANI DÜZELTMELERİ */
         @media (max-width: 576px) {
             .pitch-layout-wrapper { gap: 2px !important; padding: 0 2px !important; overflow-x: hidden !important; width: 100%; max-width: 100%; }
             .left-bench { width: 52px !important; flex: 0 0 52px !important; padding: 4px 1px !important; }
@@ -136,7 +127,6 @@
 </head>
 <body>
 
-    <!-- BİLDİRİM KONTEYNERİ -->
     <div id="notification-container"></div>
 
     <nav class="navbar navbar-dark sticky-top">
@@ -148,7 +138,6 @@
 
     <div class="container mt-2" id="main-content"></div>
 
-    <!-- 6 Butonlu Alt Menü -->
     <div class="nav-bottom">
         <a href="#" class="nav-bottom-item" onclick="showTab('puan-durumu', this)"><i class="bi bi-table"></i>Puan</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('fikstur', this)"><i class="bi bi-calendar-event"></i>Fikstür</a>
@@ -158,7 +147,6 @@
         <a href="#" class="nav-bottom-item active" onclick="showTab('Fantezi', this)"><i class="bi bi-star-fill text-warning"></i>Takım Kur</a>
     </div>
 
-    <!-- Giriş / Kayıt Modalı -->
     <div class="modal fade" id="authModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -174,7 +162,6 @@
                     <div class="mb-3"><label class="form-label small text-muted">E-posta</label><input id="authEmail" type="email" class="form-control bg-dark text-white border-secondary" placeholder="ornek@mail.com"></div>
                     <div class="mb-3"><label class="form-label small text-muted">Şifre</label><input id="authPassword" type="password" class="form-control bg-dark text-white border-secondary" placeholder="En az 6 karakter"></div>
                     
-                    <!-- Şifremi Unuttum Bağlantısı -->
                     <div class="text-end mb-3" id="forgotPasswordArea">
                         <a href="#" onclick="forgotPassword(); return false;" class="text-info small text-decoration-none">Şifremi Unuttum?</a>
                     </div>
@@ -187,7 +174,6 @@
         </div>
     </div>
 
-    <!-- Oyuncu Seçim Modalı -->
     <div class="modal fade" id="playerModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-scrollable">
             <div class="modal-content">
@@ -206,7 +192,6 @@
         </div>
     </div>
 
-    <!-- Pozisyon Seçim Modalı -->
     <div class="modal fade" id="slotChooseModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -222,7 +207,6 @@
         </div>
     </div>
 
-    <!-- Oyuncu Profil Modalı -->
     <div class="modal fade" id="playerProfileModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -235,7 +219,6 @@
         </div>
     </div>
 
-    <!-- Maç Detay / Goller Modalı -->
     <div class="modal fade" id="matchDetailModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -256,7 +239,8 @@
         let rawTeamsGlobal = [];
         let globalPlayerStats = {};
 
-        // BİLDİRİM FONKSİYONU
+        let currentGameweek = null;
+
         function showNotification(message, type = 'success') {
             const container = document.getElementById('notification-container');
             const toast = document.createElement('div');
@@ -338,15 +322,10 @@
         function getPlayerStats(playerName) {
             if (!playerName) return { goals: 0, assists: 0, totalContribution: 0 };
             let cleanName = playerName.replace(" (K)", "").trim().toLowerCase();
-            
             for (let id in globalPlayerStats) {
                 let pStats = globalPlayerStats[id];
                 if (pStats.name.replace(" (K)", "").trim().toLowerCase() === cleanName) {
-                    return {
-                        goals: pStats.goals,
-                        assists: pStats.assists,
-                        totalContribution: pStats.goals + pStats.assists
-                    };
+                    return { goals: pStats.goals, assists: pStats.assists, totalContribution: pStats.goals + pStats.assists };
                 }
             }
             return { goals: 0, assists: 0, totalContribution: 0 };
@@ -357,10 +336,7 @@
                 if(mySquad[key] === playerName) {
                     removePlayerFromSlot(key);
                     const modalEl = document.getElementById('playerProfileModal');
-                    if(modalEl) {
-                        const inst = bootstrap.Modal.getInstance(modalEl);
-                        if(inst) inst.hide();
-                    }
+                    if(modalEl) { const inst = bootstrap.Modal.getInstance(modalEl); if(inst) inst.hide(); }
                     break;
                 }
             }
@@ -368,10 +344,7 @@
 
         function openPlayerProfileFromSelect(playerName) {
             const playerModalEl = document.getElementById('playerModal');
-            if(playerModalEl) {
-                const inst = bootstrap.Modal.getInstance(playerModalEl);
-                if(inst) inst.hide();
-            }
+            if(playerModalEl) { const inst = bootstrap.Modal.getInstance(playerModalEl); if(inst) inst.hide(); }
             openPlayerProfile(playerName);
         }
 
@@ -411,8 +384,6 @@
             new bootstrap.Modal(document.getElementById('playerProfileModal')).show();
         }
 
-        function openMatchDetail(matchKey) { } 
-
         function openSlotChoiceForPlayerFromProfile(playerName) {
             bootstrap.Modal.getInstance(document.getElementById('playerProfileModal')).hide();
             openSlotChoiceForPlayer(playerName);
@@ -447,10 +418,7 @@
             if(captainSlot === slotKey) captainSlot = null;
             renderPitch();
             const pm = document.getElementById('playerModal');
-            if(pm) {
-                const inst = bootstrap.Modal.getInstance(pm);
-                if(inst) inst.hide();
-            }
+            if(pm) { const inst = bootstrap.Modal.getInstance(pm); if(inst) inst.hide(); }
         }
 
         function openSelectModal(slotKey) {
@@ -478,10 +446,7 @@
 
         function openSlotChoiceForPlayer(playerName) {
             const matchDetailEl = document.getElementById('matchDetailModal');
-            if(matchDetailEl) {
-                const md = bootstrap.Modal.getInstance(matchDetailEl);
-                if(md) md.hide();
-            }
+            if(matchDetailEl) { const md = bootstrap.Modal.getInstance(matchDetailEl); if(md) md.hide(); }
             if(Object.values(mySquad).includes(playerName)) { alert("Bu oyuncu zaten kadroda ekli!"); return; }
             selectedPlayerForPlacement = playerName;
             document.getElementById('slotChooseTitle').innerText = playerName + " - Pozisyon Seç";
@@ -579,9 +544,28 @@
                 </div>`;
         }
 
-        function showTab(tabName, element) {} 
+        function checkGameweekLock() {
+            const saveBtn = document.getElementById('saveSquadBtn');
+            const lockMsg = document.getElementById('lockMessage');
+            
+            if (!currentGameweek) {
+                if(saveBtn) saveBtn.disabled = true;
+                if(lockMsg) lockMsg.innerHTML = '<div class="alert alert-warning py-2 small fw-bold"><i class="bi bi-exclamation-triangle me-1"></i> Şu an aktif bir fantezi haftası bulunmuyor.</div>';
+                return;
+            }
 
-        /* ===== SUPABASE CANLI VERİ BAĞLANTISI ===== */
+            const now = new Date();
+            const deadline = new Date(currentGameweek.deadline);
+
+            if (now >= deadline) {
+                if(saveBtn) saveBtn.disabled = true;
+                if(lockMsg) lockMsg.innerHTML = `<div class="alert alert-danger py-2 small fw-bold shadow-sm"><i class="bi bi-lock-fill me-1"></i> ${esc(currentGameweek.name)} kilitlendi! Süre doldu.</div>`;
+            } else {
+                if(saveBtn) saveBtn.disabled = false;
+                if(lockMsg) lockMsg.innerHTML = `<div class="alert alert-info py-2 small fw-bold shadow-sm"><i class="bi bi-unlock-fill me-1"></i> ${esc(currentGameweek.name)} için son kayıt: <strong>${fmt(currentGameweek.deadline)}</strong></div>`;
+            }
+        }
+
         const SUPABASE_URL = 'https://rmoalquwkfsyrsoqenzb.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_A8-3DVa2k_Nmow4W8h_Reg_qITGWrRf';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -620,19 +604,10 @@
         async function forgotPassword() {
             const email = document.getElementById('authEmail').value.trim();
             const msg = document.getElementById('authMessage');
-            if(!email) {
-                msg.innerHTML = '<span class="text-warning">Lütfen önce yukarıdaki e-posta alanına e-postanızı yazın.</span>';
-                return;
-            }
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.href,
-            });
-            if(error) {
-                msg.innerHTML = '<span class="text-danger">' + error.message + '</span>';
-            } else {
-                showNotification("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi!", "success");
-                msg.innerHTML = '<span class="text-success">Şifre sıfırlama bağlantısı gönderildi!</span>';
-            }
+            if(!email) { msg.innerHTML = '<span class="text-warning">Lütfen önce yukarıdaki e-posta alanına e-postanızı yazın.</span>'; return; }
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+            if(error) { msg.innerHTML = '<span class="text-danger">' + error.message + '</span>'; } 
+            else { showNotification("Şifre sıfırlama e-postası gönderildi!", "success"); msg.innerHTML = '<span class="text-success">Şifre sıfırlama bağlantısı gönderildi!</span>'; }
         }
 
         async function submitAuth() {
@@ -654,42 +629,13 @@
                 btn.disabled = false;
                 if(result.error) { msg.innerHTML='<span class="text-danger">'+result.error.message+'</span>'; return; }
                 currentUser = result.data.user;
-
-                if(currentUser) {
-                    await supabaseClient.from('profiles').upsert({ 
-                        id: currentUser.id, 
-                        email: currentUser.email,
-                        role: 'user' 
-                    }, { onConflict: 'id', ignoreDuplicates: true });
-                }
-
+                if(currentUser) { await supabaseClient.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, role: 'user' }, { onConflict: 'id', ignoreDuplicates: true }); }
             } else {
-                const result = await supabaseClient.auth.signUp({
-                    email, 
-                    password,
-                    options: { data: { username: username } }
-                });
-                
-                if(result.error) { 
-                    btn.disabled = false;
-                    msg.innerHTML='<span class="text-danger">'+result.error.message+'</span>'; 
-                    return; 
-                }
-                
-                if(result.data.user) {
-                    await supabaseClient.from('profiles').upsert({ 
-                        id: result.data.user.id, 
-                        username: username,
-                        email: email,
-                        role: 'user' 
-                    });
-                }
-
+                const result = await supabaseClient.auth.signUp({ email, password, options: { data: { username: username } } });
+                if(result.error) { btn.disabled = false; msg.innerHTML='<span class="text-danger">'+result.error.message+'</span>'; return; }
+                if(result.data.user) { await supabaseClient.from('profiles').upsert({ id: result.data.user.id, username: username, email: email, role: 'user' }); }
                 btn.disabled = false;
-                if(!result.data.session) { 
-                    msg.innerHTML='<span class="text-success">Kayıt başarılı! E-postanı doğruladıktan sonra giriş yapabilirsin.</span>'; 
-                    return; 
-                }
+                if(!result.data.session) { msg.innerHTML='<span class="text-success">Kayıt başarılı! E-postanı doğruladıktan sonra giriş yapabilirsin.</span>'; return; }
                 currentUser = result.data.user;
             }
 
@@ -717,7 +663,6 @@
                 let displayName = currentUser.email;
                 const {data: prof} = await supabaseClient.from('profiles').select('username').eq('id', currentUser.id).maybeSingle();
                 if(prof && prof.username) displayName = prof.username;
-
                 area.innerHTML=`<div class="auth-user"><i class="bi bi-person-check-fill text-success"></i><span>${esc(displayName)}</span><button class="btn btn-sm btn-outline-danger py-0 px-2 ms-1" onclick="logout()">Çıkış</button></div>`;
             } else {
                 area.innerHTML='<button class="auth-btn" onclick="openAuthModal()"><i class="bi bi-person-circle me-1"></i>Giriş Yap</button>';
@@ -728,33 +673,28 @@
             if(!currentUser) return;
             let newName = prompt("Yeni takım adını girin:\n(DİKKAT: Bu işlemi sadece 1 kez yapabilirsiniz!)", fantasyTeamName);
             if(!newName || newName.trim() === "" || newName.trim() === fantasyTeamName) return;
-            
             newName = newName.trim();
-
-            if(containsBadWord(newName)) {
-                alert("Uygunsuz kelime içeren takım adları kabul edilmez!");
-                return;
-            }
+            if(containsBadWord(newName)) { alert("Uygunsuz kelime içeren takım adları kabul edilmez!"); return; }
             
             const { error } = await supabaseClient.from('fantasy_teams').update({ name: newName, is_name_changed: true }).eq('user_id', currentUser.id);
-            if(error) {
-                alert("Takım adı değiştirilemedi: " + error.message);
-            } else {
-                showNotification("Takım adı başarıyla değiştirildi!", "success");
-                fantasyTeamName = newName;
-                isTeamNameChanged = true;
-                showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
-            }
+            if(error) { alert("Takım adı değiştirilemedi: " + error.message); } 
+            else { showNotification("Takım adı başarıyla değiştirildi!", "success"); fantasyTeamName = newName; isTeamNameChanged = true; showTab('Fantezi', document.querySelector('.nav-bottom-item.active')); }
         }
 
         async function saveSquadToSupabase() {
             if(!currentUser) { openAuthModal(); return; }
-
-            const btn = document.querySelector('button[onclick="saveSquadToSupabase()"]');
-            if(btn) { 
-                btn.disabled = true; 
-                btn.innerHTML = 'Kaydediliyor... <span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>'; 
+            
+            if(!currentGameweek) { 
+                alert("Şu an aktif bir fantezi haftası bulunmuyor. Kadro kaydedilemez!"); 
+                return; 
             }
+            if(new Date() >= new Date(currentGameweek.deadline)) {
+                alert("Süre doldu! Bu hafta için kadrolar kilitlendi.");
+                return;
+            }
+
+            const btn = document.getElementById('saveSquadBtn');
+            if(btn) { btn.disabled = true; btn.innerHTML = 'Kaydediliyor... <span class="spinner-border spinner-border-sm ms-1"></span>'; }
 
             try {
                 const {data: existing, error: findError} = await supabaseClient.from('fantasy_teams').select('id, name, is_name_changed').eq('user_id',currentUser.id).maybeSingle();
@@ -766,21 +706,17 @@
                     name = prompt('Takımının adı:', 'Takımım'); 
                     if(name === null) return; 
                     name = name.trim() || 'Takımım'; 
-                } else {
-                    name = name.trim();
-                }
+                } else { name = name.trim(); }
 
-                if(containsBadWord(name)) {
-                    alert("Uygunsuz kelime içeren takım adları kabul edilmez!");
-                    return;
-                }
+                if(containsBadWord(name)) { alert("Uygunsuz kelime içeren takım adları kabul edilmez!"); return; }
                 
                 if(existing) {
                     teamId = existing.id;
                     isTeamNameChanged = existing.is_name_changed || false;
                     const {error} = await supabaseClient.from('fantasy_teams').update({name:name,captain_slot:captainSlot,updated_at:new Date().toISOString()}).eq('id',teamId);
                     if(error){alert('Takım güncellenemedi: '+error.message);return;}
-                    await supabaseClient.from('fantasy_team_players').delete().eq('fantasy_team_id',teamId);
+                    
+                    await supabaseClient.from('fantasy_team_players').delete().eq('fantasy_team_id',teamId).eq('gameweek_id', currentGameweek.id);
                 } else {
                     const {data,error} = await supabaseClient.from('fantasy_teams').insert({user_id:currentUser.id,name:name,captain_slot:captainSlot}).select('id').single();
                     if(error){alert('Takım oluşturulamadı: '+error.message);return;}
@@ -792,11 +728,9 @@
                 for(const slot in mySquad) {
                     const playerName=mySquad[slot];
                     if(!playerName || playerName.startsWith('+')) continue;
-                    
                     let matchedPlayer = dbPlayersGlobal.find(p => p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
-
                     if(matchedPlayer) {
-                        rows.push({ fantasy_team_id: teamId, player_id: matchedPlayer.id, slot });
+                        rows.push({ fantasy_team_id: teamId, player_id: matchedPlayer.id, slot, gameweek_id: currentGameweek.id });
                     }
                 }
                 
@@ -806,14 +740,11 @@
                 }
                 
                 fantasyTeamName = name;
-                showNotification("Kadron kaydedildi!", "success");
+                showNotification("Kadron başarıyla kaydedildi!", "success");
                 showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
 
             } finally {
-                if(btn) { 
-                    btn.disabled = false; 
-                    btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Kadroyu Kaydet'; 
-                }
+                if(btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Kadroyu Kaydet'; }
             }
         }
 
@@ -835,14 +766,17 @@
             const titleEl = document.getElementById('fantasy-team-title');
             if(titleEl) titleEl.textContent = fantasyTeamName;
             
-            const {data: rows}=await supabaseClient.from('fantasy_team_players').select('slot,players(name)').eq('fantasy_team_id',team.id);
+            const {data: rows} = await supabaseClient.from('fantasy_team_players').select('slot, gameweek_id, players(name)').eq('fantasy_team_id',team.id).order('gameweek_id', { ascending: false });
             mySquad={...defaultSquad};
             
-            (rows||[]).forEach(r=>{ 
-                if(r.players && slotLabels[r.slot]) {
-                    mySquad[r.slot] = r.players.name; 
-                }
-            });
+            if(rows && rows.length > 0) {
+                const latestGameweekId = rows[0].gameweek_id;
+                rows.filter(r => r.gameweek_id === latestGameweekId).forEach(r => {
+                    if(r.players && slotLabels[r.slot]) {
+                        mySquad[r.slot] = r.players.name;
+                    }
+                });
+            }
 
             captainSlot=team.captain_slot || null;
             renderPitch();
@@ -870,15 +804,18 @@
 
         async function loadLiveData() {
             try {
-                const [teamsRes, playersRes, matchesRes, eventsRes, profilesRes] = await Promise.all([
+                const [teamsRes, playersRes, matchesRes, eventsRes, profilesRes, gameweeksRes] = await Promise.all([
                     supabaseClient.from('teams').select('*').order('name'),
                     supabaseClient.from('players').select('*').order('name'),
                     supabaseClient.from('matches').select('*').order('match_date'),
                     supabaseClient.from('match_events').select('*'),
-                    supabaseClient.from('profiles').select('*')
+                    supabaseClient.from('profiles').select('*'),
+                    supabaseClient.from('gameweeks').select('*').eq('is_current', true).maybeSingle()
                 ]);
 
                 if (teamsRes.error || playersRes.error || matchesRes.error || eventsRes.error) throw new Error("Veri okuma hatası");
+
+                currentGameweek = gameweeksRes.data || null;
 
                 rawTeamsGlobal = teamsRes.data || []; 
                 dbPlayersGlobal = playersRes.data || []; 
@@ -1022,11 +959,13 @@
                         </h6>
                     </div>
                     <div id="pitch-container"></div>
-                    <div class="d-flex gap-2 mt-3 justify-content-center" style="max-width:480px; margin: 10px auto 0 auto;">
-                        <button class="btn btn-success btn-sm w-100" onclick="saveSquadToSupabase()"><i class="bi bi-check-circle me-1"></i> Kadroyu Kaydet</button>
+                    <div id="lockMessage" class="mt-2 text-center w-100 px-3"></div>
+                    <div class="d-flex gap-2 mt-2 justify-content-center" style="max-width:480px; margin: 0 auto;">
+                        <button id="saveSquadBtn" class="btn btn-success btn-sm w-100" onclick="saveSquadToSupabase()"><i class="bi bi-check-circle me-1"></i> Kadroyu Kaydet</button>
                         <button class="btn btn-outline-danger btn-sm w-100" onclick="resetSquad()"><i class="bi bi-trash me-1"></i> Sıfırla</button>
                     </div>`;
                 renderPitch();
+                checkGameweekLock();
                 return;
             }
 
@@ -1034,7 +973,7 @@
                 supabaseClient.from('teams').select('*').order('name'),
                 supabaseClient.from('matches').select('*').order('match_date'),
                 supabaseClient.from('match_events').select('*'),
-                supabaseClient.from('fantasy_teams').select('id, name, user_id, captain_slot, fantasy_team_players(slot, player_id)'),
+                supabaseClient.from('fantasy_teams').select('id, name, user_id, captain_slot, fantasy_team_players(slot, player_id, gameweek_id)'),
                 supabaseClient.from('profiles').select('*')
             ]);
             if (tr.error || mr.error || er.error) { content.innerHTML='<div class="alert alert-danger">Supabase verisi okunamadı.</div>'; return; }
@@ -1045,14 +984,28 @@
             const teamMap=Object.fromEntries(teams.map(t=>[t.id,t]));
 
             if(tabName === 'siralama') {
-                const playerTotalPoints = {};
-                events.forEach(e => { playerTotalPoints[e.player_id] = (playerTotalPoints[e.player_id] || 0) + (e.fantasy_points || 0); });
+                const matchGameweekMap = Object.fromEntries(matches.map(m => [m.id, m.gameweek_id]));
+                
+                const playerGwPoints = {};
+                events.forEach(e => {
+                    const gwId = matchGameweekMap[e.match_id];
+                    if (!gwId) return;
+                    if (!playerGwPoints[e.player_id]) playerGwPoints[e.player_id] = {};
+                    if (!playerGwPoints[e.player_id][gwId]) playerGwPoints[e.player_id][gwId] = 0;
+                    
+                    playerGwPoints[e.player_id][gwId] += Number(e.fantasy_points || 0);
+                });
                 
                 const leaderboard = fantasyTeams.map(team => {
                     let totalScore = 0;
                     (team.fantasy_team_players || []).forEach(ftp => {
-                        let pts = playerTotalPoints[ftp.player_id] || 0;
+                        const pId = ftp.player_id;
+                        const gwId = ftp.gameweek_id;
+                        
+                        let pts = (playerGwPoints[pId] && playerGwPoints[pId][gwId]) ? playerGwPoints[pId][gwId] : 0;
+                        
                         if(ftp.slot === team.captain_slot) pts *= 2;
+                        
                         totalScore += pts;
                     });
                     const userName = profileMap[team.user_id] || 'Kullanıcı';
@@ -1158,7 +1111,6 @@
         };
 
         loadLiveData();
-
     </script>
 </body>
 </html>
