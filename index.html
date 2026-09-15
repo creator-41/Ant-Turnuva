@@ -16,9 +16,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        /* İÇERİĞİN ALT MENÜNÜN ALTINDA KALMAMASI İÇİN BIRAKILAN BOŞLUK */
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; padding-top: 10px; padding-bottom: 110px; -webkit-tap-highlight-color: transparent; }
+        /* KISA SAYFALARDA MENÜNÜN YUKARI ÇIKMASINI ÖNLEYEN MİN-HEIGHT VE İÇERİK BOŞLUĞU */
+        html, body { height: 100%; margin: 0; }
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; min-height: 100vh; padding-top: 10px; padding-bottom: 140px; -webkit-tap-highlight-color: transparent; }
         
+        #main-content { flex: 1; }
+
         /* NAVBAR ÜST BOŞLUK VE GÜVENLİ ALAN DÜZELTMESİ */
         .navbar { background-color: #1e293b !important; border-bottom: 2px solid #3b82f6; margin-bottom: 10px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
         
@@ -33,7 +36,7 @@
         .custom-toast.error { border-left-color: #ef4444; }
         .custom-toast.warning { border-left-color: #f59e0b; }
 
-        /* ALT MENÜ (EKRANIN EN ALTINA KUSURSUZ SABİTLENDİ) */
+        /* ALT MENÜ (HER ZAMAN EKRANIN EN DİBİNDE SABİT) */
         .nav-bottom { position: fixed; bottom: 0; left: 0; right: 0; background-color: #0f172a !important; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 8px 0; z-index: 99999; box-shadow: 0 -4px 15px rgba(0,0,0,0.8); }
         .nav-bottom-item { color: #94a3b8; text-decoration: none; text-align: center; font-size: 11px; flex: 1; cursor: pointer; transition: color 0.2s; }
         .nav-bottom-item.active { color: #38bdf8; font-weight: bold; }
