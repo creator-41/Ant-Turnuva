@@ -1,8 +1,8 @@
 {
   "name": "ANT Fantezi Lig",
   "short_name": "ANT Fantezi",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/Ant-Turnuva/",
+  "scope": "/Ant-Turnuva/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
