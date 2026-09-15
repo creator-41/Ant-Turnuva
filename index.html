@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         html, body { height: 100%; margin: 0; }
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; min-height: 100vh; padding-top: 10px; padding-bottom: 160px; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; min-height: 100vh; padding-top: 10px; padding-bottom: 190px !important; -webkit-tap-highlight-color: transparent; }
         
         #main-content { flex: 1; }
         .navbar { background-color: #1e293b !important; border-bottom: 2px solid #3b82f6; margin-bottom: 10px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
@@ -550,7 +550,7 @@
             
             if (!currentGameweek) {
                 if(saveBtn) saveBtn.disabled = true;
-                if(lockMsg) lockMsg.innerHTML = '<div class="alert alert-warning py-2 small fw-bold"><i class="bi bi-exclamation-triangle me-1"></i> Şu an aktif bir fantezi haftası bulunmuyor.</div>';
+                if(lockMsg) lockMsg.innerHTML = '<div class="alert alert-warning py-1 mb-0 small fw-bold"><i class="bi bi-exclamation-triangle me-1"></i> Şu an aktif bir fantezi haftası bulunmuyor.</div>';
                 return;
             }
 
@@ -559,10 +559,10 @@
 
             if (now >= deadline) {
                 if(saveBtn) saveBtn.disabled = true;
-                if(lockMsg) lockMsg.innerHTML = `<div class="alert alert-danger py-2 small fw-bold shadow-sm"><i class="bi bi-lock-fill me-1"></i> ${esc(currentGameweek.name)} kilitlendi! Süre doldu.</div>`;
+                if(lockMsg) lockMsg.innerHTML = `<div class="alert alert-danger py-1 mb-0 small fw-bold shadow-sm"><i class="bi bi-lock-fill me-1"></i> ${esc(currentGameweek.name)} kilitlendi! Süre doldu.</div>`;
             } else {
                 if(saveBtn) saveBtn.disabled = false;
-                if(lockMsg) lockMsg.innerHTML = `<div class="alert alert-info py-2 small fw-bold shadow-sm"><i class="bi bi-unlock-fill me-1"></i> ${esc(currentGameweek.name)} için son kayıt: <strong>${fmt(currentGameweek.deadline)}</strong></div>`;
+                if(lockMsg) lockMsg.innerHTML = `<div class="alert alert-info py-1 mb-0 small fw-bold shadow-sm"><i class="bi bi-unlock-fill me-1"></i> ${esc(currentGameweek.name)} için son kayıt: <strong>${fmt(currentGameweek.deadline)}</strong></div>`;
             }
         }
 
@@ -959,8 +959,8 @@
                         </h6>
                     </div>
                     <div id="pitch-container"></div>
-                    <div id="lockMessage" class="mt-2 text-center w-100 px-3"></div>
-                    <div class="d-flex gap-2 mt-2 justify-content-center" style="max-width:480px; margin: 0 auto;">
+                    <div id="lockMessage" class="mt-2 text-center w-100 px-2"></div>
+                    <div class="d-flex gap-2 mt-2 pb-5 mb-5 justify-content-center" style="max-width:480px; margin: 0 auto;">
                         <button id="saveSquadBtn" class="btn btn-success btn-sm w-100" onclick="saveSquadToSupabase()"><i class="bi bi-check-circle me-1"></i> Kadroyu Kaydet</button>
                         <button class="btn btn-outline-danger btn-sm w-100" onclick="resetSquad()"><i class="bi bi-trash me-1"></i> Sıfırla</button>
                     </div>`;
