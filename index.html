@@ -642,7 +642,7 @@
 
             updateAuthArea(); 
             await loadSavedFantasyTeam();
-            bootstrap.Modal.getInstance(document.getElementById('authModal')).show();
+            bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
             showNotification(authMode === 'login' ? 'Giriş başarılı!' : 'Kayıt ve giriş başarılı!', 'success');
         }
 
@@ -731,7 +731,13 @@
                     if(!playerName || playerName.startsWith('+')) continue;
                     let matchedPlayer = dbPlayersGlobal.find(p => p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
                     if(matchedPlayer) {
-                        rows.push({ fantasy_team_id: teamId, player_id: matchedPlayer.id, slot, gameweek_id: currentGameweek.id });
+                        rows.push({ 
+                            fantasy_team_id: teamId, 
+                            player_id: matchedPlayer.id, 
+                            slot, 
+                            gameweek_id: currentGameweek.id, 
+                            is_captain: (slot === captainSlot) 
+                        });
                     }
                 }
                 
@@ -751,7 +757,7 @@
 
         async function loadSavedFantasyTeam() {
             if(!currentUser) return;
-            const {data: team, error}=await supabaseClient.from('fantasy_teams').select('id,name,captain_slot,is_name_changed,updated_at').eq('user_id',currentUser.id).maybeSingle();
+            const {data: team, error}=await supabaseClient.from('fantasy_teams').select('id,name,captain_slot,is_name_changed').eq('user_id',currentUser.id).maybeSingle();
             
             if(error || !team) { 
                 fantasyTeamName = 'Rüya Takımını Kur'; 
@@ -767,20 +773,20 @@
             const titleEl = document.getElementById('fantasy-team-title');
             if(titleEl) titleEl.textContent = fantasyTeamName;
 
-            // HAFTA MANTIĞINI DÜZELTEN KISIM (ALFABEYE GÖRE DEĞİL ZAMANA GÖRE)
             const {data: gwData} = await supabaseClient.from('gameweeks').select('*');
             let sortedGameweeks = (gwData || []).sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
             let activeGw = sortedGameweeks.find(g => g.is_current) || sortedGameweeks[sortedGameweeks.length - 1];
 
-            const {data: rows} = await supabaseClient.from('fantasy_team_players').select('slot, gameweek_id, players(name)').eq('fantasy_team_id',team.id);
+            // YENİLİK: Veritabanından is_captain da çekiliyor
+            const {data: rows} = await supabaseClient.from('fantasy_team_players').select('slot, gameweek_id, is_captain, players(name)').eq('fantasy_team_id',team.id);
             mySquad={...defaultSquad};
+            captainSlot = null;
             
             if(rows && activeGw) {
                 let activeIdx = sortedGameweeks.findIndex(g => g.id === activeGw.id);
                 let selectedGwId = activeGw.id;
                 let activeGwPlayers = rows.filter(r => r.gameweek_id === activeGw.id);
 
-                // Kullanıcı kasten mi sıfırladı? (Bu hafta içinde bir kayıt yaptıysa)
                 let isIntentionallySavedThisWeek = false;
                 if (team.updated_at && activeIdx > 0) {
                     let prevGwDeadline = new Date(sortedGameweeks[activeIdx - 1].deadline);
@@ -790,7 +796,6 @@
                     }
                 }
 
-                // Eğer bu hafta hiç oyuncu yoksa VE kasten sıfırlamadıysa geçmişten kadroyu getir
                 if (activeGwPlayers.length === 0 && !isIntentionallySavedThisWeek) {
                     for(let i = activeIdx - 1; i >= 0; i--) {
                         let pastGwId = sortedGameweeks[i].id;
@@ -802,15 +807,18 @@
                     }
                 }
 
-                // Seçili haftanın oyuncularını ekrana diz
+                // YENİLİK: Kadroyu dizerken o haftanın özel kaptanını da bulup setliyoruz
                 rows.filter(r => r.gameweek_id === selectedGwId).forEach(r => {
                     if(r.players && slotLabels[r.slot]) {
                         mySquad[r.slot] = r.players.name;
+                        if(r.is_captain === true) captainSlot = r.slot;
                     }
                 });
             }
 
-            captainSlot=team.captain_slot || null;
+            // Eski sistemde kalmış kayıtlar varsa yedeğe düşüp düzeltiyor
+            if(!captainSlot) captainSlot=team.captain_slot || null;
+            
             renderPitch();
             showTab('Fantezi', document.querySelector('.nav-bottom-item:nth-child(6)'));
         }
@@ -1003,11 +1011,12 @@
                 return;
             }
 
+            // YENİLİK: Sıralama puanlarını hesaplarken de is_captain kolonunu çağırıyoruz
             const [tr, mr, er, ftRes, prRes, gwRes] = await Promise.all([
                 supabaseClient.from('teams').select('*').order('name'),
                 supabaseClient.from('matches').select('*').order('match_date'),
                 supabaseClient.from('match_events').select('*'),
-                supabaseClient.from('fantasy_teams').select('id, name, user_id, captain_slot, fantasy_team_players(slot, player_id, gameweek_id)'),
+                supabaseClient.from('fantasy_teams').select('id, name, user_id, captain_slot, fantasy_team_players(slot, player_id, gameweek_id, is_captain)'),
                 supabaseClient.from('profiles').select('*'),
                 supabaseClient.from('gameweeks').select('*').order('id')
             ]);
@@ -1050,7 +1059,9 @@
                             let totalScore = 0;
                             (team.fantasy_team_players || []).forEach(ftp => {
                                 let pts = (playerGwPoints[ftp.player_id] && playerGwPoints[ftp.player_id][ftp.gameweek_id]) ? playerGwPoints[ftp.player_id][ftp.gameweek_id] : 0;
-                                if(ftp.slot === team.captain_slot) pts *= 2;
+                                // YENİLİK: Her haftanın puanı çarpılırken, o haftaki is_captain değerine bakılıyor!
+                                let isCap = ftp.is_captain === true || (ftp.is_captain == null && ftp.slot === team.captain_slot);
+                                if(isCap) pts *= 2;
                                 totalScore += pts;
                             });
                             return { teamName: team.name, userName: ctx.profileMap[team.user_id] || 'Kullanıcı', score: totalScore };
@@ -1086,7 +1097,8 @@
                             let ftpForGw = (team.fantasy_team_players || []).filter(ftp => String(ftp.gameweek_id) === currentGwStr);
                             ftpForGw.forEach(ftp => {
                                 let pts = playerPts[ftp.player_id] || 0;
-                                if(ftp.slot === team.captain_slot) pts *= 2;
+                                let isCap = ftp.is_captain === true || (ftp.is_captain == null && ftp.slot === team.captain_slot);
+                                if(isCap) pts *= 2;
                                 score += pts;
                             });
                             return { team, teamName: team.name, userName: ctx.profileMap[team.user_id] || 'Kullanıcı', score, ftpForGw, captain_slot: team.captain_slot };
@@ -1124,7 +1136,9 @@
                                     let pInfo = playersArr.find(p => p.id === ftp.player_id) || dbPlayersGlobal.find(p => p.id === ftp.player_id);
                                     let pName = pInfo ? pInfo.name : 'Bilinmiyor';
                                     let tColor = pInfo ? (teamColors[ctx.teamMap[pInfo.team_id]?.name]?.c1 || '#38bdf8') : '#38bdf8';
-                                    let isCap = ftp.slot === mvpManager.captain_slot;
+                                    
+                                    // Görüntüleme kısmında da haftanın kaptanını okuyoruz
+                                    let isCap = ftp.is_captain === true || (ftp.is_captain == null && ftp.slot === mvpManager.captain_slot);
                                     let pts = playerPts[ftp.player_id] || 0;
                                     if (isCap) pts *= 2;
                                     
