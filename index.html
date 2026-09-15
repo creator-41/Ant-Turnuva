@@ -642,7 +642,7 @@
 
             updateAuthArea(); 
             await loadSavedFantasyTeam();
-            bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+            bootstrap.Modal.getInstance(document.getElementById('authModal')).show();
             showNotification(authMode === 'login' ? 'Giriş başarılı!' : 'Kayıt ve giriş başarılı!', 'success');
         }
 
@@ -751,7 +751,7 @@
 
         async function loadSavedFantasyTeam() {
             if(!currentUser) return;
-            const {data: team, error}=await supabaseClient.from('fantasy_teams').select('id,name,captain_slot,is_name_changed').eq('user_id',currentUser.id).maybeSingle();
+            const {data: team, error}=await supabaseClient.from('fantasy_teams').select('id,name,captain_slot,is_name_changed,updated_at').eq('user_id',currentUser.id).maybeSingle();
             
             if(error || !team) { 
                 fantasyTeamName = 'Rüya Takımını Kur'; 
@@ -766,13 +766,44 @@
             
             const titleEl = document.getElementById('fantasy-team-title');
             if(titleEl) titleEl.textContent = fantasyTeamName;
-            
-            const {data: rows} = await supabaseClient.from('fantasy_team_players').select('slot, gameweek_id, players(name)').eq('fantasy_team_id',team.id).order('gameweek_id', { ascending: false });
+
+            // HAFTA MANTIĞINI DÜZELTEN KISIM (ALFABEYE GÖRE DEĞİL ZAMANA GÖRE)
+            const {data: gwData} = await supabaseClient.from('gameweeks').select('*');
+            let sortedGameweeks = (gwData || []).sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+            let activeGw = sortedGameweeks.find(g => g.is_current) || sortedGameweeks[sortedGameweeks.length - 1];
+
+            const {data: rows} = await supabaseClient.from('fantasy_team_players').select('slot, gameweek_id, players(name)').eq('fantasy_team_id',team.id);
             mySquad={...defaultSquad};
             
-            if(rows && rows.length > 0) {
-                const latestGameweekId = rows[0].gameweek_id;
-                rows.filter(r => r.gameweek_id === latestGameweekId).forEach(r => {
+            if(rows && activeGw) {
+                let activeIdx = sortedGameweeks.findIndex(g => g.id === activeGw.id);
+                let selectedGwId = activeGw.id;
+                let activeGwPlayers = rows.filter(r => r.gameweek_id === activeGw.id);
+
+                // Kullanıcı kasten mi sıfırladı? (Bu hafta içinde bir kayıt yaptıysa)
+                let isIntentionallySavedThisWeek = false;
+                if (team.updated_at && activeIdx > 0) {
+                    let prevGwDeadline = new Date(sortedGameweeks[activeIdx - 1].deadline);
+                    let lastUpdate = new Date(team.updated_at);
+                    if (lastUpdate > prevGwDeadline) {
+                        isIntentionallySavedThisWeek = true;
+                    }
+                }
+
+                // Eğer bu hafta hiç oyuncu yoksa VE kasten sıfırlamadıysa geçmişten kadroyu getir
+                if (activeGwPlayers.length === 0 && !isIntentionallySavedThisWeek) {
+                    for(let i = activeIdx - 1; i >= 0; i--) {
+                        let pastGwId = sortedGameweeks[i].id;
+                        let pastPlayers = rows.filter(r => r.gameweek_id === pastGwId);
+                        if (pastPlayers.length > 0) {
+                            selectedGwId = pastGwId;
+                            break;
+                        }
+                    }
+                }
+
+                // Seçili haftanın oyuncularını ekrana diz
+                rows.filter(r => r.gameweek_id === selectedGwId).forEach(r => {
                     if(r.players && slotLabels[r.slot]) {
                         mySquad[r.slot] = r.players.name;
                     }
