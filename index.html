@@ -2,12 +2,20 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ANT Fantezi Lig & Turnuva</title>
+    
+    <!-- PWA / Mobil Uygulama Meta Etiketleri -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ANT Fantezi">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="manifest.json">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; padding-bottom: 85px; }
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; padding-bottom: 85px; -webkit-tap-highlight-color: transparent; }
         .navbar { background-color: #1e293b !important; border-bottom: 2px solid #3b82f6; }
         .card { background-color: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 12px; margin-bottom: 15px; }
         .table-dark { --bs-table-bg: #1e293b; --bs-table-border-color: #334155; }
@@ -834,12 +842,6 @@
             showTab('Fantezi', document.querySelector('.nav-bottom-item:nth-child(6)'));
         }
 
-        supabaseClient.auth.getSession().then(async ({data})=>{
-            currentUser=data.session?.user || null; updateAuthArea();
-            if(currentUser) await loadSavedFantasyTeam();
-        });
-        supabaseClient.auth.onAuthStateChange(async (_event,session)=>{ currentUser=session?.user || null; updateAuthArea(); if(currentUser) await loadSavedFantasyTeam(); });
-
         async function loadLiveData() {
             try {
                 const [teamsRes, playersRes, matchesRes, eventsRes, profilesRes] = await Promise.all([
@@ -887,7 +889,6 @@
                     stats[e.player_id].assists += Number(e.assists || 0);
                 });
 
-                // GLOBAL HAVUZA AKTARILDI (İLK 10 SINIRINA TAKILMAZ)
                 globalPlayerStats = stats;
 
                 topScorers = Object.values(stats).filter(x => x.goals > 0).sort((a,b) => b.goals-a.goals || a.name.localeCompare(b.name,'tr')).slice(0,10);
