@@ -147,6 +147,7 @@
         <a href="#" class="nav-bottom-item active" onclick="showTab('Fantezi', this)"><i class="bi bi-star-fill text-warning"></i>Takım Kur</a>
     </div>
 
+    <!-- Modals -->
     <div class="modal fade" id="authModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -992,6 +993,7 @@
                 window.lbContext = { matches, events, fantasyTeams, profiles, gameweeks, profileMap, teamMap, matchGameweekMap };
                 window.currentLbMode = window.currentLbMode || 'genel';
                 window.currentMvpGw = window.currentMvpGw || (currentGameweek ? currentGameweek.id : (gameweeks[0]?.id));
+                window.currentMvpTab = window.currentMvpTab || 'manager'; // 'manager' veya 'dream'
                 
                 window.renderLeaderboardUI = function() {
                     const ctx = window.lbContext;
@@ -1036,9 +1038,8 @@
                         html += `<div class="card p-2 mb-4"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:13px"><colgroup><col style="width:15%"><col style="width:55%"><col style="width:30%"></colgroup><thead><tr><th>Sıra</th><th class="text-start">Takım / Menajer</th><th>Toplam Puan</th></tr></thead><tbody>${rowsHTML || '<tr><td colspan="3" class="text-muted py-3">Henüz takım kurulmadı.</td></tr>'}</tbody></table></div></div>`;
                     
                     } else {
-                        // MVP MODU KESİN ÇÖZÜMÜ
+                        // MVP MODU
                         let currentGwStr = String(window.currentMvpGw);
-
                         let gwOptions = ctx.gameweeks.map(g => `<option value="${g.id}" ${String(g.id) === currentGwStr ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
                         
                         const playerPts = {};
@@ -1050,14 +1051,13 @@
                         
                         const managerScores = ctx.fantasyTeams.map(team => {
                             let score = 0;
-                            (team.fantasy_team_players || []).forEach(ftp => {
-                                if (String(ftp.gameweek_id) === currentGwStr) {
-                                    let pts = playerPts[ftp.player_id] || 0;
-                                    if(ftp.slot === team.captain_slot) pts *= 2;
-                                    score += pts;
-                                }
+                            let ftpForGw = (team.fantasy_team_players || []).filter(ftp => String(ftp.gameweek_id) === currentGwStr);
+                            ftpForGw.forEach(ftp => {
+                                let pts = playerPts[ftp.player_id] || 0;
+                                if(ftp.slot === team.captain_slot) pts *= 2;
+                                score += pts;
                             });
-                            return { teamName: team.name, userName: ctx.profileMap[team.user_id] || 'Kullanıcı', score };
+                            return { team, teamName: team.name, userName: ctx.profileMap[team.user_id] || 'Kullanıcı', score, ftpForGw, captain_slot: team.captain_slot };
                         }).sort((a,b) => b.score - a.score);
                         
                         let mvpManager = managerScores[0];
@@ -1069,47 +1069,114 @@
                             let dbP = dbPlayersGlobal.find(p => p.id === pid);
                             return { id: pid, name: dbP?.name||'Bilinmiyor', pos: dbP?.position||'', pts: playerPts[pid], team_id: dbP?.team_id };
                         }).sort((a,b) => b.pts - a.pts);
-                        
-                        let gk = [], def = [], mid = [], fwd = [];
-                        playersArr.forEach(p => {
-                            let pPos = p.pos.toLowerCase();
-                            if(pPos.includes('kaleci') || p.name.includes('(K)')) { if(gk.length < 1) gk.push(p); }
-                            else if(pPos.includes('defans')) { if(def.length < 3) def.push(p); }
-                            else if(pPos.includes('orta')) { if(mid.length < 4) mid.push(p); }
-                            else { if(fwd.length < 3) fwd.push(p); } 
-                        });
-                        
-                        const renderRow = (arr) => {
-                            if(arr.length === 0) return '';
-                            return `<div class="d-flex justify-content-center flex-wrap gap-2 mb-2 w-100">
-                                ${arr.map(p => {
-                                    let tColor = teamColors[ctx.teamMap[p.team_id]?.name]?.c1 || '#38bdf8';
-                                    return `<div class="player-card text-center" style="margin:2px;" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')">
-                                        ${generateJerseySVG(tColor, '#0f172a', '#ffffff', false)}
-                                        <div class="jersey-name-tag" style="font-size:7.5px; max-width:65px; white-space:normal; line-height:1.1; margin-top:3px;">${esc(p.name)}</div>
-                                        <span class="badge bg-success mt-1" style="font-size:9px;">${p.pts} P</span>
-                                    </div>`
-                                }).join('')}
-                            </div>`;
-                        };
-                        
-                        let dreamTeamHTML = playersArr.length === 0 
-                            ? '<div class="text-center text-muted py-3">Rüya 11 için oynanmış maç bulunmuyor.</div>' 
-                            : `<div class="text-center mb-2 text-info fw-bold"><i class="bi bi-stars text-warning"></i> Haftanın Rüya 11'i</div>
-                               <div style="background: repeating-linear-gradient(to bottom, #10b981, #10b981 26px, #059669 26px, #059669 52px); border: 2px solid #ffffff; border-radius: 8px; padding: 12px 6px; position: relative; overflow: hidden; max-width: 360px; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.4);">
-                                   <div style="position: absolute; top:0; left:50%; width:120px; height:45px; border:2px solid rgba(255,255,255,0.4); border-top:none; transform:translateX(-50%); pointer-events:none;"></div>
-                                   <div style="position: absolute; top:50%; left:0; right:0; height:1.5px; background:rgba(255,255,255,0.4); transform:translateY(-50%); pointer-events:none;"></div>
-                                   <div style="position: absolute; top:50%; left:50%; width:60px; height:60px; border:1.5px solid rgba(255,255,255,0.4); border-radius:50%; transform:translate(-50%,-50%); pointer-events:none;"></div>
-                                   ${renderRow(fwd)}${renderRow(mid)}${renderRow(def)}${renderRow(gk)}
-                               </div>`;
-                        
+
+                        // Sub-Tab Tasarımı ve Sahalar
+                        let subTabHTML = '';
+                        let displayedPitchHTML = '';
+
+                        if (mvpManager && mvpManager.score > 0) {
+                            subTabHTML = `
+                                <div class="d-flex justify-content-center gap-2 mb-3">
+                                    <button class="btn btn-sm ${window.currentMvpTab === 'manager' ? 'btn-success fw-bold' : 'btn-outline-success'}" onclick="window.currentMvpTab='manager'; renderLeaderboardUI();"><i class="bi bi-person-badge"></i> Menajerin Kadrosu</button>
+                                    <button class="btn btn-sm ${window.currentMvpTab === 'dream' ? 'btn-warning text-dark fw-bold' : 'btn-outline-warning'}" onclick="window.currentMvpTab='dream'; renderLeaderboardUI();"><i class="bi bi-stars"></i> Haftanın Rüya 11'i</button>
+                                </div>
+                            `;
+                            
+                            if (window.currentMvpTab === 'manager') {
+                                // Menajer Kadrosu (As takım + Yedekler)
+                                let ftpMap = {};
+                                mvpManager.ftpForGw.forEach(ftp => ftpMap[ftp.slot] = ftp);
+                                
+                                const createReadonlySlot = (slotKey) => {
+                                    let ftp = ftpMap[slotKey];
+                                    if (!ftp) return `<div class="player-card"><div class="jersey-icon" style="opacity:0.3; filter: grayscale(100%);"></div><div class="jersey-name-tag text-muted">Boş</div></div>`;
+                                    
+                                    let pInfo = playersArr.find(p => p.id === ftp.player_id) || dbPlayersGlobal.find(p => p.id === ftp.player_id);
+                                    let pName = pInfo ? pInfo.name : 'Bilinmiyor';
+                                    let tColor = pInfo ? (teamColors[ctx.teamMap[pInfo.team_id]?.name]?.c1 || '#38bdf8') : '#38bdf8';
+                                    let isCap = ftp.slot === mvpManager.captain_slot;
+                                    let pts = playerPts[ftp.player_id] || 0;
+                                    if (isCap) pts *= 2;
+                                    
+                                    return `
+                                        <div class="player-card text-center" style="margin:2px;" onclick="openPlayerProfile('${pName.replace(/'/g,"\\'")}')">
+                                            ${generateJerseySVG(tColor, '#0f172a', '#ffffff', isCap)}
+                                            <div class="jersey-name-tag ${isCap ? 'is-captain-tag' : ''}" style="font-size:7.5px; max-width:65px; white-space:normal; line-height:1.1; margin-top:3px;">${isCap ? '(C) ' : ''}${esc(pName)}</div>
+                                            <span class="badge bg-success mt-1" style="font-size:9px;">${pts} P</span>
+                                        </div>`;
+                                };
+
+                                displayedPitchHTML = `
+                                    <div class="text-center mb-2 text-success fw-bold"><i class="bi bi-shield-check"></i> Şampiyonun Sahadaki Dizilişi</div>
+                                    <div class="pitch-layout-wrapper">
+                                        <div class="left-bench"><div class="left-bench-title"><i class="bi bi-people-fill"></i> YEDEKLER</div>${createReadonlySlot('sub1')}${createReadonlySlot('sub2')}${createReadonlySlot('sub3')}${createReadonlySlot('sub4')}</div>
+                                        <div class="perspective-container">
+                                            <div class="stadium-wall">
+                                                <div class="ant-logo-box"><img src="https://antlojistik.com.tr/wp-content/uploads/2025/02/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img"></div>
+                                                <div class="goal-box"></div>
+                                                <div class="ant-logo-box"><img src="https://antlojistik.com.tr/wp-content/uploads/2025/02/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img"></div>
+                                            </div>
+                                            <div class="pitch-3d">
+                                                <div class="pitch-box-top"></div><div class="pitch-penalty-arc-top"></div><div class="pitch-line-center"></div><div class="pitch-circle-center"></div>
+                                                <div class="pitch-row text-center d-flex justify-content-center">${createReadonlySlot('st')}</div>
+                                                <div class="pitch-row d-flex justify-content-around">${createReadonlySlot('os1')}${createReadonlySlot('os2')}${createReadonlySlot('os3')}</div>
+                                                <div class="pitch-row d-flex justify-content-around">${createReadonlySlot('def1')}${createReadonlySlot('def2')}</div>
+                                                <div class="pitch-row text-center d-flex justify-content-center">${createReadonlySlot('gk')}</div>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                            } else {
+                                // Sadece GK ve Saha Oyuncuları Kuralıyla Rüya 11 (1 GK + 10 Saha)
+                                let gk = [], field = [];
+                                playersArr.forEach(p => {
+                                    let pPos = p.pos.toLowerCase();
+                                    if(pPos.includes('kaleci') || p.name.includes('(K)')) { 
+                                        if(gk.length < 1) gk.push(p); 
+                                    } else { 
+                                        if(field.length < 10) field.push(p); 
+                                    } 
+                                });
+
+                                // Saha oyuncularını görsel olarak 3-4-3 gibi satırlara dağıtıyoruz (Görsellik için)
+                                let fwd = field.slice(0, 3);
+                                let mid = field.slice(3, 7);
+                                let def = field.slice(7, 10);
+                                
+                                const renderRow = (arr) => {
+                                    if(arr.length === 0) return '';
+                                    return `<div class="d-flex justify-content-center flex-wrap gap-2 mb-2 w-100">
+                                        ${arr.map(p => {
+                                            let tColor = teamColors[ctx.teamMap[p.team_id]?.name]?.c1 || '#38bdf8';
+                                            return `<div class="player-card text-center" style="margin:2px;" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')">
+                                                ${generateJerseySVG(tColor, '#0f172a', '#ffffff', false)}
+                                                <div class="jersey-name-tag" style="font-size:7.5px; max-width:65px; white-space:normal; line-height:1.1; margin-top:3px;">${esc(p.name)}</div>
+                                                <span class="badge bg-success mt-1" style="font-size:9px;">${p.pts} P</span>
+                                            </div>`
+                                        }).join('')}
+                                    </div>`;
+                                };
+
+                                displayedPitchHTML = `
+                                    <div class="text-center mb-2 text-warning fw-bold"><i class="bi bi-stars text-warning"></i> Haftanın Rüya 11'i</div>
+                                    <div style="background: repeating-linear-gradient(to bottom, #10b981, #10b981 26px, #059669 26px, #059669 52px); border: 2px solid #ffffff; border-radius: 8px; padding: 12px 6px; position: relative; overflow: hidden; max-width: 360px; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.4);">
+                                        <div style="position: absolute; top:0; left:50%; width:120px; height:45px; border:2px solid rgba(255,255,255,0.4); border-top:none; transform:translateX(-50%); pointer-events:none;"></div>
+                                        <div style="position: absolute; top:50%; left:0; right:0; height:1.5px; background:rgba(255,255,255,0.4); transform:translateY(-50%); pointer-events:none;"></div>
+                                        <div style="position: absolute; top:50%; left:50%; width:60px; height:60px; border:1.5px solid rgba(255,255,255,0.4); border-radius:50%; transform:translate(-50%,-50%); pointer-events:none;"></div>
+                                        ${renderRow(fwd)}${renderRow(mid)}${renderRow(def)}${renderRow(gk)}
+                                    </div>`;
+                            }
+                        } else {
+                            displayedPitchHTML = '<div class="text-center text-muted py-3">Bu hafta için kadro/rüya 11 verisi bulunmuyor.</div>';
+                        }
+
                         html += `
                             <div class="card p-3 mb-4 border-info">
                                 <select class="form-select bg-dark text-info border-secondary mb-3 w-50 mx-auto text-center fw-bold shadow-none" onchange="window.currentMvpGw=this.value; renderLeaderboardUI();">
                                     ${gwOptions}
                                 </select>
                                 ${managerHTML}
-                                ${dreamTeamHTML}
+                                ${subTabHTML}
+                                ${displayedPitchHTML}
                             </div>
                         `;
                     }
