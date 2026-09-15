@@ -147,6 +147,7 @@
         <a href="#" class="nav-bottom-item active" onclick="showTab('Fantezi', this)"><i class="bi bi-star-fill text-warning"></i>Takım Kur</a>
     </div>
 
+    <!-- Modeller -->
     <div class="modal fade" id="authModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -969,16 +970,18 @@
                 return;
             }
 
-            const [tr, mr, er, ftRes, prRes] = await Promise.all([
+            const [tr, mr, er, ftRes, prRes, gwRes] = await Promise.all([
                 supabaseClient.from('teams').select('*').order('name'),
                 supabaseClient.from('matches').select('*').order('match_date'),
                 supabaseClient.from('match_events').select('*'),
                 supabaseClient.from('fantasy_teams').select('id, name, user_id, captain_slot, fantasy_team_players(slot, player_id, gameweek_id)'),
-                supabaseClient.from('profiles').select('*')
+                supabaseClient.from('profiles').select('*'),
+                supabaseClient.from('gameweeks').select('*').order('id')
             ]);
+            
             if (tr.error || mr.error || er.error) { content.innerHTML='<div class="alert alert-danger">Supabase verisi okunamadı.</div>'; return; }
             
-            const teams=tr.data||[], matches=mr.data||[], events=er.data||[], fantasyTeams=ftRes.data||[];
+            const teams=tr.data||[], matches=mr.data||[], events=er.data||[], fantasyTeams=ftRes.data||[], gameweeks=gwRes.data||[];
             const profiles = prRes.data||[];
             const profileMap = Object.fromEntries(profiles.map(p => [p.id, p.username]));
             const teamMap=Object.fromEntries(teams.map(t=>[t.id,t]));
@@ -986,45 +989,131 @@
             if(tabName === 'siralama') {
                 const matchGameweekMap = Object.fromEntries(matches.map(m => [m.id, m.gameweek_id]));
                 
-                const playerGwPoints = {};
-                events.forEach(e => {
-                    const gwId = matchGameweekMap[e.match_id];
-                    if (!gwId) return;
-                    if (!playerGwPoints[e.player_id]) playerGwPoints[e.player_id] = {};
-                    if (!playerGwPoints[e.player_id][gwId]) playerGwPoints[e.player_id][gwId] = 0;
+                window.lbContext = { matches, events, fantasyTeams, profiles, gameweeks, profileMap, teamMap, matchGameweekMap };
+                window.currentLbMode = window.currentLbMode || 'genel';
+                window.currentMvpGw = window.currentMvpGw || (currentGameweek ? currentGameweek.id : (gameweeks[0]?.id));
+                
+                window.renderLeaderboardUI = function() {
+                    const ctx = window.lbContext;
+                    let html = `
+                        <div class="d-flex justify-content-center gap-2 mb-3 mt-1">
+                            <button class="btn btn-sm ${window.currentLbMode === 'genel' ? 'btn-warning text-dark fw-bold shadow-sm' : 'btn-outline-warning'}" onclick="window.currentLbMode='genel'; renderLeaderboardUI();"><i class="bi bi-trophy-fill"></i> Genel Lig</button>
+                            <button class="btn btn-sm ${window.currentLbMode === 'mvp' ? 'btn-info text-dark fw-bold shadow-sm' : 'btn-outline-info'}" onclick="window.currentLbMode='mvp'; renderLeaderboardUI();"><i class="bi bi-star-fill"></i> Haftanın MVP'leri</button>
+                        </div>
+                    `;
                     
-                    playerGwPoints[e.player_id][gwId] += Number(e.fantasy_points || 0);
-                });
-                
-                const leaderboard = fantasyTeams.map(team => {
-                    let totalScore = 0;
-                    (team.fantasy_team_players || []).forEach(ftp => {
-                        const pId = ftp.player_id;
-                        const gwId = ftp.gameweek_id;
+                    if (window.currentLbMode === 'genel') {
+                        const playerGwPoints = {};
+                        ctx.events.forEach(e => {
+                            const gwId = ctx.matchGameweekMap[e.match_id];
+                            if (!gwId) return;
+                            if (!playerGwPoints[e.player_id]) playerGwPoints[e.player_id] = {};
+                            if (!playerGwPoints[e.player_id][gwId]) playerGwPoints[e.player_id][gwId] = 0;
+                            playerGwPoints[e.player_id][gwId] += Number(e.fantasy_points || 0);
+                        });
                         
-                        let pts = (playerGwPoints[pId] && playerGwPoints[pId][gwId]) ? playerGwPoints[pId][gwId] : 0;
-                        
-                        if(ftp.slot === team.captain_slot) pts *= 2;
-                        
-                        totalScore += pts;
-                    });
-                    const userName = profileMap[team.user_id] || 'Kullanıcı';
-                    return { teamName: team.name, userName: userName, score: totalScore };
-                }).sort((a,b) => b.score - a.score);
+                        const leaderboard = ctx.fantasyTeams.map(team => {
+                            let totalScore = 0;
+                            (team.fantasy_team_players || []).forEach(ftp => {
+                                let pts = (playerGwPoints[ftp.player_id] && playerGwPoints[ftp.player_id][ftp.gameweek_id]) ? playerGwPoints[ftp.player_id][ftp.gameweek_id] : 0;
+                                if(ftp.slot === team.captain_slot) pts *= 2;
+                                totalScore += pts;
+                            });
+                            return { teamName: team.name, userName: ctx.profileMap[team.user_id] || 'Kullanıcı', score: totalScore };
+                        }).sort((a,b) => b.score - a.score);
 
-                let rowsHTML = leaderboard.map((l, i) => `
-                    <tr>
-                        <td><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'}">${i+1}</span></td>
-                        <td class="text-start">
-                            <div class="fw-bold text-white">${esc(l.teamName)}</div>
-                            <div class="small text-muted" style="font-size:10px;"><i class="bi bi-person me-1"></i>${esc(l.userName)}</div>
-                        </td>
-                        <td><span class="badge bg-success fs-6">${l.score} P</span></td>
-                    </tr>
-                `).join('');
-                if(!rowsHTML) rowsHTML = '<tr><td colspan="3" class="text-muted py-3">Henüz fantezi takımı kurulmadı.</td></tr>';
-                
-                content.innerHTML = `<h5 class="text-warning mb-3 mt-1"><i class="bi bi-trophy-fill me-2"></i>Fantezi Ligi Sıralaması</h5><div class="card p-2 mb-4"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:13px"><colgroup><col style="width:15%"><col style="width:55%"><col style="width:30%"></colgroup><thead><tr><th>Sıra</th><th class="text-start">Takım / Menajer</th><th>Toplam Puan</th></tr></thead><tbody>${rowsHTML}</tbody></table></div></div>`;
+                        let rowsHTML = leaderboard.map((l, i) => `
+                            <tr>
+                                <td><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'}">${i+1}</span></td>
+                                <td class="text-start">
+                                    <div class="fw-bold text-white">${esc(l.teamName)}</div>
+                                    <div class="small text-muted" style="font-size:10px;"><i class="bi bi-person me-1"></i>${esc(l.userName)}</div>
+                                </td>
+                                <td><span class="badge bg-success fs-6">${l.score} P</span></td>
+                            </tr>
+                        `).join('');
+                        
+                        html += `<div class="card p-2 mb-4"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:13px"><colgroup><col style="width:15%"><col style="width:55%"><col style="width:30%"></colgroup><thead><tr><th>Sıra</th><th class="text-start">Takım / Menajer</th><th>Toplam Puan</th></tr></thead><tbody>${rowsHTML || '<tr><td colspan="3" class="text-muted py-3">Henüz takım kurulmadı.</td></tr>'}</tbody></table></div></div>`;
+                    
+                    } else {
+                        // MVP MODU
+                        let gwOptions = ctx.gameweeks.map(g => `<option value="${g.id}" ${g.id === window.currentMvpGw ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
+                        
+                        const playerPts = {};
+                        ctx.events.forEach(e => {
+                            if (ctx.matchGameweekMap[e.match_id] === window.currentMvpGw) {
+                                playerPts[e.player_id] = (playerPts[e.player_id] || 0) + Number(e.fantasy_points || 0);
+                            }
+                        });
+                        
+                        const managerScores = ctx.fantasyTeams.map(team => {
+                            let score = 0;
+                            (team.fantasy_team_players || []).forEach(ftp => {
+                                if (ftp.gameweek_id === window.currentMvpGw) {
+                                    let pts = playerPts[ftp.player_id] || 0;
+                                    if(ftp.slot === team.captain_slot) pts *= 2;
+                                    score += pts;
+                                }
+                            });
+                            return { teamName: team.name, userName: ctx.profileMap[team.user_id] || 'Kullanıcı', score };
+                        }).sort((a,b) => b.score - a.score);
+                        
+                        let mvpManager = managerScores[0];
+                        let managerHTML = mvpManager && mvpManager.score > 0 
+                            ? `<div class="alert alert-warning text-center p-2 mb-3 border-warning"><h6 class="mb-1 text-dark fw-bold"><i class="bi bi-trophy-fill"></i> Haftanın Menajeri</h6><div class="fs-5 fw-bold text-dark">${esc(mvpManager.teamName)}</div><div class="small text-dark fw-bold">${esc(mvpManager.userName)} • <span class="badge bg-success">${mvpManager.score} Puan</span></div></div>` 
+                            : `<div class="alert alert-secondary text-center p-2 mb-3 small border-secondary">Bu hafta henüz fantezi puanı oluşmamış.</div>`;
+                            
+                        let playersArr = Object.keys(playerPts).map(pid => {
+                            let dbP = dbPlayersGlobal.find(p => p.id === pid);
+                            return { id: pid, name: dbP?.name||'Bilinmiyor', pos: dbP?.position||'', pts: playerPts[pid], team_id: dbP?.team_id };
+                        }).sort((a,b) => b.pts - a.pts);
+                        
+                        let gk = [], def = [], mid = [], fwd = [];
+                        playersArr.forEach(p => {
+                            let pPos = p.pos.toLowerCase();
+                            if(pPos.includes('kaleci') || p.name.includes('(K)')) { if(gk.length < 1) gk.push(p); }
+                            else if(pPos.includes('defans')) { if(def.length < 3) def.push(p); }
+                            else if(pPos.includes('orta')) { if(mid.length < 4) mid.push(p); }
+                            else { if(fwd.length < 3) fwd.push(p); } 
+                        });
+                        
+                        const renderRow = (arr) => {
+                            if(arr.length === 0) return '';
+                            return `<div class="d-flex justify-content-center flex-wrap gap-2 mb-2 w-100">
+                                ${arr.map(p => {
+                                    let tColor = teamColors[ctx.teamMap[p.team_id]?.name]?.c1 || '#38bdf8';
+                                    return `<div class="player-card text-center" style="margin:2px;" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')">
+                                        ${generateJerseySVG(tColor, '#0f172a', '#ffffff', false)}
+                                        <div class="jersey-name-tag" style="font-size:7.5px; max-width:65px; white-space:normal; line-height:1.1; margin-top:3px;">${esc(p.name)}</div>
+                                        <span class="badge bg-success mt-1" style="font-size:9px;">${p.pts} P</span>
+                                    </div>`
+                                }).join('')}
+                            </div>`;
+                        };
+                        
+                        let dreamTeamHTML = playersArr.length === 0 
+                            ? '<div class="text-center text-muted py-3">Rüya 11 için oynanmış maç bulunmuyor.</div>' 
+                            : `<div class="text-center mb-2 text-info fw-bold"><i class="bi bi-stars text-warning"></i> Haftanın Rüya 11'i</div>
+                               <div style="background: repeating-linear-gradient(to bottom, #10b981, #10b981 26px, #059669 26px, #059669 52px); border: 2px solid #ffffff; border-radius: 8px; padding: 12px 6px; position: relative; overflow: hidden; max-width: 360px; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.4);">
+                                   <div style="position: absolute; top:0; left:50%; width:120px; height:45px; border:2px solid rgba(255,255,255,0.4); border-top:none; transform:translateX(-50%); pointer-events:none;"></div>
+                                   <div style="position: absolute; top:50%; left:0; right:0; height:1.5px; background:rgba(255,255,255,0.4); transform:translateY(-50%); pointer-events:none;"></div>
+                                   <div style="position: absolute; top:50%; left:50%; width:60px; height:60px; border:1.5px solid rgba(255,255,255,0.4); border-radius:50%; transform:translate(-50%,-50%); pointer-events:none;"></div>
+                                   ${renderRow(fwd)}${renderRow(mid)}${renderRow(def)}${renderRow(gk)}
+                               </div>`;
+                        
+                        html += `
+                            <div class="card p-3 mb-4 border-info">
+                                <select class="form-select bg-dark text-info border-secondary mb-3 w-50 mx-auto text-center fw-bold shadow-none" onchange="window.currentMvpGw=this.value; renderLeaderboardUI();">
+                                    ${gwOptions}
+                                </select>
+                                ${managerHTML}
+                                ${dreamTeamHTML}
+                            </div>
+                        `;
+                    }
+                    content.innerHTML = html;
+                };
+                window.renderLeaderboardUI();
 
             } else if(tabName === 'puan-durumu') {
                 const html=['A','B'].map(group=>{
