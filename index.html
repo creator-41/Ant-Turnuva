@@ -124,7 +124,6 @@
         .standings-table th:not(:nth-child(1)):not(:nth-child(2)), .standings-table td:not(:nth-child(1)):not(:nth-child(2)) { width: 7.222%; }
         .standings-table .col-team { text-align: left; }
 
-        /* MOBİLDE OYUNCU SEÇME MODALININ TAŞMASINI ÖNLEYEN DÜZENLEME */
         #playerModal .modal-dialog { max-height: 85vh; margin-top: 5vh; }
         #playerModal .modal-content { max-height: 85vh; display: flex; flex-direction: column; }
         #playerModal .modal-body { overflow-y: auto !important; max-height: calc(85vh - 120px); padding-bottom: 40px !important; }
@@ -719,12 +718,13 @@
                 if(existing) {
                     teamId = existing.id;
                     isTeamNameChanged = existing.is_name_changed || false;
-                    const {error} = await supabaseClient.from('fantasy_teams').update({name:name,captain_slot:captainSlot,updated_at:new Date().toISOString()}).eq('id',teamId);
+                    // Kaptan bilgisini profile değil, oyuncu satırlarına kaydedeceğimiz için buradan siliyoruz
+                    const {error} = await supabaseClient.from('fantasy_teams').update({name:name, updated_at:new Date().toISOString()}).eq('id',teamId);
                     if(error){alert('Takım güncellenemedi: '+error.message);return;}
                     
                     await supabaseClient.from('fantasy_team_players').delete().eq('fantasy_team_id',teamId).eq('gameweek_id', currentGameweek.id);
                 } else {
-                    const {data,error} = await supabaseClient.from('fantasy_teams').insert({user_id:currentUser.id,name:name,captain_slot:captainSlot}).select('id').single();
+                    const {data,error} = await supabaseClient.from('fantasy_teams').insert({user_id:currentUser.id,name:name}).select('id').single();
                     if(error){alert('Takım oluşturulamadı: '+error.message);return;}
                     teamId = data.id;
                     isTeamNameChanged = false; 
@@ -736,7 +736,13 @@
                     if(!playerName || playerName.startsWith('+')) continue;
                     let matchedPlayer = dbPlayersGlobal.find(p => p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
                     if(matchedPlayer) {
-                        rows.push({ fantasy_team_id: teamId, player_id: matchedPlayer.id, slot, gameweek_id: currentGameweek.id });
+                        rows.push({ 
+                            fantasy_team_id: teamId, 
+                            player_id: matchedPlayer.id, 
+                            slot, 
+                            gameweek_id: currentGameweek.id,
+                            is_captain: (slot === captainSlot) // HANGİ HAFTADA KİM KAPTANSA ONA İŞLENİYOR
+                        });
                     }
                 }
                 
@@ -756,7 +762,7 @@
 
         async function loadSavedFantasyTeam() {
             if(!currentUser) return;
-            const {data: team, error}=await supabaseClient.from('fantasy_teams').select('id,name,captain_slot,is_name_changed,updated_at').eq('user_id',currentUser.id).maybeSingle();
+            const {data: team, error}=await supabaseClient.from('fantasy_teams').select('id,name,is_name_changed,updated_at').eq('user_id',currentUser.id).maybeSingle();
             
             if(error || !team) { 
                 fantasyTeamName = 'Rüya Takımını Kur'; 
@@ -776,8 +782,10 @@
             let sortedGameweeks = (gwData || []).sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
             let activeGw = sortedGameweeks.find(g => g.is_current) || sortedGameweeks[sortedGameweeks.length - 1];
 
-            const {data: rows} = await supabaseClient.from('fantasy_team_players').select('slot, gameweek_id, players(name)').eq('fantasy_team_id',team.id);
+            // HAFTALIK KAPTANLARI DA ÇEKİYORUZ
+            const {data: rows} = await supabaseClient.from('fantasy_team_players').select('slot, gameweek_id, is_captain, players(name)').eq('fantasy_team_id',team.id);
             mySquad={...defaultSquad};
+            captainSlot = null;
             
             if(rows && activeGw) {
                 let activeIdx = sortedGameweeks.findIndex(g => g.id === activeGw.id);
@@ -807,11 +815,13 @@
                 rows.filter(r => r.gameweek_id === selectedGwId).forEach(r => {
                     if(r.players && slotLabels[r.slot]) {
                         mySquad[r.slot] = r.players.name;
+                        if(r.is_captain === true) {
+                            captainSlot = r.slot;
+                        }
                     }
                 });
             }
 
-            captainSlot=team.captain_slot || null;
             renderPitch();
             showTab('Fantezi', document.querySelector('.nav-bottom-item:nth-child(6)'));
         }
@@ -1004,11 +1014,12 @@
                 return;
             }
 
+            // GÜNCELLENMİŞ QUERY: fantasy_team_players tablosundan is_captain de çekiliyor
             const [tr, mr, er, ftRes, prRes, gwRes] = await Promise.all([
                 supabaseClient.from('teams').select('*').order('name'),
                 supabaseClient.from('matches').select('*').order('match_date'),
                 supabaseClient.from('match_events').select('*'),
-                supabaseClient.from('fantasy_teams').select('id, name, user_id, captain_slot, fantasy_team_players(slot, player_id, gameweek_id)'),
+                supabaseClient.from('fantasy_teams').select('id, name, user_id, fantasy_team_players(slot, player_id, gameweek_id, is_captain)'),
                 supabaseClient.from('profiles').select('*'),
                 supabaseClient.from('gameweeks').select('*').order('id')
             ]);
@@ -1021,12 +1032,13 @@
             const teamMap=Object.fromEntries(teams.map(t=>[t.id,t]));
 
             if(tabName === 'siralama') {
+                const matchPlayedMap = Object.fromEntries(matches.map(m => [m.id, m.played]));
                 const matchGameweekMap = Object.fromEntries(matches.map(m => [m.id, m.gameweek_id]));
                 
-                window.lbContext = { matches, events, fantasyTeams, profiles, gameweeks, profileMap, teamMap, matchGameweekMap };
+                window.lbContext = { matches, events, fantasyTeams, profiles, gameweeks, profileMap, teamMap, matchGameweekMap, matchPlayedMap };
                 window.currentLbMode = window.currentLbMode || 'genel';
                 window.currentMvpGw = window.currentMvpGw || (currentGameweek ? currentGameweek.id : (gameweeks[0]?.id));
-                window.currentMvpTab = window.currentMvpTab || 'manager'; // 'manager' veya 'dream'
+                window.currentMvpTab = window.currentMvpTab || 'manager'; 
                 
                 window.renderLeaderboardUI = function() {
                     const ctx = window.lbContext;
@@ -1040,6 +1052,7 @@
                     if (window.currentLbMode === 'genel') {
                         const playerGwPoints = {};
                         ctx.events.forEach(e => {
+                            if (!ctx.matchPlayedMap[e.match_id]) return; 
                             const gwId = ctx.matchGameweekMap[e.match_id];
                             if (!gwId) return;
                             if (!playerGwPoints[e.player_id]) playerGwPoints[e.player_id] = {};
@@ -1051,7 +1064,8 @@
                             let totalScore = 0;
                             (team.fantasy_team_players || []).forEach(ftp => {
                                 let pts = (playerGwPoints[ftp.player_id] && playerGwPoints[ftp.player_id][ftp.gameweek_id]) ? playerGwPoints[ftp.player_id][ftp.gameweek_id] : 0;
-                                if(ftp.slot === team.captain_slot) pts *= 2;
+                                // KESİN ÇÖZÜM: Artık kaptanlık SADECE o haftanın satırındaki is_captain true ise 2 ile çarpılıyor!
+                                if(ftp.is_captain === true) pts *= 2;
                                 totalScore += pts;
                             });
                             return { teamName: team.name, userName: ctx.profileMap[team.user_id] || 'Kullanıcı', score: totalScore };
@@ -1071,13 +1085,12 @@
                         html += `<div class="card p-2 mb-4"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:13px"><colgroup><col style="width:15%"><col style="width:55%"><col style="width:30%"></colgroup><thead><tr><th>Sıra</th><th class="text-start">Takım / Menajer</th><th>Toplam Puan</th></tr></thead><tbody>${rowsHTML || '<tr><td colspan="3" class="text-muted py-3">Henüz takım kurulmadı.</td></tr>'}</tbody></table></div></div>`;
                         html += '<div style="height: 100px; width: 100%; display: block;"></div>';
                     } else {
-                        // MVP MODU
                         let currentGwStr = String(window.currentMvpGw);
                         let gwOptions = ctx.gameweeks.map(g => `<option value="${g.id}" ${String(g.id) === currentGwStr ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
                         
                         const playerPts = {};
                         ctx.events.forEach(e => {
-                            if (String(ctx.matchGameweekMap[e.match_id]) === currentGwStr) {
+                            if (ctx.matchPlayedMap[e.match_id] && String(ctx.matchGameweekMap[e.match_id]) === currentGwStr) {
                                 playerPts[e.player_id] = (playerPts[e.player_id] || 0) + Number(e.fantasy_points || 0);
                             }
                         });
@@ -1087,16 +1100,16 @@
                             let ftpForGw = (team.fantasy_team_players || []).filter(ftp => String(ftp.gameweek_id) === currentGwStr);
                             ftpForGw.forEach(ftp => {
                                 let pts = playerPts[ftp.player_id] || 0;
-                                if(ftp.slot === team.captain_slot) pts *= 2;
+                                if(ftp.is_captain === true) pts *= 2;
                                 score += pts;
                             });
-                            return { team, teamName: team.name, userName: ctx.profileMap[team.user_id] || 'Kullanıcı', score, ftpForGw, captain_slot: team.captain_slot };
+                            return { team, teamName: team.name, userName: ctx.profileMap[team.user_id] || 'Kullanıcı', score, ftpForGw };
                         }).sort((a,b) => b.score - a.score);
                         
                         let mvpManager = managerScores[0];
                         let managerHTML = mvpManager && mvpManager.score > 0 
                             ? `<div class="alert alert-warning text-center p-2 mb-2 border-warning"><div class="small fw-bold text-dark"><i class="bi bi-trophy-fill"></i> Haftanın Menajeri</div><div class="fs-6 fw-bold text-dark mb-0">${esc(mvpManager.teamName)}</div><div style="font-size:11px;" class="text-dark">${esc(mvpManager.userName)} • <span class="badge bg-success" style="font-size:10px;">${mvpManager.score} P</span></div></div>` 
-                            : `<div class="alert alert-secondary text-center p-2 mb-2 small border-secondary">Bu hafta henüz fantezi puanı oluşmamış.</div>`;
+                            : `<div class="alert alert-secondary text-center p-2 mb-2 small border-secondary">Bu hafta henüz oynanan maç ve fantezi puanı bulunmuyor.</div>`;
                             
                         let playersArr = Object.keys(playerPts).map(pid => {
                             let dbP = dbPlayersGlobal.find(p => p.id === pid);
@@ -1125,7 +1138,7 @@
                                     let pInfo = playersArr.find(p => p.id === ftp.player_id) || dbPlayersGlobal.find(p => p.id === ftp.player_id);
                                     let pName = pInfo ? pInfo.name : 'Bilinmiyor';
                                     let tColor = pInfo ? (teamColors[ctx.teamMap[pInfo.team_id]?.name]?.c1 || '#38bdf8') : '#38bdf8';
-                                    let isCap = ftp.slot === mvpManager.captain_slot;
+                                    let isCap = ftp.is_captain === true;
                                     let pts = playerPts[ftp.player_id] || 0;
                                     if (isCap) pts *= 2;
                                     
@@ -1195,7 +1208,7 @@
                                     </div>`;
                             }
                         } else {
-                            displayedPitchHTML = '<div class="text-center text-muted py-3">Bu hafta için kadro/rüya 11 verisi bulunmuyor.</div>';
+                            displayedPitchHTML = '<div class="text-center text-muted py-3">Bu hafta henüz oynanan maç bulunmuyor.</div>';
                         }
 
                         html += `
