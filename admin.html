@@ -27,6 +27,8 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
 .squad-list-container label { font-size: 13px; cursor: pointer; width: 100%; margin: 0; padding: 4px 0;}
 .squad-list-container .form-check { border-bottom: 1px solid #334155; margin-bottom: 4px; }
 .squad-list-container .form-check:last-child { border-bottom: none; }
+
+.knockout-match{background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px}
 </style>
 </head>
 
@@ -76,6 +78,7 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
         <li class="nav-item"><button class="nav-link" data-tab="matches">Maçlar</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="events">İstatistikler</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="points">Puan Hesaplama</button></li>
+<li class="nav-item"><button class="nav-link" data-tab="knockout">🏆 Final Aşaması</button></li>
     </ul>
 
     <!-- TEAMS -->
@@ -177,6 +180,37 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
             <tbody id="pointsTable"></tbody>
         </table></div></div>
     </section>
+    <!-- FINAL AŞAMASI -->
+    <section id="tab-knockout" class="tab-pane-admin hidden">
+      <h4>🏆 Final Aşaması</h4>
+      <div class="card p-3 mb-3">
+        <div class="form-check form-switch">
+          <input id="knockoutEnabled" class="form-check-input" type="checkbox" onchange="saveKnockoutVisibility()">
+          <label class="form-check-label fw-bold" for="knockoutEnabled">Grup aşaması tamamlandı / Finalleri göster</label>
+        </div>
+        <div id="knockoutStatusText" class="muted small mt-2"></div>
+      </div>
+      <div class="row g-3">
+        <div class="col-lg-6"><div class="card p-3"><h5 class="text-info">Yarı Final 1</h5><div class="knockout-match">
+          <label class="form-label">Takım 1</label><select id="sf1Home" class="form-select mb-2"></select>
+          <label class="form-label">Takım 2</label><select id="sf1Away" class="form-select mb-2"></select>
+          <label class="form-label">Tarih / Saat</label><input id="sf1Date" type="datetime-local" class="form-control mb-3">
+          <button class="btn btn-info w-100" onclick="saveKnockoutMatch('semifinal_1')">Kaydet</button>
+        </div></div></div>
+        <div class="col-lg-6"><div class="card p-3"><h5 class="text-info">Yarı Final 2</h5><div class="knockout-match">
+          <label class="form-label">Takım 1</label><select id="sf2Home" class="form-select mb-2"></select>
+          <label class="form-label">Takım 2</label><select id="sf2Away" class="form-select mb-2"></select>
+          <label class="form-label">Tarih / Saat</label><input id="sf2Date" type="datetime-local" class="form-control mb-3">
+          <button class="btn btn-info w-100" onclick="saveKnockoutMatch('semifinal_2')">Kaydet</button>
+        </div></div></div>
+        <div class="col-12"><div class="card p-3"><h5 class="text-warning">🏆 Final</h5><div class="knockout-match">
+          <div class="small muted mb-2">Finalistler iki yarı finalin kazananlarından otomatik gelir.</div>
+          <label class="form-label">Final Tarih / Saat</label><input id="finalDate" type="datetime-local" class="form-control mb-3">
+          <button class="btn btn-warning fw-bold" onclick="saveFinalMatch()">Final Maçını Oluştur / Güncelle</button>
+          <div id="finalTeamsInfo" class="small muted mt-3"></div>
+        </div></div></div>
+      </div>
+    </section>
 </div>
 </div>
 
@@ -243,7 +277,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_A8-3DVa2k_Nmow4W8h_Reg_qITGWrRf';
 const configured = !SUPABASE_URL.includes('BURAYA_');
 const sb = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-let teams = []; let players = []; let matches = []; let events = []; let gameweeks = []; let currentMatchEventsMap = {};
+let teams = []; let players = []; let matches = []; let events = []; let gameweeks = []; let currentMatchEventsMap = {}; let tournamentSettings={id:1,knockout_enabled:false};
 
 const modal = id => bootstrap.Modal.getOrCreateInstance(document.getElementById(id));
 function $(id){ return document.getElementById(id); }
@@ -310,15 +344,16 @@ async function loadAll(){
     let prevSort = $('eventSortSelect')?.value || 'newest';
     let prevSearch = $('eventSearchInput')?.value || '';
 
-    const [t, p, m, e, gw] = await Promise.all([
+    const [t, p, m, e, gw, ts] = await Promise.all([
         sb.from('teams').select('*').order('name'),
         sb.from('players').select('*').order('name'),
         sb.from('matches').select('*').order('match_date', { ascending:false }),
         sb.from('match_events').select('*').order('created_at', { ascending:false }),
-        sb.from('gameweeks').select('*').order('id', { ascending:true })
+        sb.from('gameweeks').select('*').order('id', { ascending:true }),
+        sb.from('tournament_settings').select('*').eq('id',1).maybeSingle()
     ]);
     if(t.error || p.error || m.error || e.error){ alert('Veri okunamadı!'); return; }
-    teams = t.data || []; players = p.data || []; matches = m.data || []; events = e.data || []; gameweeks = gw.data || [];
+    teams = t.data || []; players = p.data || []; matches = m.data || []; events = e.data || []; gameweeks = gw.data || []; tournamentSettings=ts?.data||{id:1,knockout_enabled:false};
     
     fillSelect('filterTeamSelect', teams, t => t.name, t => t.id);
     $('filterTeamSelect').insertAdjacentHTML('afterbegin', '<option value="">🛡️ Tüm Takımlar</option>');
@@ -347,6 +382,7 @@ function renderAll(){
 
     renderEventsTable();
     renderPointsTable();
+    renderKnockoutAdmin();
 }
 
 function renderEventsTable(){
@@ -450,7 +486,18 @@ async function openMatchModal(id){
 
     $('matchId').value = m?.id||''; $('matchDate').value = toTurkeyDateTimeLocal(m?.match_date);
     $('homeTeam').value = m?.home_team_id || teams[0]?.id || ''; $('awayTeam').value = m?.away_team_id || teams[1]?.id || '';
-    $('matchGroup').value = m?.group_name||'A'; $('matchPlayed').checked = !!m?.played;
+    if(m && (m.stage === 'semifinal' || m.stage === 'final')) {
+        let slotLabel = m.group_name || (m.stage === 'final' ? 'FINAL' : 'SF1');
+        if(!$('matchGroup').querySelector(`option[value="${slotLabel}"]`)) {
+            $('matchGroup').insertAdjacentHTML('beforeend', `<option value="${slotLabel}">${slotLabel}</option>`);
+        }
+        $('matchGroup').value = slotLabel;
+        $('matchGroup').disabled = true;
+    } else {
+        $('matchGroup').disabled = false;
+        $('matchGroup').value = m?.group_name || 'A';
+    }
+    $('matchPlayed').checked = !!m?.played;
     $('homeScore').value = m?.home_score ?? 0; $('awayScore').value = m?.away_score ?? 0;
 
     // Varsa mevcut gameweek_id'yi, yoksa aktif haftayı seçiyoruz
@@ -500,11 +547,14 @@ async function saveMatch(){
         match_date: isoDate, 
         home_team_id: home, 
         away_team_id: away, 
-        group_name: $('matchGroup').value, 
+        group_name: id && ['semifinal','final'].includes(matches.find(x=>x.id===id)?.stage)
+            ? matches.find(x=>x.id===id).group_name
+            : $('matchGroup').value,
         played: played, 
         home_score: played ? homeS : null, 
         away_score: played ? awayS : null,
-        gameweek_id: gwId
+        gameweek_id: gwId,
+        stage: id ? (matches.find(x=>x.id===id)?.stage || 'group') : 'group'
     };
     
     let r = id ? await sb.from('matches').update(obj).eq('id', id) : await sb.from('matches').insert(obj).select('id').single();
@@ -679,6 +729,53 @@ async function saveEvent(){
 }
 
 async function deleteEvent(id){ if(confirm('Emin misin?')){ await sb.from('match_events').delete().eq('id', id); loadAll(); } }
+
+
+function koMatch(slot){
+  if(slot==='semifinal_1') return matches.find(m=>m.stage==='semifinal'&&m.group_name==='SF1');
+  if(slot==='semifinal_2') return matches.find(m=>m.stage==='semifinal'&&m.group_name==='SF2');
+  return matches.find(m=>m.stage==='final');
+}
+function winner(m){
+  if(!m||!m.played||Number(m.home_score)===Number(m.away_score)) return null;
+  return Number(m.home_score)>Number(m.away_score)?m.home_team_id:m.away_team_id;
+}
+function renderKnockoutAdmin(){
+  if(!$('knockoutEnabled')) return;
+  $('knockoutEnabled').checked=!!tournamentSettings.knockout_enabled;
+  $('knockoutStatusText').innerHTML=tournamentSettings.knockout_enabled?'<span class="text-success fw-bold">AKTİF:</span> Ana sitede Finaller sekmesi görünecek.':'<span class="text-warning fw-bold">KAPALI:</span> Finaller sekmesi gizli. Eşleşmeler silinmez.';
+  ['sf1Home','sf1Away','sf2Home','sf2Away'].forEach(id=>fillSelect(id,teams,t=>`${t.name} (Grup ${t.group_name||'-'})`,t=>t.id));
+  const a=koMatch('semifinal_1'),b=koMatch('semifinal_2'),f=koMatch('final');
+  if(a){$('sf1Home').value=a.home_team_id;$('sf1Away').value=a.away_team_id;$('sf1Date').value=toTurkeyDateTimeLocal(a.match_date);}
+  if(b){$('sf2Home').value=b.home_team_id;$('sf2Away').value=b.away_team_id;$('sf2Date').value=toTurkeyDateTimeLocal(b.match_date);}
+  if(f)$('finalDate').value=toTurkeyDateTimeLocal(f.match_date);
+  const w1=winner(a),w2=winner(b);
+  $('finalTeamsInfo').innerHTML=f?`Mevcut Final: <b class="text-white">${esc(teamName(f.home_team_id))}</b> vs <b class="text-white">${esc(teamName(f.away_team_id))}</b>`:(w1&&w2?`Finalistler: <b class="text-white">${esc(teamName(w1))}</b> vs <b class="text-white">${esc(teamName(w2))}</b>`:'İki yarı final sonucu girilince finalistler burada görünür.');
+}
+async function saveKnockoutVisibility(){
+  const v=$('knockoutEnabled').checked;
+  const r=await sb.from('tournament_settings').update({knockout_enabled:v,updated_at:new Date().toISOString()}).eq('id',1);
+  if(r.error){alert(r.error.message);$('knockoutEnabled').checked=!v;return;}
+  tournamentSettings.knockout_enabled=v;renderKnockoutAdmin();
+}
+async function saveKnockoutMatch(slot){
+  const one=slot==='semifinal_1',home=$(one?'sf1Home':'sf2Home').value,away=$(one?'sf1Away':'sf2Away').value;
+  if(home===away){alert('Aynı takım kendiyle oynayamaz.');return;}
+  const date=turkeyLocalToISO($(one?'sf1Date':'sf2Date').value); if(!date){alert('Tarih gir.');return;}
+  const old=koMatch(slot);
+  const obj={home_team_id:home,away_team_id:away,match_date:date,group_name:one?'SF1':'SF2',stage:'semifinal',played:old?.played||false,home_score:old?.played?old.home_score:null,away_score:old?.played?old.away_score:null,gameweek_id:old?.gameweek_id||null};
+  const r=old?await sb.from('matches').update(obj).eq('id',old.id):await sb.from('matches').insert(obj);
+  if(r.error){alert(r.error.message);return;} alert('Yarı final kaydedildi.'); await loadAll();
+}
+async function saveFinalMatch(){
+  const w1=winner(koMatch('semifinal_1')),w2=winner(koMatch('semifinal_2'));
+  if(!w1||!w2){alert('Önce iki yarı finalin sonucunu gir.');return;}
+  const date=turkeyLocalToISO($('finalDate').value); if(!date){alert('Final tarihini gir.');return;}
+  const old=koMatch('final');
+  const obj={home_team_id:w1,away_team_id:w2,match_date:date,group_name:'FINAL',stage:'final',played:old?.played||false,home_score:old?.played?old.home_score:null,away_score:old?.played?old.away_score:null,gameweek_id:old?.gameweek_id||null};
+  const r=old?await sb.from('matches').update(obj).eq('id',old.id):await sb.from('matches').insert(obj);
+  if(r.error){alert(r.error.message);return;} alert('Final maçı hazır.'); await loadAll();
+}
 
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
     document.querySelectorAll('#tabs .nav-link').forEach(x => x.classList.remove('active')); b.classList.add('active');
