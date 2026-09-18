@@ -8,7 +8,7 @@
     <!-- Sosyal Medya / WhatsApp Önizleme (Open Graph) Etiketleri -->
     <meta property="og:title" content="ANT Fantezi Lig & Turnuva">
     <meta property="og:description" content="Arkadaşların birbirini yediği efsane fantezi futbol ligi!">
-    <meta property="og:image" content="/ant-logo-1-1.png">
+    <meta property="og:image" content="https://antturnuva.com.tr/logo.png">
     <meta property="og:url" content="https://www.antturnuva.com.tr">
     <meta property="og:type" content="website">
 
@@ -17,7 +17,7 @@
     <meta name="apple-mobile-web-app-title" content="ANT Fantezi">
     <meta name="theme-color" content="#0f172a">
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="apple-touch-icon" href="https://antturnuva.com.tr/logo.png">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -321,12 +321,12 @@
         };
 
         const teamColors = {
-            "PDI": { c1: "#eab308", c2: "#0f172a", collar: "#ffffff" },          
-            "Saha Ekipleri": { c1: "#ffffff", c2: "#0f172a", collar: "#e2e8f0" }, 
-            "Liman": { c1: "#22c55e", c2: "#0f172a", collar: "#ffffff" },          
+            "PDI": { c1: "#eab308", c2: "#0f172a", collar: "#ffffff" },         
+            "Saha Ekipleri": { c1: "#ffffff", c2: "#0f172a", collar: "#e2e8f0" },  
+            "Liman": { c1: "#22c55e", c2: "#0f172a", collar: "#ffffff" },         
             "İdari İşler": { c1: "#ffffff", c2: "#16a34a", collar: "#dc2626" },    
             "Garaj Ekibi": { c1: "#0f172a", c2: "#dc2626", collar: "#ffffff" },    
-            "Teknik Servis": { c1: "#dc2626", c2: "#ffffff", collar: "#2563eb" }, 
+            "Teknik Servis": { c1: "#dc2626", c2: "#ffffff", collar: "#2563eb" },  
             "GK": { c1: "#22c55e", c2: "#15803d", collar: "#000000" },            
             "DEFAULT": { c1: "#64748b", c2: "#334155", collar: "#ffffff" }        
         };
@@ -559,9 +559,9 @@
                     <div class="left-bench"><div class="left-bench-title"><i class="bi bi-people-fill"></i> YEDEKLER</div>${createSlotHTML('sub1')}${createSlotHTML('sub2')}${createSlotHTML('sub3')}${createSlotHTML('sub4')}</div>
                     <div class="perspective-container">
                         <div class="stadium-wall">
-                            <div class="ant-logo-box"><img src="/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img"></div>
+                            <div class="ant-logo-box"><img src="https://antturnuva.com.tr/logo.png" alt="ANT Logo" class="ant-logo-img"></div>
                             <div class="goal-box"></div>
-                            <div class="ant-logo-box"><img src="/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img"></div>
+                            <div class="ant-logo-box"><img src="https://antturnuva.com.tr/logo.png" alt="ANT Logo" class="ant-logo-img"></div>
                         </div>
                         <div class="pitch-3d">
                             <div class="pitch-box-top"></div><div class="pitch-penalty-arc-top"></div><div class="pitch-line-center"></div><div class="pitch-circle-center"></div>
@@ -641,7 +641,6 @@
             else { showNotification("Şifre sıfırlama e-postası gönderildi!", "success"); msg.innerHTML = '<span class="text-success">Şifre sıfırlama bağlantısı gönderildi!</span>'; }
         }
 
-        // YENİ ŞİFREYİ KAYDETME FONKSİYONU
         async function updateNewPassword() {
             const newPassword = document.getElementById('newPasswordInput').value;
             const msg = document.getElementById('updatePasswordMessage');
@@ -655,7 +654,6 @@
             } else {
                 showNotification("Şifren başarıyla güncellendi!", "success");
                 bootstrap.Modal.getInstance(document.getElementById('updatePasswordModal')).hide();
-                // URL'deki token kalabalığını temizle
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
@@ -860,10 +858,8 @@
             showTab('Fantezi', document.querySelector('.nav-bottom-item:nth-child(6)'));
         }
 
-        // ŞİFRE SIFIRLAMA LİNKİNİ YAKALAYAN AUTH DİNLEYİCİSİ
         supabaseClient.auth.onAuthStateChange(async (event, session) => {
             if (event === 'PASSWORD_RECOVERY') {
-                // Şifre sıfırlama modalisini aç
                 new bootstrap.Modal(document.getElementById('updatePasswordModal')).show();
             } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 currentUser = session?.user || null;
@@ -1074,7 +1070,7 @@
                 window.lbContext = { matches, events, fantasyTeams, profiles, gameweeks, profileMap, teamMap, matchGameweekMap };
                 window.currentLbMode = window.currentLbMode || 'genel';
                 window.currentMvpGw = window.currentMvpGw || (currentGameweek ? currentGameweek.id : (gameweeks[0]?.id));
-                window.currentMvpTab = window.currentMvpTab || 'manager'; // 'manager' veya 'dream'
+                window.currentMvpTab = window.currentMvpTab || 'manager';
                 
                 window.renderLeaderboardUI = function() {
                     const ctx = window.lbContext;
@@ -1119,7 +1115,6 @@
                         html += `<div class="card p-2 mb-4"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle" style="font-size:13px"><colgroup><col style="width:15%"><col style="width:55%"><col style="width:30%"></colgroup><thead><tr><th>Sıra</th><th class="text-start">Takım / Menajer</th><th>Toplam Puan</th></tr></thead><tbody>${rowsHTML || '<tr><td colspan="3" class="text-muted py-3">Henüz takım kurulmadı.</td></tr>'}</tbody></table></div></div>`;
                         html += '<div style="height: 100px; width: 100%; display: block;"></div>';
                     } else {
-                        // MVP MODU
                         let currentGwStr = String(window.currentMvpGw);
                         let gwOptions = ctx.gameweeks.map(g => `<option value="${g.id}" ${String(g.id) === currentGwStr ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
                         
@@ -1191,9 +1186,9 @@
                                         <div class="left-bench"><div class="left-bench-title"><i class="bi bi-people-fill"></i> YEDEKLER</div>${createReadonlySlot('sub1')}${createReadonlySlot('sub2')}${createReadonlySlot('sub3')}${createReadonlySlot('sub4')}</div>
                                         <div class="perspective-container">
                                             <div class="stadium-wall">
-                                                <div class="ant-logo-box"><img src="/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img"></div>
+                                                <div class="ant-logo-box"><img src="https://antturnuva.com.tr/logo.png" alt="ANT Logo" class="ant-logo-img"></div>
                                                 <div class="goal-box"></div>
-                                                <div class="ant-logo-box"><img src="/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img"></div>
+                                                <div class="ant-logo-box"><img src="https://antturnuva.com.tr/logo.png" alt="ANT Logo" class="ant-logo-img"></div>
                                             </div>
                                             <div class="pitch-3d">
                                                 <div class="pitch-box-top"></div><div class="pitch-penalty-arc-top"></div><div class="pitch-line-center"></div><div class="pitch-circle-center"></div>
@@ -1265,7 +1260,7 @@
             } else if(tabName === 'puan-durumu') {
                 const html=['A','B'].map(group=>{
                     const data=buildStandings(teams.filter(t=>t.group_name===group), matches.filter(m=>m.group_name===group));
-                    return `<h5 class="text-info mb-3 mt-2"><i class="bi bi-shield-fill me-2"></i>${group} GRUBU</h5><div class="card p-2 mb-3"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle standings-table" style="font-size:12px"><colgroup><col class="col-rank"><col class="col-team"><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody>${data.map((x,i)=>`<tr><td><span class="d-inline-flex align-items-center justify-content-center gap-1" style="min-width:38px"><i class="bi ${i<2?'bi-arrow-up-circle-fill text-success':'bi-arrow-down-circle-fill text-danger'}" title="${i<2?'Üst tura çıkıyor':'Elenecek sıra'}"></i><strong>${i+1}</strong></span></td><td class="text-start fw-bold">${esc(x.name)}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gd>0?'+'+x.gd:x.gd}</td><td><span class="badge" style="background-color:${teams.find(t=>t.name===x.name)?.color||teamColors[x.name]?.c1||'#475569'};color:#fff;min-width:32px;">${x.points}</span></td></tr>`).join('')||'<tr><td colspan="10" class="text-muted">Takım yok</td></tr>'}</tbody></table></div></div>`;
+                    return `<h5 class="text-info mb-3 mt-2"><i class="bi bi-shield-fill me-2"></i>${group} GRUBU</h5><div class="card p-2 mb-3"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle standings-table" style="font-size:12px"><colgroup><col class="col-rank"><col class="col-team"><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody>${data.map((x,i)=>`<tr><td><span class="d-inline-flex align-items-center justify-content-center gap-1" style="min-width:38px"><i class="bi ${i<2?'bi-arrow-up-circle-fill text-success':'bi-arrow-down-circle-fill text-danger'}" title="${i<2?'Üst tura çıkıyor':'Elenecek sıra'}"></i><strong>${i+1}</strong></span></td><td class="text-start fw-bold">${esc(x.name)}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gd>0?'+'+x.gd:x.gd}</td><td><span class="badge" style="background-color:${teams.find(t=>t.name===x.name)?.color\vert{}\vert{}teamColors[x.name]?.c1\vert{}\vert{}'#475569'};color:#fff;min-width:32px;">${x.points}</span></td></tr>`).join('')||'<tr><td colspan="10" class="text-muted">Takım yok</td></tr>'}</tbody></table></div></div>`;
                 }).join('');
                 content.innerHTML = '<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Turnuva Puan Durumu</h5>' + html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
 
@@ -1320,32 +1315,45 @@
         };
 
         openMatchDetail = function(matchId) {
-            const match=playedMatchesDetails[matchId]; if(!match) return;
-            document.getElementById('matchDetailTitle').innerHTML=`<i class="bi bi-info-circle text-info me-2"></i>${esc(match.homeTeam)} vs ${esc(match.awayTeam)}`;
+            const match = playedMatchesDetails[matchId]; 
+            if(!match) return;
             
-            const contributionMap={};
-            (match.goals||[]).forEach(g=>{
-                const key=String(g.player||'').trim().toLocaleLowerCase('tr-TR');
-                if(!contributionMap[key]) contributionMap[key]={player:g.player,team:g.team,goals:0,assists:0};
-                contributionMap[key].goals += Number((String(g.type||'').match(/\d+/)||[1])[0]);
+            const titleEl = document.getElementById('matchDetailTitle');
+            const bodyEl = document.getElementById('matchDetailBody');
+            const modalEl = document.getElementById('matchDetailModal');
+            
+            if(!titleEl || !bodyEl || !modalEl) return;
+
+            titleEl.innerHTML = `<i class="bi bi-info-circle text-info me-2"></i>${esc(match.homeTeam)} vs ${esc(match.awayTeam)}`;
+            
+            const contributionMap = {};
+            (match.goals || []).forEach(g => {
+                const key = String(g.player || '').trim().toLocaleLowerCase('tr-TR');
+                if(!contributionMap[key]) contributionMap[key] = {player: g.player, team: g.team, goals: 0, assists: 0};
+                contributionMap[key].goals += Number((String(g.type || '').match(/\d+/) || [1])[0]);
             });
-            (match.assists||[]).forEach(a=>{
-                const key=String(a.player||'').trim().toLocaleLowerCase('tr-TR');
-                if(!contributionMap[key]) contributionMap[key]={player:a.player,team:a.team,goals:0,assists:0};
-                contributionMap[key].assists += Number(a.count||1);
+            (match.assists || []).forEach(a => {
+                const key = String(a.player || '').trim().toLocaleLowerCase('tr-TR');
+                if(!contributionMap[key]) contributionMap[key] = {player: a.player, team: a.team, goals: 0, assists: 0};
+                contributionMap[key].assists += Number(a.count || 1);
             });
 
-            const contributions=Object.values(contributionMap);
-            const goalContributions=contributions.filter(x=>x.goals>0);
-            const assistOnlyContributions=contributions.filter(x=>x.goals===0 && x.assists>0);
+            const contributions = Object.values(contributionMap);
+            const goalContributions = contributions.filter(x => x.goals > 0);
+            const assistOnlyContributions = contributions.filter(x => x.goals === 0 && x.assists > 0);
 
-            const playerLink=(player,team)=>{ const safe=String(player).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); return `<span class="fw-bold text-white" style="cursor:pointer;" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safe}')">${esc(player)} <small class="text-muted">(${esc(team)})</small></span>`; };
-            const goalsHTML=goalContributions.map(x=>`<div class="match-contribution-row"><div class="match-contribution-player">${playerLink(x.player,x.team)}</div><div class="match-contribution-stats"><span class="badge bg-success">Gol ${x.goals}</span>${x.assists>0 ? `<span class="badge bg-warning text-dark">Asist ${x.assists}</span>` : ''}</div></div>`).join('');
-            const assistOnlyHTML=assistOnlyContributions.length ? `<div class="mt-3 pt-2 border-top border-secondary"><div class="text-center text-warning small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Sadece Asist Yapanlar</div>${assistOnlyContributions.map(x=>`<div class="match-contribution-row"><div class="match-contribution-player">${playerLink(x.player,x.team)}</div><div class="match-contribution-stats"><span class="badge bg-warning text-dark">Asist ${x.assists}</span></div></div>`).join('')}</div>` : '';
+            const playerLink = (player, team) => { 
+                const safe = String(player).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); 
+                return `<span class="fw-bold text-white" style="cursor:pointer;" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safe}')">${esc(player)} <small class="text-muted">(${esc(team)})</small></span>`; 
+            };
+            
+            const goalsHTML = goalContributions.map(x => `<div class="match-contribution-row"><div class="match-contribution-player">${playerLink(x.player,x.team)}</div><div class="match-contribution-stats"><span class="badge bg-success">Gol ${x.goals}</span>${x.assists>0 ? `<span class="badge bg-warning text-dark">Asist ${x.assists}</span>` : ''}</div></div>`).join('');
+            const assistOnlyHTML = assistOnlyContributions.length ? `<div class="mt-3 pt-2 border-top border-secondary"><div class="text-center text-warning small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Sadece Asist Yapanlar</div>${assistOnlyContributions.map(x=>`<div class="match-contribution-row"><div class="match-contribution-player">${playerLink(x.player,x.team)}</div><div class="match-contribution-stats"><span class="badge bg-warning text-dark">Asist ${x.assists}</span></div></div>`).join('')}</div>` : '';
 
-            const goalsContent=(goalsHTML || '<div class="text-muted small">Gol katkısı yok.</div>') + assistOnlyHTML;
-            document.getElementById('matchDetailModal').innerHTML=`<div class="text-center mb-3"><small class="text-muted">${esc(match.date)}</small><h3 class="text-warning fw-bold my-2">${esc(match.score)}</h3><div class="fw-bold text-white">${esc(match.homeTeam)} - ${esc(match.awayTeam)}</div></div><hr class="border-secondary"><h6 class="text-info small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Maçın Skor Katkıları <small class="text-muted fw-normal">(Oyuncu profili için isme tıklayın)</small></h6><div>${goalsContent}</div>`;
-            new bootstrap.Modal(document.getElementById('matchDetailModal')).show();
+            const goalsContent = (goalsHTML || '<div class="text-muted small">Gol katkısı yok.</div>') + assistOnlyHTML;
+            bodyEl.innerHTML = `<div class="text-center mb-3"><small class="text-muted">${esc(match.date)}</small><h3 class="text-warning fw-bold my-2">${esc(match.score)}</h3><div class="fw-bold text-white">${esc(match.homeTeam)} - ${esc(match.awayTeam)}</div></div><hr class="border-secondary"><h6 class="text-info small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Maçın Skor Katkıları <small class="text-muted fw-normal">(Oyuncu profili için isme tıklayın)</small></h6><div>${goalsContent}</div>`;
+            
+            new bootstrap.Modal(modalEl).show();
         };
 
         loadLiveData();
