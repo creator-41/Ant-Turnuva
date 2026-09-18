@@ -151,6 +151,43 @@
             }
         }
 
+    
+        /* Mobil maç detayı: tam ekran yerine alttan açılan kompakt panel */
+        @media (max-width: 767.98px) {
+            #matchDetailModal .modal-dialog {
+                min-height: 0;
+                height: auto;
+                max-height: 82dvh;
+                margin: auto 10px 10px;
+                align-items: flex-end;
+            }
+
+            #matchDetailModal .modal-content {
+                max-height: 82dvh;
+                overflow: hidden;
+                border-radius: 18px;
+                padding-top: 0;
+            }
+
+            #matchDetailModal .modal-header {
+                flex: 0 0 auto;
+                padding-top: 14px;
+            }
+
+            #matchDetailModal .modal-body {
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: max(16px, env(safe-area-inset-bottom));
+            }
+
+            #matchDetailModal .btn-close {
+                margin-top: 0;
+                margin-right: 0;
+                min-width: 38px;
+                min-height: 38px;
+            }
+        }
+
     </style>
 </head>
 <body>
