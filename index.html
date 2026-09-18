@@ -222,6 +222,66 @@
             }
         }
 
+    
+        /* Mobil maç detay v3: modal kutusunun TAMAMI status bar altından başlar */
+        @media (max-width: 767.98px) {
+            #matchDetailModal {
+                padding: 0 !important;
+            }
+
+            #matchDetailModal .modal-dialog {
+                position: fixed !important;
+                top: max(58px, calc(env(safe-area-inset-top) + 18px)) !important;
+                right: 10px !important;
+                bottom: max(18px, env(safe-area-inset-bottom)) !important;
+                left: 10px !important;
+
+                width: auto !important;
+                max-width: none !important;
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                margin: 0 !important;
+
+                display: flex !important;
+                align-items: stretch !important;
+                transform: none !important;
+            }
+
+            #matchDetailModal .modal-content {
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                padding-top: 0 !important;
+                border-radius: 18px !important;
+                overflow: hidden !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+
+            #matchDetailModal .modal-header {
+                flex: 0 0 auto !important;
+                padding-top: 12px !important;
+            }
+
+            #matchDetailModal .modal-body {
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 18px !important;
+            }
+
+            #matchDetailModal .btn-close {
+                margin-top: 0 !important;
+                margin-right: 0 !important;
+                min-width: 38px;
+                min-height: 38px;
+            }
+        }
+
     </style>
 </head>
 <body>
