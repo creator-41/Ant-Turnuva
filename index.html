@@ -190,6 +190,24 @@
             }
         }
 
+    
+        /* Final ağacı */
+        .knockout-wrap { max-width: 900px; margin: 0 auto; }
+        .knockout-grid { display:grid; grid-template-columns:1fr 80px 1fr; gap:12px; align-items:center; }
+        .ko-round-title { color:#38bdf8; font-weight:800; text-align:center; margin-bottom:10px; }
+        .ko-match { background:#111827; border:1px solid #334155; border-radius:14px; overflow:hidden; margin-bottom:18px; box-shadow:0 5px 18px rgba(0,0,0,.25); }
+        .ko-date { text-align:center; color:#cbd5e1; font-size:11px; padding:8px; border-bottom:1px solid #334155; }
+        .ko-team { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:11px 12px; font-weight:700; }
+        .ko-team + .ko-team { border-top:1px solid #334155; }
+        .ko-team.winner { background:rgba(34,197,94,.12); color:#86efac; }
+        .ko-score { min-width:28px; text-align:center; font-size:18px; color:#fbbf24; }
+        .ko-lines { color:#475569; font-size:38px; text-align:center; font-weight:300; }
+        .champion-box { border:1px solid #f59e0b; background:rgba(245,158,11,.08); border-radius:16px; text-align:center; padding:18px; margin-bottom:18px; }
+        @media(max-width:767.98px){
+            .knockout-grid { grid-template-columns:1fr; }
+            .ko-lines { transform:rotate(90deg); height:34px; line-height:34px; }
+        }
+
     </style>
 </head>
 <body>
@@ -211,6 +229,7 @@
         <a href="#" class="nav-bottom-item" onclick="showTab('istatistik', this)"><i class="bi bi-bar-chart-line-fill"></i>İstatistik</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('kadrolar', this)"><i class="bi bi-people-fill"></i>Kadrolar</a>
         <a href="#" class="nav-bottom-item" onclick="showTab('siralama', this)"><i class="bi bi-trophy-fill"></i>Sıralama</a>
+        <a href="#" id="knockoutNav" class="nav-bottom-item" style="display:none" onclick="showTab('finaller', this)"><i class="bi bi-diagram-3-fill text-warning"></i>Finaller</a>
         <a href="#" class="nav-bottom-item active" onclick="showTab('Fantezi', this)"><i class="bi bi-star-fill text-warning"></i>Takım Kur</a>
     </div>
 
@@ -391,6 +410,7 @@
         let topScorers = [];
         let topAssists = [];
         let playedMatchesDetails = {};
+        let knockoutEnabled = false;
 
         const defaultSquad = { st: "+ ST", os1: "+ OS", os2: "+ OS", os3: "+ OS", def1: "+ DEF", def2: "+ DEF", gk: "+ GK", sub1: "+ YDK 1", sub2: "+ YDK 2", sub3: "+ YDK 3", sub4: "+ YDK 4" };
         let mySquad = { ...defaultSquad };
@@ -941,13 +961,14 @@
 
         async function loadLiveData() {
             try {
-                const [teamsRes, playersRes, matchesRes, eventsRes, profilesRes, gameweeksRes] = await Promise.all([
+                const [teamsRes, playersRes, matchesRes, eventsRes, profilesRes, gameweeksRes, settingsRes] = await Promise.all([
                     supabaseClient.from('teams').select('*').order('name'),
                     supabaseClient.from('players').select('*').order('name'),
                     supabaseClient.from('matches').select('*').order('match_date'),
                     supabaseClient.from('match_events').select('*'),
                     supabaseClient.from('profiles').select('*'),
-                    supabaseClient.from('gameweeks').select('*').order('id')
+                    supabaseClient.from('gameweeks').select('*').order('id'),
+                    supabaseClient.from('tournament_settings').select('knockout_enabled').eq('id',1).maybeSingle()
                 ]);
 
                 if (teamsRes.error || playersRes.error || matchesRes.error || eventsRes.error) throw new Error("Veri okuma hatası");
@@ -960,6 +981,9 @@
                 const dbMatches = matchesRes.data || []; 
                 const dbEvents = eventsRes.data || [];
                 const dbProfiles = profilesRes.data || [];
+                knockoutEnabled = !!settingsRes.data?.knockout_enabled;
+                const knockoutNav = document.getElementById('knockoutNav');
+                if(knockoutNav) knockoutNav.style.display = knockoutEnabled ? '' : 'none';
                 const profileMap = Object.fromEntries(dbProfiles.map(pr => [pr.id, pr.username]));
 
                 const teamMap = Object.fromEntries(rawTeamsGlobal.map(t => [t.id, t]));
@@ -1001,12 +1025,12 @@
                     .map(x => ({ name: x.name, team: x.team, stat: x.goals ? `${x.goals} Gol${x.assists ? ` • ${x.assists} Asist` : ''}` : `${x.assists} Asist` }));
 
                 playedMatchesDetails = {};
-                dbMatches.filter(m => m.played).forEach(m => {
+                dbMatches.filter(m => m.played && (m.stage || 'group') === 'group').forEach(m => {
                     const evs = dbEvents.filter(e => e.match_id === m.id);
                     playedMatchesDetails[m.id] = {
                         homeTeam: teamMap[m.home_team_id]?.name || 'Bilinmiyor', awayTeam: teamMap[m.away_team_id]?.name || 'Bilinmiyor',
                         score: `${Number(m.home_score ?? 0)} - ${Number(m.away_score ?? 0)}`,
-                        date: fmt(m.match_date) + ` (Grup ${m.group_name})`,
+                        date: fmt(m.match_date) + ` (${m.stage === 'semifinal' ? 'Yarı Final' : m.stage === 'final' ? 'Final' : 'Grup ' + m.group_name})`,
                         goals: evs.filter(e => Number(e.goals || 0) > 0).map(e => ({ player: playerMap[e.player_id]?.name || 'Bilinmiyor', team: teamMap[e.team_id]?.name || 'Bilinmiyor', type: `Gol (${Number(e.goals)})` })),
                         assists: evs.filter(e => Number(e.assists || 0) > 0).map(e => ({ player: playerMap[e.player_id]?.name || 'Bilinmiyor', team: teamMap[e.team_id]?.name || 'Bilinmiyor', count: Number(e.assists) }))
                     };
@@ -1108,18 +1132,22 @@
                 return;
             }
 
-            const [tr, mr, er, ftRes, prRes, gwRes] = await Promise.all([
+            const [tr, mr, er, ftRes, prRes, gwRes, settingsRes] = await Promise.all([
                 supabaseClient.from('teams').select('*').order('name'),
                 supabaseClient.from('matches').select('*').order('match_date'),
                 supabaseClient.from('match_events').select('*'),
                 supabaseClient.from('fantasy_teams').select('id, name, user_id, captain_slot, fantasy_team_players(slot, player_id, gameweek_id)'),
                 supabaseClient.from('profiles').select('*'),
-                supabaseClient.from('gameweeks').select('*').order('id')
+                supabaseClient.from('gameweeks').select('*').order('id'),
+                supabaseClient.from('tournament_settings').select('knockout_enabled').eq('id',1).maybeSingle()
             ]);
             
             if (tr.error || mr.error || er.error) { content.innerHTML='<div class="alert alert-danger">Supabase verisi okunamadı.</div>'; return; }
             
             const teams=tr.data||[], matches=mr.data||[], events=er.data||[], fantasyTeams=ftRes.data||[], gameweeks=gwRes.data||[];
+            knockoutEnabled = !!settingsRes.data?.knockout_enabled;
+            const knockoutNav = document.getElementById('knockoutNav');
+            if(knockoutNav) knockoutNav.style.display = knockoutEnabled ? '' : 'none';
             const profiles = prRes.data||[];
             const profileMap = Object.fromEntries(profiles.map(p => [p.id, p.username]));
             const teamMap=Object.fromEntries(teams.map(t=>[t.id,t]));
@@ -1318,16 +1346,64 @@
                 };
                 window.renderLeaderboardUI();
 
+            } else if(tabName === 'finaller') {
+                if(!knockoutEnabled){
+                    content.innerHTML = '<div class="alert alert-secondary text-center mt-4">Final aşaması henüz başlamadı.</div>';
+                    return;
+                }
+
+                const sf1 = matches.find(m => m.stage === 'semifinal' && m.group_name === 'SF1');
+                const sf2 = matches.find(m => m.stage === 'semifinal' && m.group_name === 'SF2');
+                const finalMatch = matches.find(m => m.stage === 'final');
+
+                const winnerId = m => {
+                    if(!m || !m.played) return null;
+                    const hs=Number(m.home_score), as=Number(m.away_score);
+                    if(hs===as) return null;
+                    return hs>as ? m.home_team_id : m.away_team_id;
+                };
+                const teamN = id => teamMap[id]?.name || 'Henüz belli değil';
+                const matchBox = (m, title) => {
+                    if(!m) return `<div class="ko-match"><div class="ko-date">${title} • Henüz oluşturulmadı</div><div class="ko-team text-muted">Eşleşme bekleniyor</div></div>`;
+                    const w=winnerId(m);
+                    return `<div class="ko-match" ${m.played ? `onclick="openMatchDetail('${m.id}')" style="cursor:pointer"` : ''}>
+                        <div class="ko-date"><strong>${title}</strong> • ${fmt(m.match_date)}</div>
+                        <div class="ko-team ${w===m.home_team_id?'winner':''}"><span>${esc(teamN(m.home_team_id))}</span><span class="ko-score">${m.played?Number(m.home_score??0):'-'}</span></div>
+                        <div class="ko-team ${w===m.away_team_id?'winner':''}"><span>${esc(teamN(m.away_team_id))}</span><span class="ko-score">${m.played?Number(m.away_score??0):'-'}</span></div>
+                    </div>`;
+                };
+
+                const championId = winnerId(finalMatch);
+                const championHTML = championId ? `<div class="champion-box"><div class="fs-1">🏆</div><div class="text-warning small fw-bold">ANT FANTEZİ LİG ŞAMPİYONU</div><div class="fs-4 fw-bold text-white mt-1">${esc(teamN(championId))}</div></div>` : '';
+
+                content.innerHTML = `
+                    <div class="knockout-wrap">
+                        <h5 class="text-warning text-center mb-3"><i class="bi bi-trophy-fill me-2"></i>Final Ağacı</h5>
+                        ${championHTML}
+                        <div class="knockout-grid">
+                            <div>
+                                <div class="ko-round-title">YARI FİNALLER</div>
+                                ${matchBox(sf1,'Yarı Final 1')}
+                                ${matchBox(sf2,'Yarı Final 2')}
+                            </div>
+                            <div class="ko-lines">➜</div>
+                            <div>
+                                <div class="ko-round-title text-warning">FİNAL</div>
+                                ${matchBox(finalMatch,'Final')}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="height:110px"></div>`;
             } else if(tabName === 'puan-durumu') {
                 const html=['A','B'].map(group=>{
-                    const data=buildStandings(teams.filter(t=>t.group_name===group), matches.filter(m=>m.group_name===group));
+                    const data=buildStandings(teams.filter(t=>t.group_name===group), matches.filter(m=>m.group_name===group && (m.stage || 'group') === 'group'));
                     return `<h5 class="text-info mb-3 mt-2"><i class="bi bi-shield-fill me-2"></i>${group} GRUBU</h5><div class="card p-2 mb-3"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle standings-table" style="font-size:12px"><colgroup><col class="col-rank"><col class="col-team"><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody>${data.map((x,i)=>`<tr><td><span class="d-inline-flex align-items-center justify-content-center gap-1" style="min-width:38px"><i class="bi ${i<2?'bi-arrow-up-circle-fill text-success':'bi-arrow-down-circle-fill text-danger'}" title="${i<2?'Üst tura çıkıyor':'Elenecek sıra'}"></i><strong>${i+1}</strong></span></td><td class="text-start fw-bold">${esc(x.name)}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gd>0?'+'+x.gd:x.gd}</td><td><span class="badge" style="background-color:${teams.find(t=>t.name===x.name)?.color||teamColors[x.name]?.c1||'#475569'};color:#fff;min-width:32px;">${x.points}</span></td></tr>`).join('')||'<tr><td colspan="10" class="text-muted">Takım yok</td></tr>'}</tbody></table></div></div>`;
                 }).join('');
                 content.innerHTML = '<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Turnuva Puan Durumu</h5>' + html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
 
             } else if(tabName==='fikstur') {
                 const played=matches.filter(m=>m.played), upcoming=matches.filter(m=>!m.played);
-                const card=m=>`<div class="card p-3 match-card" onclick="${m.played?`openMatchDetail('${m.id}')`:''}"><div class="d-flex justify-content-between align-items-center border-bottom border-secondary pb-2 mb-2 gap-2"><small class="text-muted fixture-date"><i class="bi bi-calendar-event me-1"></i><strong>${fmt(m.match_date)}</strong><br><span>(Grup ${esc(m.group_name)})</span></small><span class="badge ${m.played?'bg-success':'bg-warning text-dark'}">${m.played?'Oynandı (Detay)':'Gelecek Maç'}</span></div><div class="fixture-teams-row fw-bold"><span class="fixture-team home">${esc(teamMap[m.home_team_id]?.name||'Bilinmiyor')}</span><span class="fixture-score fs-5 text-warning">${m.played?`${Number(m.home_score??0)} - ${Number(m.away_score??0)}`:'VS'}</span><span class="fixture-team away">${esc(teamMap[m.away_team_id]?.name||'Bilinmiyor')}</span></div></div>`;
+                const card=m=>{ const stageText=m.stage==='semifinal'?'Yarı Final':m.stage==='final'?'Final':`Grup ${esc(m.group_name)}`; return `<div class="card p-3 match-card" onclick="${m.played?`openMatchDetail('${m.id}')`:''}"><div class="d-flex justify-content-between align-items-center border-bottom border-secondary pb-2 mb-2 gap-2"><small class="text-muted fixture-date"><i class="bi bi-calendar-event me-1"></i><strong>${fmt(m.match_date)}</strong><br><span>(${stageText})</span></small><span class="badge ${m.played?'bg-success':'bg-warning text-dark'}">${m.played?'Oynandı (Detay)':'Gelecek Maç'}</span></div><div class="fixture-teams-row fw-bold"><span class="fixture-team home">${esc(teamMap[m.home_team_id]?.name||'Bilinmiyor')}</span><span class="fixture-score fs-5 text-warning">${m.played?`${Number(m.home_score??0)} - ${Number(m.away_score??0)}`:'VS'}</span><span class="fixture-team away">${esc(teamMap[m.away_team_id]?.name||'Bilinmiyor')}</span></div></div>`; };
                 let html = '<h5 class="text-info mb-3"><i class="bi bi-calendar3 me-2"></i>Fikstür ve Sonuçlar</h5><h6 class="text-warning mt-3 mb-2"><i class="bi bi-clock-history me-1"></i>Oynanan Maçlar</h6>'+ (played.map(card).join('')||'<div class="text-muted">Henüz oynanan maç yok.</div>') + '<h6 class="text-info mt-4 mb-2"><i class="bi bi-calendar-check me-1"></i>Gelecek Maçlar</h6>'+ (upcoming.map(card).join('')||'<div class="text-muted">Planlanmış maç yok.</div>');
                 content.innerHTML = html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
             } else if(tabName==='istatistik') {
