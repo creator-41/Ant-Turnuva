@@ -1406,7 +1406,10 @@
                 content.innerHTML = '<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Turnuva Puan Durumu</h5>' + html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
 
             } else if(tabName==='fikstur') {
-                const played=matches.filter(m=>m.played), upcoming=matches.filter(m=>!m.played);
+                const played=matches.filter(m=>m.played)
+                    .sort((a,b)=>new Date(b.match_date)-new Date(a.match_date)),
+                      upcoming=matches.filter(m=>!m.played)
+                    .sort((a,b)=>new Date(a.match_date)-new Date(b.match_date));
                 const card=m=>{ const stageText=m.stage==='semifinal'?'Yarı Final':m.stage==='final'?'Final':m.stage==='third_place'?"3.'lük Maçı":`Grup ${esc(m.group_name)}`; return `<div class="card p-3 match-card" onclick="${m.played?`openMatchDetail('${m.id}')`:''}"><div class="d-flex justify-content-between align-items-center border-bottom border-secondary pb-2 mb-2 gap-2"><small class="text-muted fixture-date"><i class="bi bi-calendar-event me-1"></i><strong>${fmt(m.match_date)}</strong><br><span>(${stageText})</span></small><span class="badge ${m.played?'bg-success':'bg-warning text-dark'}">${m.played?'Oynandı (Detay)':'Gelecek Maç'}</span></div><div class="fixture-teams-row fw-bold"><span class="fixture-team home">${esc(teamMap[m.home_team_id]?.name||'Bilinmiyor')}</span><span class="fixture-score fs-5 text-warning">${m.played?`${Number(m.home_score??0)} - ${Number(m.away_score??0)}`:'VS'}</span><span class="fixture-team away">${esc(teamMap[m.away_team_id]?.name||'Bilinmiyor')}</span></div></div>`; };
                 let html = '<h5 class="text-info mb-3"><i class="bi bi-calendar3 me-2"></i>Fikstür ve Sonuçlar</h5><h6 class="text-warning mt-3 mb-2"><i class="bi bi-clock-history me-1"></i>Oynanan Maçlar</h6>'+ (played.map(card).join('')||'<div class="text-muted">Henüz oynanan maç yok.</div>') + '<h6 class="text-info mt-4 mb-2"><i class="bi bi-calendar-check me-1"></i>Gelecek Maçlar</h6>'+ (upcoming.map(card).join('')||'<div class="text-muted">Planlanmış maç yok.</div>');
                 content.innerHTML = html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
