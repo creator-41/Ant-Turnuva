@@ -134,117 +134,25 @@
         #playerModal .modal-dialog { max-height: 85vh; margin-top: 5vh; }
         #playerModal .modal-content { max-height: 85vh; display: flex; flex-direction: column; }
         #playerModal .modal-body { overflow-y: auto !important; max-height: calc(85vh - 120px); padding-bottom: 40px !important; }
-    
-        /* Mobil maç detay ekranı: telefonun üst güvenli alanından uzak tut */
-        #matchDetailModal .modal-content {
-            padding-top: env(safe-area-inset-top);
-        }
-        #matchDetailModal .modal-header {
-            padding-top: max(16px, env(safe-area-inset-top));
-        }
-        @media (max-width: 767.98px) {
-            #matchDetailModal .btn-close {
-                margin-top: 6px;
-                margin-right: 6px;
-                min-width: 38px;
-                min-height: 38px;
-            }
-        }
 
     
-        /* Mobil maç detayı: tam ekran yerine alttan açılan kompakt panel */
+        /* Mobil maç detay - temiz final düzen */
         @media (max-width: 767.98px) {
-            #matchDetailModal .modal-dialog {
-                min-height: 0;
-                height: auto;
-                max-height: 82dvh;
-                margin: auto 10px 10px;
-                align-items: flex-end;
-            }
-
-            #matchDetailModal .modal-content {
-                max-height: 82dvh;
-                overflow: hidden;
-                border-radius: 18px;
-                padding-top: 0;
-            }
-
-            #matchDetailModal .modal-header {
-                flex: 0 0 auto;
-                padding-top: 14px;
-            }
-
-            #matchDetailModal .modal-body {
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
-                padding-bottom: max(16px, env(safe-area-inset-bottom));
-            }
-
-            #matchDetailModal .btn-close {
-                margin-top: 0;
-                margin-right: 0;
-                min-width: 38px;
-                min-height: 38px;
-            }
-        }
-
-    
-        /* Mobil maç detayı v2: üstten ve alttan gerçek boşluk bırak */
-        @media (max-width: 767.98px) {
-            #matchDetailModal {
-                padding: 0 !important;
+            #matchDetailModal.modal {
+                padding-top: max(58px, calc(env(safe-area-inset-top) + 18px)) !important;
+                padding-right: 10px !important;
+                padding-bottom: max(18px, env(safe-area-inset-bottom)) !important;
+                padding-left: 10px !important;
+                overflow: hidden !important;
             }
 
             #matchDetailModal .modal-dialog {
-                width: calc(100% - 20px);
-                max-width: none;
-                height: auto !important;
-                min-height: 0 !important;
-                max-height: none !important;
-                margin: 12vh auto 12px !important;
-                transform: none;
-            }
-
-            #matchDetailModal .modal-content {
-                height: auto !important;
-                min-height: 0 !important;
-                max-height: calc(88dvh - 12px) !important;
-                border-radius: 18px !important;
-                overflow: hidden;
-                padding-top: 0 !important;
-            }
-
-            #matchDetailModal .modal-body {
-                overflow-y: auto;
-                max-height: calc(88dvh - 90px);
-                -webkit-overflow-scrolling: touch;
-                padding-bottom: max(18px, env(safe-area-inset-bottom));
-            }
-        }
-
-    
-        /* Mobil maç detay v3: modal kutusunun TAMAMI status bar altından başlar */
-        @media (max-width: 767.98px) {
-            #matchDetailModal {
-                padding: 0 !important;
-            }
-
-            #matchDetailModal .modal-dialog {
-                position: fixed !important;
-                top: max(58px, calc(env(safe-area-inset-top) + 18px)) !important;
-                right: 10px !important;
-                bottom: max(18px, env(safe-area-inset-bottom)) !important;
-                left: 10px !important;
-
-                width: auto !important;
+                width: 100% !important;
                 max-width: none !important;
-                height: auto !important;
+                height: 100% !important;
                 min-height: 0 !important;
                 max-height: none !important;
                 margin: 0 !important;
-
-                display: flex !important;
-                align-items: stretch !important;
                 transform: none !important;
             }
 
@@ -253,11 +161,11 @@
                 height: 100% !important;
                 min-height: 0 !important;
                 max-height: none !important;
-                padding-top: 0 !important;
                 border-radius: 18px !important;
                 overflow: hidden !important;
                 display: flex !important;
                 flex-direction: column !important;
+                padding-top: 0 !important;
             }
 
             #matchDetailModal .modal-header {
