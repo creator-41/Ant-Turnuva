@@ -679,6 +679,71 @@
 
         function esc(v) { return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 
+
+        // WEB PUSH BİLDİRİMLERİ
+        const VAPID_PUBLIC_KEY = 'BH5-KEVr-P75sFRcfytTbyVn_wKxtAy6-7vJONt2qqnDob6KCGKAp-FaQtk7mn69ddRI2jjX0kTTJLuWwOGN6Zk';
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = atob(base64);
+            return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+        }
+
+        async function enablePushNotifications() {
+            if (!currentUser) {
+                showNotification('Bildirimleri açmak için önce giriş yapmalısın.', 'warning');
+                return;
+            }
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                showNotification('Bu cihaz/tarayıcı push bildirimlerini desteklemiyor.', 'warning');
+                return;
+            }
+            if (VAPID_PUBLIC_KEY.startsWith('__')) {
+                showNotification('Bildirim anahtarı henüz index.html dosyasına eklenmedi.', 'error');
+                return;
+            }
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    showNotification('Bildirim izni verilmedi.', 'warning');
+                    return;
+                }
+                const registration = await navigator.serviceWorker.register('/sw.js');
+                await navigator.serviceWorker.ready;
+                let subscription = await registration.pushManager.getSubscription();
+                if (!subscription) {
+                    subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                    });
+                }
+                const json = subscription.toJSON();
+                const { error } = await supabaseClient.from('push_subscriptions').upsert({
+                    user_id: currentUser.id,
+                    endpoint: subscription.endpoint,
+                    p256dh: json.keys?.p256dh,
+                    auth_key: json.keys?.auth,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'endpoint' });
+                if (error) throw error;
+                showNotification('Bildirimler açıldı! 🔔', 'success');
+                updateAuthArea();
+            } catch (err) {
+                console.error('Push abonelik hatası:', err);
+                showNotification('Bildirimler açılamadı: ' + (err?.message || 'Bilinmeyen hata'), 'error');
+            }
+        }
+
+        async function getPushEnabled() {
+            try {
+                if (!currentUser || !('serviceWorker' in navigator) || !('PushManager' in window) || Notification.permission !== 'granted') return false;
+                const registration = await navigator.serviceWorker.getRegistration('/');
+                if (!registration) return false;
+                return !!(await registration.pushManager.getSubscription());
+            } catch { return false; }
+        }
+
         let currentUser = null;
         let fantasyTeamName = 'Rüya Takımını Kur';
         let isTeamNameChanged = false; 
@@ -789,7 +854,8 @@
                 let displayName = currentUser.email;
                 const {data: prof} = await supabaseClient.from('profiles').select('username').eq('id', currentUser.id).maybeSingle();
                 if(prof && prof.username) displayName = prof.username;
-                area.innerHTML=`<div class="auth-user"><i class="bi bi-person-check-fill text-success"></i><span>${esc(displayName)}</span><button class="btn btn-sm btn-outline-danger py-0 px-2 ms-1" onclick="logout()">Çıkış</button></div>`;
+                const pushEnabled = await getPushEnabled();
+                area.innerHTML=`<div class="auth-user"><i class="bi bi-person-check-fill text-success"></i><span>${esc(displayName)}</span>${pushEnabled ? '<span title="Bildirimler açık" class="text-success"><i class="bi bi-bell-fill"></i></span>' : '<button class="btn btn-sm btn-outline-info py-0 px-2 ms-1" onclick="enablePushNotifications()" title="Bildirimleri aç"><i class="bi bi-bell"></i></button>'}<button class="btn btn-sm btn-outline-danger py-0 px-2 ms-1" onclick="logout()">Çıkış</button></div>`;
             } else {
                 area.innerHTML='<button class="auth-btn" onclick="openAuthModal()"><i class="bi bi-person-circle me-1"></i>Giriş Yap</button>';
             }
@@ -1486,6 +1552,10 @@
             document.getElementById('matchDetailBody').innerHTML=`<div class="text-center mb-3"><small class="text-muted">${esc(match.date)}</small><h3 class="text-warning fw-bold my-2">${esc(match.score)}</h3><div class="fw-bold text-white">${esc(match.homeTeam)} - ${esc(match.awayTeam)}</div></div><hr class="border-secondary"><h6 class="text-info small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Maçın Skor Katkıları <small class="text-muted fw-normal">(Oyuncu profili için isme tıklayın)</small></h6><div>${goalsContent}</div>`;
             new bootstrap.Modal(document.getElementById('matchDetailModal')).show();
         };
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW kayıt hatası:', err)));
+        }
 
         loadLiveData();
     </script>
