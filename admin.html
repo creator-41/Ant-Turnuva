@@ -41,6 +41,36 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
 .squad-list-container .form-check:last-child { border-bottom: none; }
 
 .knockout-match{background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px}
+
+/* Mobil/PWA giriş ekranı dokunma ve klavye düzeltmesi */
+#loginScreen{
+    position:relative;
+    z-index:2000;
+    min-height:100dvh;
+    padding:
+        max(16px, env(safe-area-inset-top))
+        16px
+        max(16px, env(safe-area-inset-bottom));
+    pointer-events:auto;
+}
+#loginScreen .login-card{
+    position:relative;
+    z-index:2001;
+    pointer-events:auto;
+}
+#loginScreen input,
+#loginScreen button{
+    position:relative;
+    z-index:2002;
+    pointer-events:auto !important;
+    touch-action:manipulation;
+    -webkit-user-select:text;
+    user-select:text;
+}
+#loginScreen input{
+    font-size:16px !important;
+}
+
 </style>
 </head>
 
@@ -55,8 +85,8 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
             <div class="muted">Yönetim Paneli</div>
         </div>
         <div id="loginError" class="alert alert-danger hidden"></div>
-        <input id="loginEmail" type="email" class="form-control mb-2" placeholder="E-posta">
-        <input id="loginPassword" type="password" class="form-control mb-3" placeholder="Şifre">
+        <input id="loginEmail" type="email" class="form-control mb-2" placeholder="E-posta" autocomplete="username" inputmode="email" enterkeyhint="next">
+        <input id="loginPassword" type="password" class="form-control mb-3" placeholder="Şifre" autocomplete="current-password" enterkeyhint="go">
         <button class="btn btn-info w-100" onclick="login()"><i class="bi bi-box-arrow-in-right me-1"></i> Giriş Yap</button>
     </div>
 </div>
@@ -380,6 +410,19 @@ async function login(){
 }
 
 async function logout(){ if(sb) await sb.auth.signOut(); location.reload(); }
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const email = $('loginEmail');
+    const password = $('loginPassword');
+    if(email) email.addEventListener('keydown', e => {
+        if(e.key === 'Enter') { e.preventDefault(); password?.focus(); }
+    });
+    if(password) password.addEventListener('keydown', e => {
+        if(e.key === 'Enter') { e.preventDefault(); login(); }
+    });
+});
+
 
 async function init(){
     if(!configured){ $('loginScreen').classList.remove('hidden'); $('app').classList.add('hidden'); return; }
