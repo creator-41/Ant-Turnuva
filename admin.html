@@ -18,7 +18,11 @@
 
 <style>
 body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
-.navbar{ background:#1e293b; border-bottom:2px solid #38bdf8; }
+.navbar{
+    background:#1e293b;
+    border-bottom:2px solid #38bdf8;
+    padding-top: max(.5rem, env(safe-area-inset-top));
+}
 .card{ background:#1e293b; border:1px solid #334155; color:#fff; border-radius:14px; }
 .form-control, .form-select{ background:#0f172a; border-color:#475569; color:#fff; }
 .form-control:focus, .form-select:focus{ background:#0f172a; color:#fff; border-color:#38bdf8; box-shadow:none; }
