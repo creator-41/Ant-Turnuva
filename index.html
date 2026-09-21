@@ -208,11 +208,40 @@
             .ko-lines { transform:rotate(90deg); height:34px; line-height:34px; }
         }
 
+
+        /* PWA kurulum bannerı + bildirim karşılama */
+        #installAppBanner { position:fixed; left:12px; right:12px; bottom:92px; z-index:1045; max-width:620px; margin:0 auto; background:#1e293b; border:1px solid #38bdf8; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.45); padding:11px 12px; display:none; }
+        #installAppBanner .install-banner-inner { display:flex; align-items:center; gap:10px; }
+        #installAppBanner .install-banner-text { flex:1; min-width:0; font-size:12px; line-height:1.25; }
+        #installAppBanner .install-banner-title { color:#f8fafc; font-weight:800; font-size:13px; }
+        #installAppBanner .install-banner-sub { color:#cbd5e1; margin-top:2px; }
+        #installAppBanner .install-close { border:0; background:transparent; color:#94a3b8; font-size:18px; padding:2px 4px; line-height:1; }
+        #installAppBanner .install-action { white-space:nowrap; font-size:11px; font-weight:800; }
+        @media (max-width:480px) {
+            #installAppBanner { left:8px; right:8px; bottom:88px; padding:9px; }
+            #installAppBanner .install-banner-inner { gap:7px; }
+            #installAppBanner .install-banner-sub { font-size:10px; }
+            #installAppBanner .install-action { padding:5px 8px; font-size:10px; }
+        }
+
     </style>
 </head>
 <body>
 
     <div id="notification-container"></div>
+
+    <div id="installAppBanner">
+        <div class="install-banner-inner">
+            <img src="/logo.png" alt="ANT" width="38" height="38" style="border-radius:9px;object-fit:cover;">
+            <div class="install-banner-text">
+                <div class="install-banner-title"><i class="bi bi-phone me-1 text-info"></i>ANT Fantezi'yi uygulama gibi kullan</div>
+                <div class="install-banner-sub" id="installBannerSub">Daha hızlı erişim için cihazına ekle.</div>
+            </div>
+            <button class="btn btn-info install-action" id="installAppBtn" onclick="installAntApp()">📲 Uygulamayı Edin</button>
+            <button class="install-close" onclick="closeInstallBanner()" aria-label="Kapat">×</button>
+        </div>
+    </div>
+
 
     <nav class="navbar navbar-dark sticky-top">
         <div class="container-fluid">
@@ -333,6 +362,26 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-3" id="matchDetailBody"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- İlk girişte bildirim daveti -->
+    <div class="modal fade" id="pushWelcomeModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fs-6"><i class="bi bi-bell-fill text-warning me-2"></i>Bildirimleri Aç</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <div style="font-size:42px;line-height:1;">🔔</div>
+                    <h6 class="fw-bold mt-3 mb-2">Maçları kaçırma!</h6>
+                    <p class="text-muted small mb-3">Gol, maç başlangıcı, sonuçlar ve kadro hatırlatmalarını cihazına gönderebiliriz.</p>
+                    <button class="btn btn-warning w-100 fw-bold" onclick="acceptPushWelcome()"><i class="bi bi-bell-fill me-1"></i> Bildirimleri Aç</button>
+                    <button class="btn btn-link text-muted btn-sm mt-2" data-bs-dismiss="modal">Şimdilik Değil</button>
+                </div>
             </div>
         </div>
     </div>
@@ -680,6 +729,41 @@
         function esc(v) { return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 
 
+
+        // PWA KURULUM AKIŞI
+        let deferredInstallPrompt = null;
+        function isStandaloneMode(){ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
+        function isIOSDevice(){ return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+        function closeInstallBanner(){ const b=document.getElementById('installAppBanner'); if(b)b.style.display='none'; localStorage.setItem('ant_install_banner_closed','1'); }
+        function showInstallBannerIfNeeded(){
+            const b=document.getElementById('installAppBanner'), sub=document.getElementById('installBannerSub'), btn=document.getElementById('installAppBtn');
+            if(!b || isStandaloneMode() || localStorage.getItem('ant_install_banner_closed')==='1') return;
+            if(isIOSDevice()){ if(sub)sub.textContent="iPhone/iPad: Safari'de Paylaş → Ana Ekrana Ekle."; if(btn)btn.innerHTML='<i class="bi bi-box-arrow-up me-1"></i> Nasıl Eklenir?'; b.style.display='block'; }
+            else if(deferredInstallPrompt){ if(sub)sub.textContent='Tek dokunuşla cihazına kur.'; if(btn)btn.innerHTML='📲 Uygulamayı Edin'; b.style.display='block'; }
+        }
+        async function installAntApp(){
+            if(isIOSDevice()){ alert("iPhone/iPad için:\n\n1) Siteyi Safari ile aç\n2) Alttaki Paylaş simgesine dokun\n3) 'Ana Ekrana Ekle' seçeneğini seç\n4) Sağ üstten 'Ekle' de."); return; }
+            if(!deferredInstallPrompt){ showNotification('Kurulum seçeneği henüz hazır değil. Tarayıcı menüsündeki “Uygulamayı yükle / Ana ekrana ekle” seçeneğini kullanabilirsin.','warning'); return; }
+            deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; deferredInstallPrompt=null;
+            const b=document.getElementById('installAppBanner'); if(b)b.style.display='none';
+        }
+        window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferredInstallPrompt=e; showInstallBannerIfNeeded(); });
+        window.addEventListener('appinstalled',()=>{ deferredInstallPrompt=null; const b=document.getElementById('installAppBanner'); if(b)b.style.display='none'; localStorage.setItem('ant_app_installed','1'); showNotification('ANT Fantezi cihazına eklendi! ⚽','success'); });
+        window.addEventListener('load',()=>setTimeout(showInstallBannerIfNeeded,700));
+
+        function pushWelcomeStorageKey(){ return currentUser ? 'ant_push_welcome_'+currentUser.id : ''; }
+        async function maybeShowPushWelcome(){
+            if(!currentUser || !('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+            if(Notification.permission!=='default') return;
+            const key=pushWelcomeStorageKey(); if(!key || localStorage.getItem(key)==='1') return;
+            localStorage.setItem(key,'1');
+            setTimeout(()=>{ const el=document.getElementById('pushWelcomeModal'); if(el && currentUser)new bootstrap.Modal(el).show(); },900);
+        }
+        async function acceptPushWelcome(){
+            const el=document.getElementById('pushWelcomeModal'); const m=el?bootstrap.Modal.getInstance(el):null; if(m)m.hide();
+            await enablePushNotifications();
+        }
+
         // WEB PUSH BİLDİRİMLERİ
         const VAPID_PUBLIC_KEY = 'BH5-KEVr-P75sFRcfytTbyVn_wKxtAy6-7vJONt2qqnDob6KCGKAp-FaQtk7mn69ddRI2jjX0kTTJLuWwOGN6Zk';
 
@@ -856,6 +940,7 @@
                 if(prof && prof.username) displayName = prof.username;
                 const pushEnabled = await getPushEnabled();
                 area.innerHTML=`<div class="auth-user"><i class="bi bi-person-check-fill text-success"></i><span>${esc(displayName)}</span>${pushEnabled ? '<span title="Bildirimler açık" class="text-success"><i class="bi bi-bell-fill"></i></span>' : '<button class="btn btn-sm btn-outline-info py-0 px-2 ms-1" onclick="enablePushNotifications()" title="Bildirimleri aç"><i class="bi bi-bell"></i></button>'}<button class="btn btn-sm btn-outline-danger py-0 px-2 ms-1" onclick="logout()">Çıkış</button></div>`;
+                maybeShowPushWelcome();
             } else {
                 area.innerHTML='<button class="auth-btn" onclick="openAuthModal()"><i class="bi bi-person-circle me-1"></i>Giriş Yap</button>';
             }
