@@ -576,6 +576,7 @@ function renderSquadLists() {
 
 async function saveMatch(){
     let id = $('matchId').value, home = $('homeTeam').value, away = $('awayTeam').value;
+    const oldMatch = id ? matches.find(x => x.id === id) : null;
     if(home === away){ alert('Ev ve Deplasman aynı olamaz.'); return; }
     let played = $('matchPlayed').checked, isoDate = turkeyLocalToISO($('matchDate').value);
     if(!isoDate){ alert('Tarih gir.'); return; }
@@ -640,6 +641,22 @@ async function saveMatch(){
             if(insErr) { alert('Kadro kaydedilemedi: ' + insErr.message); return; }
         }
     }
+
+    // Maç ilk kez "Oynandı" yapıldığında veya oynanmış maçın skoru değiştirildiğinde sonuç bildirimi gönder.
+    const shouldSendResult = played && (
+        !oldMatch?.played ||
+        Number(oldMatch?.home_score) !== homeS ||
+        Number(oldMatch?.away_score) !== awayS
+    );
+    if(shouldSendResult) {
+        const homeName = teamName(home);
+        const awayName = teamName(away);
+        await sendAutomaticPush(
+            '🏆 Maç Sonucu',
+            `${homeName} ${homeS} - ${awayS} ${awayName}`
+        );
+    }
+
     modal('matchModal').hide(); await loadAll();
 }
 
@@ -738,6 +755,9 @@ async function fetchPlayerEventData() {
 
 async function saveEvent(){
     let isPlayed = $('eventPlayed').checked;
+    const existingEventId = $('eventId').value;
+    const existingEvent = existingEventId ? events.find(x => x.id === existingEventId) : null;
+    const oldGoals = Number(existingEvent?.goals || 0);
     let goals = Number($('eventGoals').value||0);
     let assists = Number($('eventAssists').value||0);
     let yellow = Number($('eventYellow').value||0);
@@ -766,7 +786,23 @@ async function saveEvent(){
         r = await sb.from('match_events').upsert(obj, { onConflict: 'match_id,player_id' });
     }
 
-    if(r.error) alert(r.error.message); else { modal('eventModal').hide(); loadAll(); }
+    if(r.error) {
+        alert(r.error.message);
+    } else {
+        // Gol sayısı arttıysa otomatik bildirim gönder. Asist/kart değişikliği tek başına bildirim göndermez.
+        if(goals > oldGoals) {
+            const scorer = playerName(obj.player_id);
+            const scorerTeam = teamName(obj.team_id);
+            const addedGoals = goals - oldGoals;
+            const goalText = addedGoals === 1
+                ? `${scorer} (${scorerTeam}) gol attı! ⚽`
+                : `${scorer} (${scorerTeam}) için ${addedGoals} gol kaydedildi! ⚽`;
+            await sendAutomaticPush('⚽ GOOOL!', goalText);
+        }
+
+        modal('eventModal').hide();
+        await loadAll();
+    }
 }
 
 async function deleteEvent(id){ if(confirm('Emin misin?')){ await sb.from('match_events').delete().eq('id', id); loadAll(); } }
@@ -846,6 +882,27 @@ function setPushPreset(type){
     if(!p) return;
     $('pushTitle').value = p.title;
     $('pushBody').value = p.body;
+}
+
+
+async function sendAutomaticPush(title, body){
+    try {
+        const { data, error } = await sb.functions.invoke('send-push', {
+            body: {
+                title,
+                body,
+                url: 'https://antturnuva.com.tr/'
+            }
+        });
+        if(error) throw error;
+        if(data?.success === false) throw new Error(data.error || 'Bildirim gönderilemedi.');
+        console.log('Otomatik push gönderildi:', title, data);
+        return true;
+    } catch(e) {
+        // Bildirim hatası, maç/istatistik kaydını bozmasın.
+        console.error('Otomatik push gönderim hatası:', e);
+        return false;
+    }
 }
 
 async function sendPushNotification(){
