@@ -270,6 +270,36 @@
             to { transform: translate3d(var(--drift),110vh,0) rotate(760deg); opacity:.95; }
         }
 
+    
+        /* Şampiyonluk havai fişekleri */
+        #championFireworks {
+            position: fixed;
+            inset: 0;
+            z-index: 1059;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .firework-burst {
+            position:absolute;
+            width:8px;
+            height:8px;
+        }
+        .firework-spark {
+            position:absolute;
+            left:0;
+            top:0;
+            width:6px;
+            height:6px;
+            border-radius:50%;
+            background:var(--spark-color);
+            box-shadow:0 0 8px var(--spark-color);
+            animation:fireworkSpark 1.15s ease-out forwards;
+        }
+        @keyframes fireworkSpark {
+            0% { transform:translate(0,0) scale(1); opacity:1; }
+            100% { transform:translate(var(--fx),var(--fy)) scale(.15); opacity:0; }
+        }
+
     </style>
 </head>
 <body>
@@ -442,9 +472,44 @@
 
         let currentGameweek = null;
 
+        function launchChampionFireworks() {
+            const layer = document.createElement('div');
+            layer.id = 'championFireworks';
+            document.body.appendChild(layer);
+
+            const colors = ['#f59e0b','#38bdf8','#ef4444','#22c55e','#f8fafc','#a855f7'];
+            const bursts = [
+                [18,25,0],[82,22,350],[34,38,700],[68,34,1050],[50,20,1450],
+                [14,46,1850],[86,43,2200],[42,30,2550],[62,25,2900]
+            ];
+
+            bursts.forEach(([x,y,delay], bi) => {
+                setTimeout(() => {
+                    const burst = document.createElement('div');
+                    burst.className = 'firework-burst';
+                    burst.style.left = x + 'vw';
+                    burst.style.top = y + 'vh';
+                    layer.appendChild(burst);
+
+                    const count = 24;
+                    for(let i=0;i<count;i++){
+                        const a=(Math.PI*2*i/count)+(Math.random()*.12);
+                        const dist=45+Math.random()*75;
+                        const spark=document.createElement('span');
+                        spark.className='firework-spark';
+                        spark.style.setProperty('--spark-color', colors[(i+bi)%colors.length]);
+                        spark.style.setProperty('--fx', (Math.cos(a)*dist)+'px');
+                        spark.style.setProperty('--fy', (Math.sin(a)*dist)+'px');
+                        burst.appendChild(spark);
+                    }
+                    setTimeout(()=>burst.remove(),1400);
+                }, delay);
+            });
+            setTimeout(()=>layer.remove(),4600);
+        }
+
         function celebrateChampionOnce(key) {
-            if(!key || sessionStorage.getItem(key) === '1') return;
-            sessionStorage.setItem(key, '1');
+            if(!key) return;
 
             const layer = document.createElement('div');
             layer.id = 'championConfetti';
@@ -462,6 +527,7 @@
                 p.style.animationDelay=(Math.random()*.65)+'s';
                 layer.appendChild(p);
             }
+            launchChampionFireworks();
             setTimeout(()=>layer.remove(),5200);
         }
 
