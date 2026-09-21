@@ -88,6 +88,7 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
         <li class="nav-item"><button class="nav-link active" data-tab="teams">Takımlar</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="players">Oyuncular</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="matches">Maçlar</button></li>
+        <li class="nav-item"><button class="nav-link" data-tab="live">🔴 Canlı Maç</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="events">İstatistikler</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="points">Puan Hesaplama</button></li>
 <li class="nav-item"><button class="nav-link" data-tab="knockout">🏆 Final Aşaması</button></li>
@@ -128,6 +129,21 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
             <thead><tr><th>Hafta</th><th>Tarih</th><th>Grup</th><th>Maç</th><th>Skor</th><th>Durum</th><th class="text-end">İşlem</th></tr></thead>
             <tbody id="matchesTable"></tbody>
         </table></div></div>
+    </section>
+
+
+    <!-- LIVE MATCH -->
+    <section id="tab-live" class="tab-pane-admin hidden">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4><span class="badge bg-danger me-2">CANLI</span>Maç Yönetimi</h4>
+            <span class="text-muted small">Gol + asist + skor + push tek ekrandan</span>
+        </div>
+
+        <div class="card p-3 mb-3">
+            <label class="form-label small text-muted">Maç Seç</label>
+            <select id="liveMatchSelect" class="form-select border-secondary text-white mb-3" onchange="renderLiveMatchPanel()"></select>
+            <div id="liveMatchPanel"></div>
+        </div>
     </section>
 
     <!-- EVENTS -->
@@ -416,13 +432,14 @@ async function loadAll(){
 
 function renderAll(){
     $('statTeams').textContent = teams.length; $('statPlayers').textContent = players.length; $('statMatches').textContent = matches.length; $('statPlayed').textContent = matches.filter(m => m.played).length;
+    refreshLiveMatchSelect();
     $('teamsTable').innerHTML = teams.map(t => `<tr><td class="fw-bold">${esc(t.name)}</td><td>${esc(t.group_name || '-')}</td><td><span style="display:inline-block;width:18px;height:18px;border-radius:50%;background:${esc(t.color||'#0ea5e9')};"></span></td><td class="text-end"><button class="btn btn-sm btn-outline-info me-1" onclick="openTeamModal('${t.id}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteTeam('${t.id}')"><i class="bi bi-trash"></i></button></td></tr>`).join('') || empty('Takım yok.');
     $('playersTable').innerHTML = players.map(p => `<tr><td class="fw-bold">${esc(p.name)}</td><td>${esc(teamName(p.team_id))}</td><td>${esc(p.position || '-')}</td><td class="text-end"><button class="btn btn-sm btn-outline-info me-1" onclick="openPlayerModal('${p.id}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deletePlayer('${p.id}')"><i class="bi bi-trash"></i></button></td></tr>`).join('') || empty('Oyuncu yok.');
     
     $('matchesTable').innerHTML = matches.map(m => {
         let gw = gameweeks.find(g => g.id === m.gameweek_id);
         let gwBadge = gw ? `<span class="badge bg-primary">${esc(gw.name)}</span>` : `<span class="badge bg-secondary">Hafta Yok</span>`;
-        return `<tr><td>${gwBadge}</td><td>${fmt(m.match_date)}</td><td>${esc(m.group_name||'-')}</td><td class="text-start">${esc(teamName(m.home_team_id))} <span class="text-warning">vs</span> ${esc(teamName(m.away_team_id))}</td><td class="fw-bold text-center">${m.played?`${m.home_score} - ${m.away_score}`:'-'}</td><td>${m.played?'<span class="badge text-bg-success">Oynandı</span>':'<span class="badge text-bg-warning">Gelecek</span>'}</td><td class="text-end"><button class="btn btn-sm btn-outline-info me-1" onclick="openMatchModal('${m.id}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteMatch('${m.id}')"><i class="bi bi-trash"></i></button></td></tr>`;
+        return `<tr><td>${gwBadge}</td><td>${fmt(m.match_date)}</td><td>${esc(m.group_name||'-')}</td><td class="text-start">${esc(teamName(m.home_team_id))} <span class="text-warning">vs</span> ${esc(teamName(m.away_team_id))}</td><td class="fw-bold text-center">${m.is_live||m.played?`${Number(m.home_score??0)} - ${Number(m.away_score??0)}`:'-'}</td><td>${m.is_live?'<span class="badge text-bg-danger">🔴 CANLI</span>':m.played?'<span class="badge text-bg-success">Oynandı</span>':'<span class="badge text-bg-warning">Gelecek</span>'}</td><td class="text-end"><button class="btn btn-sm btn-outline-danger me-1" title="Canlı yönet" onclick="openLiveMatch('${m.id}')"><i class="bi bi-broadcast"></i></button><button class="btn btn-sm btn-outline-info me-1" onclick="openMatchModal('${m.id}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteMatch('${m.id}')"><i class="bi bi-trash"></i></button></td></tr>`;
     }).join('') || empty('Maç yok.');
 
     renderEventsTable();
@@ -578,6 +595,142 @@ function renderSquadLists() {
     $('awaySquadList').innerHTML = buildCB($('awayTeam').value);
 }
 
+
+function refreshLiveMatchSelect(){
+    const sel = $('liveMatchSelect');
+    if(!sel) return;
+    const old = sel.value;
+    const ordered = [...matches].sort((a,b)=>{
+        if(!!b.is_live !== !!a.is_live) return Number(!!b.is_live)-Number(!!a.is_live);
+        return new Date(b.match_date)-new Date(a.match_date);
+    });
+    sel.innerHTML = '<option value="">Maç seç...</option>' + ordered.map(m =>
+        `<option value="${m.id}">${m.is_live?'🔴 CANLI • ':''}${esc(teamName(m.home_team_id))} - ${esc(teamName(m.away_team_id))} • ${fmt(m.match_date)}</option>`
+    ).join('');
+    if(ordered.some(m=>m.id===old)) sel.value=old;
+    else {
+        const live=ordered.find(m=>m.is_live);
+        if(live) sel.value=live.id;
+    }
+    renderLiveMatchPanel();
+}
+
+function openLiveMatch(id){
+    document.querySelectorAll('.nav-link[data-tab]').forEach(x=>x.classList.remove('active'));
+    const btn=document.querySelector('.nav-link[data-tab="live"]');
+    if(btn) btn.classList.add('active');
+    document.querySelectorAll('.tab-pane-admin').forEach(x=>x.classList.add('hidden'));
+    $('tab-live')?.classList.remove('hidden');
+    refreshLiveMatchSelect();
+    if($('liveMatchSelect')) $('liveMatchSelect').value=id;
+    renderLiveMatchPanel();
+}
+
+function renderLiveMatchPanel(){
+    const box=$('liveMatchPanel'), sel=$('liveMatchSelect');
+    if(!box || !sel) return;
+    const m=matches.find(x=>x.id===sel.value);
+    if(!m){ box.innerHTML='<div class="text-muted text-center py-4">Canlı yönetmek için bir maç seç.</div>'; return; }
+
+    const hp=players.filter(p=>p.team_id===m.home_team_id).sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+    const ap=players.filter(p=>p.team_id===m.away_team_id).sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+    const playerOptions = `
+        <optgroup label="🏠 ${esc(teamName(m.home_team_id))}">${hp.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</optgroup>
+        <optgroup label="✈️ ${esc(teamName(m.away_team_id))}">${ap.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</optgroup>`;
+    const score = `${Number(m.home_score??0)} - ${Number(m.away_score??0)}`;
+
+    box.innerHTML = `
+        <div class="text-center p-3 rounded border border-secondary bg-dark mb-3">
+            <div class="small text-muted mb-2">${fmt(m.match_date)}</div>
+            <div class="d-flex align-items-center justify-content-center gap-3">
+                <div class="fw-bold text-end" style="width:35%">${esc(teamName(m.home_team_id))}</div>
+                <div class="fs-2 fw-bold text-warning">${score}</div>
+                <div class="fw-bold text-start" style="width:35%">${esc(teamName(m.away_team_id))}</div>
+            </div>
+            <div class="mt-2">${m.is_live?'<span class="badge bg-danger fs-6">🔴 CANLI</span>':m.played?'<span class="badge bg-success">MAÇ BİTTİ</span>':'<span class="badge bg-warning text-dark">BAŞLAMADI</span>'}</div>
+        </div>
+
+        ${!m.is_live && !m.played ? `<button class="btn btn-danger w-100 fw-bold mb-3" onclick="startLiveMatch('${m.id}')"><i class="bi bi-broadcast me-1"></i> 🔴 CANLI BAŞLAT</button>` : ''}
+
+        ${m.is_live ? `
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">⚽ Golü Atan</label>
+                    <select id="liveScorer" class="form-select border-secondary text-white">${playerOptions}</select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">🎯 Asist <span class="text-muted">(opsiyonel)</span></label>
+                    <select id="liveAssist" class="form-select border-secondary text-white">
+                        <option value="">Asist yok</option>${playerOptions}
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-success w-100 fw-bold py-3 mt-3" onclick="addLiveGoal('${m.id}')">⚽ GOOOL! SKORU +1 YAP VE BİLDİR</button>
+            <button class="btn btn-outline-warning w-100 fw-bold mt-2" onclick="finishLiveMatch('${m.id}')">🏁 MAÇI BİTİR</button>
+        ` : ''}
+    `;
+}
+
+async function startLiveMatch(id){
+    const m=matches.find(x=>x.id===id); if(!m) return;
+    if(!confirm(`${teamName(m.home_team_id)} - ${teamName(m.away_team_id)} maçını CANLI başlatayım mı?`)) return;
+    const {error}=await sb.from('matches').update({is_live:true,played:false,home_score:Number(m.home_score??0),away_score:Number(m.away_score??0)}).eq('id',id);
+    if(error){alert(error.message);return;}
+    await sendAutomaticPush('🔴 Maç Başladı!', `${teamName(m.home_team_id)} - ${teamName(m.away_team_id)} şimdi CANLI!`);
+    await loadAll();
+    if($('liveMatchSelect')) $('liveMatchSelect').value=id;
+    renderLiveMatchPanel();
+}
+
+async function addLiveGoal(matchId){
+    const m=matches.find(x=>x.id===matchId);
+    const scorerId=$('liveScorer')?.value, assistId=$('liveAssist')?.value||'';
+    if(!m || !m.is_live || !scorerId){ alert('Canlı maç ve gol atan oyuncu seçili olmalı.'); return; }
+    const scorer=players.find(p=>p.id===scorerId); if(!scorer) return;
+    if(assistId===scorerId){ alert('Gol atan oyuncu kendisine asist yazamaz.'); return; }
+
+    let hs=Number(m.home_score??0), as=Number(m.away_score??0);
+    if(scorer.team_id===m.home_team_id) hs++; else if(scorer.team_id===m.away_team_id) as++; else {alert('Oyuncu bu maçın takımında değil.');return;}
+
+    const {error:scoreErr}=await sb.from('matches').update({home_score:hs,away_score:as}).eq('id',matchId).eq('is_live',true);
+    if(scoreErr){alert(scoreErr.message);return;}
+
+    async function incrementEvent(playerId, field){
+        const p=players.find(x=>x.id===playerId); if(!p) return null;
+        const {data:ev,error}=await sb.from('match_events').select('*').eq('match_id',matchId).eq('player_id',playerId).maybeSingle();
+        if(error) return error;
+        const goals=Number(ev?.goals||0)+(field==='goals'?1:0);
+        const assists=Number(ev?.assists||0)+(field==='assists'?1:0);
+        const yellow=Number(ev?.yellow_cards||0), red=Number(ev?.red_cards||0);
+        const obj={match_id:matchId,player_id:playerId,team_id:p.team_id,played:true,goals,assists,yellow_cards:yellow,red_cards:red,fantasy_points:calculateFantasyPoints(true,goals,assists,yellow,red)};
+        const r=ev?.id ? await sb.from('match_events').update(obj).eq('id',ev.id) : await sb.from('match_events').upsert(obj,{onConflict:'match_id,player_id'});
+        return r.error||null;
+    }
+
+    const ge=await incrementEvent(scorerId,'goals');
+    if(ge){ alert('Skor arttı ama gol istatistiği kaydedilemedi: '+ge.message); return; }
+    if(assistId){
+        const ae=await incrementEvent(assistId,'assists');
+        if(ae){ alert('Gol kaydedildi ama asist kaydedilemedi: '+ae.message); }
+    }
+
+    await sendAutomaticPush('⚽ GOOOL!', `${scorer.name} — ${teamName(m.home_team_id)} ${hs}-${as} ${teamName(m.away_team_id)}`);
+    await loadAll();
+    if($('liveMatchSelect')) $('liveMatchSelect').value=matchId;
+    renderLiveMatchPanel();
+}
+
+async function finishLiveMatch(id){
+    const m=matches.find(x=>x.id===id); if(!m) return;
+    if(!confirm(`Maçı ${Number(m.home_score??0)} - ${Number(m.away_score??0)} skoruyla bitireyim mi?`)) return;
+    const {error}=await sb.from('matches').update({is_live:false,played:true}).eq('id',id);
+    if(error){alert(error.message);return;}
+    await sendAutomaticPush('🏆 Maç Sonucu', `${teamName(m.home_team_id)} ${Number(m.home_score??0)} - ${Number(m.away_score??0)} ${teamName(m.away_team_id)}`);
+    await loadAll();
+    if($('liveMatchSelect')) $('liveMatchSelect').value=id;
+    renderLiveMatchPanel();
+}
+
 async function saveMatch(){
     let id = $('matchId').value, home = $('homeTeam').value, away = $('awayTeam').value;
     const oldMatch = id ? matches.find(x => x.id === id) : null;
@@ -596,7 +749,8 @@ async function saveMatch(){
         group_name: id && ['semifinal','final','third_place'].includes(matches.find(x=>x.id===id)?.stage)
             ? matches.find(x=>x.id===id).group_name
             : $('matchGroup').value,
-        played: played, 
+        played: played,
+        is_live: played ? false : (oldMatch?.is_live || false), 
         home_score: played ? homeS : null, 
         away_score: played ? awayS : null,
         gameweek_id: gwId,
