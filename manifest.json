@@ -2,17 +2,18 @@
   "name": "ANT Fantezi Lig",
   "short_name": "ANT Fantezi",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "http://antturnuva.com.tr/logo.png",
+      "src": "/logo.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src":"http://antturnuva.com.tr/logo.png",
+      "src": "/logo.png",
       "sizes": "512x512",
       "type": "image/png"
     }
