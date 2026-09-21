@@ -226,6 +226,50 @@
             #installAppBanner .install-action { padding:5px 8px; font-size:10px; }
         }
 
+    
+        /* Şampiyonluk kutlaması - sadece Finaller ekranı */
+        .champion-box.champion-celebration {
+            position: relative;
+            overflow: hidden;
+            padding: 24px 14px;
+            border: 1px solid #f59e0b;
+            box-shadow: 0 0 28px rgba(245,158,11,.22);
+        }
+        .champion-trophy {
+            font-size: 58px;
+            line-height: 1;
+            display: inline-block;
+            animation: championTrophyPop 1.05s cubic-bezier(.2,.9,.25,1.25) both;
+            filter: drop-shadow(0 6px 10px rgba(245,158,11,.35));
+        }
+        .champion-kicker { letter-spacing: 1.4px; }
+        .champion-name { font-size: clamp(24px,7vw,38px); font-weight: 900; line-height: 1.08; }
+        .champion-score { color:#cbd5e1; font-size:12px; margin-top:8px; }
+        @keyframes championTrophyPop {
+            0% { transform: scale(.35) rotate(-16deg); opacity:0; }
+            70% { transform: scale(1.15) rotate(6deg); opacity:1; }
+            100% { transform: scale(1) rotate(0); opacity:1; }
+        }
+        #championConfetti {
+            position: fixed;
+            inset: 0;
+            z-index: 1060;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .ant-confetti-piece {
+            position:absolute;
+            top:-24px;
+            width:9px;
+            height:15px;
+            border-radius:2px;
+            animation: antConfettiFall var(--fall) linear forwards;
+            transform: rotate(var(--rot));
+        }
+        @keyframes antConfettiFall {
+            to { transform: translate3d(var(--drift),110vh,0) rotate(760deg); opacity:.95; }
+        }
+
     </style>
 </head>
 <body>
@@ -397,6 +441,29 @@
         let globalPlayerStats = {};
 
         let currentGameweek = null;
+
+        function celebrateChampionOnce(key) {
+            if(!key || sessionStorage.getItem(key) === '1') return;
+            sessionStorage.setItem(key, '1');
+
+            const layer = document.createElement('div');
+            layer.id = 'championConfetti';
+            document.body.appendChild(layer);
+
+            const colors = ['#f59e0b','#f8fafc','#38bdf8','#22c55e','#ef4444','#a855f7'];
+            for(let i=0;i<72;i++){
+                const p=document.createElement('span');
+                p.className='ant-confetti-piece';
+                p.style.left=(Math.random()*100)+'vw';
+                p.style.background=colors[i%colors.length];
+                p.style.setProperty('--fall',(2.6+Math.random()*2.1)+'s');
+                p.style.setProperty('--drift',((-90+Math.random()*180))+'px');
+                p.style.setProperty('--rot',(Math.random()*360)+'deg');
+                p.style.animationDelay=(Math.random()*.65)+'s';
+                layer.appendChild(p);
+            }
+            setTimeout(()=>layer.remove(),5200);
+        }
 
         function showNotification(message, type = 'success') {
             const container = document.getElementById('notification-container');
@@ -1528,7 +1595,13 @@
                 };
 
                 const championId = winnerId(finalMatch);
-                const championHTML = championId ? `<div class="champion-box"><div class="fs-1">🏆</div><div class="text-warning small fw-bold">ANT FANTEZİ LİG ŞAMPİYONU</div><div class="fs-4 fw-bold text-white mt-1">${esc(teamN(championId))}</div></div>` : '';
+                const championHTML = championId ? `<div class="champion-box champion-celebration">
+                    <div class="champion-trophy">🏆</div>
+                    <div class="text-warning small fw-bold champion-kicker mt-2">2026 ANT TURNUVA ŞAMPİYONU</div>
+                    <div class="champion-name text-white mt-2">${esc(teamN(championId))}</div>
+                    <div class="champion-score">Final: ${esc(teamN(finalMatch.home_team_id))} ${Number(finalMatch.home_score??0)} - ${Number(finalMatch.away_score??0)} ${esc(teamN(finalMatch.away_team_id))}</div>
+                    <div class="small text-warning mt-2">🎉 TEBRİKLER 🎉</div>
+                </div>` : '';
 
                 content.innerHTML = `
                     <div class="knockout-wrap">
@@ -1551,6 +1624,11 @@
                         </div>
                     </div>
                     <div style="height:110px"></div>`;
+
+                if(championId) {
+                    const celebrationKey = `ant_champion_2026_${championId}_${Number(finalMatch.home_score??0)}_${Number(finalMatch.away_score??0)}`;
+                    setTimeout(() => celebrateChampionOnce(celebrationKey), 120);
+                }
             } else if(tabName === 'puan-durumu') {
                 const html=['A','B'].map(group=>{
                     const data=buildStandings(teams.filter(t=>t.group_name===group), matches.filter(m=>m.group_name===group && (m.stage || 'group') === 'group'));
