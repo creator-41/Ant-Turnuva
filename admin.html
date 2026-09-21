@@ -87,6 +87,7 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
         <li class="nav-item"><button class="nav-link" data-tab="events">İstatistikler</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="points">Puan Hesaplama</button></li>
 <li class="nav-item"><button class="nav-link" data-tab="knockout">🏆 Final Aşaması</button></li>
+        <li class="nav-item"><button class="nav-link" data-tab="notifications">🔔 Bildirimler</button></li>
     </ul>
 
     <!-- TEAMS -->
@@ -224,6 +225,32 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
           <div id="finalTeamsInfo" class="small muted mt-3"></div>
         </div></div></div>
       </div>
+    </section>
+
+    <!-- BİLDİRİMLER -->
+    <section id="tab-notifications" class="tab-pane-admin hidden">
+        <h4>🔔 Bildirim Gönder</h4>
+        <div class="card p-3 mb-3">
+            <div class="muted small mb-3">Bildirim izni veren kullanıcılara anlık push bildirimi gönderir.</div>
+
+            <label class="form-label fw-bold">Başlık</label>
+            <input id="pushTitle" class="form-control mb-3" maxlength="100" value="ANT Fantezi Lig">
+
+            <label class="form-label fw-bold">Mesaj</label>
+            <textarea id="pushBody" class="form-control mb-3" rows="4" maxlength="500" placeholder="Bildirim mesajını yaz..."></textarea>
+
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button class="btn btn-outline-warning btn-sm" onclick="setPushPreset('goal')">⚽ GOOOL!</button>
+                <button class="btn btn-outline-info btn-sm" onclick="setPushPreset('squad')">⏰ Kadronu Kaydet</button>
+                <button class="btn btn-outline-success btn-sm" onclick="setPushPreset('start')">🏁 Maç Başlıyor</button>
+                <button class="btn btn-outline-light btn-sm" onclick="setPushPreset('result')">🏆 Maç Sonucu</button>
+            </div>
+
+            <button id="sendPushBtn" class="btn btn-info fw-bold w-100" onclick="sendPushNotification()">
+                <i class="bi bi-send-fill me-1"></i> Herkese Gönder
+            </button>
+            <div id="pushResult" class="small mt-3"></div>
+        </div>
     </section>
 </div>
 </div>
@@ -805,6 +832,64 @@ async function saveFinalMatch(){
   const obj={home_team_id:w1,away_team_id:w2,match_date:date,group_name:'FINAL',stage:'final',played:old?.played||false,home_score:old?.played?old.home_score:null,away_score:old?.played?old.away_score:null,gameweek_id:old?.gameweek_id||null};
   const r=old?await sb.from('matches').update(obj).eq('id',old.id):await sb.from('matches').insert(obj);
   if(r.error){alert(r.error.message);return;} alert('Final maçı hazır.'); await loadAll();
+}
+
+
+function setPushPreset(type){
+    const presets = {
+        goal:   { title:'⚽ GOOOL!', body:'ANT Fantezi Lig’de gol var! Hemen siteye göz at.' },
+        squad:  { title:'⏰ Kadronu Kaydet!', body:'Maç günü başlamak üzere. Fantezi kadronu kaydetmeyi unutma!' },
+        start:  { title:'🏁 Maç Başlıyor!', body:'Maç başlamak üzere! ANT Fantezi Lig’i takip et.' },
+        result: { title:'🏆 Maç Sonucu', body:'Maç sonucu belli oldu! Sonuçlar ve güncel puanlar için siteye göz at.' }
+    };
+    const p = presets[type];
+    if(!p) return;
+    $('pushTitle').value = p.title;
+    $('pushBody').value = p.body;
+}
+
+async function sendPushNotification(){
+    const title = $('pushTitle').value.trim();
+    const body = $('pushBody').value.trim();
+    const result = $('pushResult');
+    const btn = $('sendPushBtn');
+
+    if(!title || !body){
+        result.innerHTML = '<span class="text-warning">Başlık ve mesaj zorunlu.</span>';
+        return;
+    }
+
+    if(!confirm(`Bu bildirimi herkese göndermek istiyor musun?\n\n${title}\n${body}`)) return;
+
+    btn.disabled = true;
+    result.innerHTML = '<span class="text-info">Bildirim gönderiliyor...</span>';
+
+    try {
+        const { data, error } = await sb.functions.invoke('send-push', {
+            body: {
+                title,
+                body,
+                url: 'https://antturnuva.com.tr/'
+            }
+        });
+
+        if(error) throw error;
+        if(data?.success === false) throw new Error(data.error || 'Bildirim gönderilemedi.');
+
+        const sent = Number(data?.sent || 0);
+        const failed = Number(data?.failed || 0);
+        const removed = Number(data?.removed || 0);
+
+        result.innerHTML = `<span class="text-success fw-bold">✓ Gönderim tamamlandı.</span>
+            <span class="text-white"> Başarılı: ${sent}</span>
+            ${failed ? `<span class="text-danger"> • Hatalı: ${failed}</span>` : ''}
+            ${removed ? `<span class="text-warning"> • Temizlenen eski abonelik: ${removed}</span>` : ''}`;
+    } catch(e) {
+        console.error('Push gönderim hatası:', e);
+        result.innerHTML = `<span class="text-danger fw-bold">Bildirim gönderilemedi:</span> ${esc(e?.message || e)}`;
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
