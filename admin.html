@@ -123,6 +123,7 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
         <li class="nav-item"><button class="nav-link" data-tab="points">Puan Hesaplama</button></li>
 <li class="nav-item"><button class="nav-link" data-tab="knockout">🏆 Final Aşaması</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="news">📰 ANT Spor</button></li>
+        <li class="nav-item"><button class="nav-link" data-tab="halloffame">👑 Hall of Fame</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="notifications">🔔 Bildirimler</button></li>
     </ul>
 
@@ -296,7 +297,18 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
         <div id="newsList"></div>
     </section>
 
-    <section id="tab-notifications" class="tab-pane-admin hidden">
+        <!-- HALL OF FAME -->
+    <section id="tab-halloffame" class="tab-pane-admin hidden">
+        <div class="d-flex justify-content-between align-items-center mb-3"><h4>👑 Hall of Fame</h4><span class="text-muted small">Kalıcı sezon arşivi</span></div>
+        <div class="card p-3 mb-3">
+            <label class="form-label small text-muted">Sezon</label>
+            <div class="input-group mb-3"><input id="hofSeasonYear" type="number" class="form-control" value="2026" min="2020" max="2100"><button class="btn btn-warning fw-bold" onclick="previewHallOfFame()">🏆 Sezonu Arşivle</button></div>
+            <div id="hofPreview" class="small text-muted">Final tamamlandığında sezon sonuçlarını kontrol edip arşivleyebilirsin. Arşivleme mevcut verileri silmez.</div>
+        </div>
+        <div id="hofArchiveList"></div>
+    </section>
+
+<section id="tab-notifications" class="tab-pane-admin hidden">
         <h4>🔔 Bildirim Gönder</h4>
         <div class="card p-3 mb-3">
             <div class="muted small mb-3">Bildirim izni veren kullanıcılara anlık push bildirimi gönderir.</div>
@@ -479,18 +491,19 @@ async function loadAll(){
     let prevSort = $('eventSortSelect')?.value || 'newest';
     let prevSearch = $('eventSearchInput')?.value || '';
 
-    const [t, p, m, e, gw, ts, nw] = await Promise.all([
+    const [t, p, m, e, gw, ts, nw, hof] = await Promise.all([
         sb.from('teams').select('*').order('name'),
         sb.from('players').select('*').order('name'),
         sb.from('matches').select('*').order('match_date', { ascending:false }),
         sb.from('match_events').select('*').order('created_at', { ascending:false }),
         sb.from('gameweeks').select('*').order('id', { ascending:true }),
         sb.from('tournament_settings').select('*').eq('id',1).maybeSingle(),
-        sb.from('news').select('*').order('created_at', { ascending:false })
+        sb.from('news').select('*').order('created_at', { ascending:false }),
+        sb.from('hall_of_fame').select('*').order('season_year', { ascending:false })
     ]);
     if(t.error || p.error || m.error || e.error){ alert('Veri okunamadı!'); return; }
     if(nw?.error){ console.error('ANT Spor okunamadı:', nw.error); news = []; }
-    teams = t.data || []; players = p.data || []; matches = m.data || []; events = e.data || []; gameweeks = gw.data || []; news = nw?.data || []; tournamentSettings=ts?.data||{id:1,knockout_enabled:false};
+    teams = t.data || []; players = p.data || []; matches = m.data || []; events = e.data || []; gameweeks = gw.data || []; news = nw?.data || []; window.hallOfFameRows = hof?.data || []; tournamentSettings=ts?.data||{id:1,knockout_enabled:false};
     
     fillSelect('filterTeamSelect', teams, t => t.name, t => t.id);
     $('filterTeamSelect').insertAdjacentHTML('afterbegin', '<option value="">🛡️ Tüm Takımlar</option>');
@@ -528,6 +541,7 @@ function renderAll(){
     renderPointsTable();
     renderKnockoutAdmin();
     renderNewsAdmin();
+    renderHallOfFameAdmin();
 }
 
 function renderEventsTable(){
@@ -1336,6 +1350,54 @@ async function saveEvent(){
 
 async function deleteEvent(id){ if(confirm('Emin misin?')){ await sb.from('match_events').delete().eq('id', id); loadAll(); } }
 
+
+
+async function calculateHallOfFameSnapshot(){
+    const finalMatch=matches.find(m=>m.stage==='final' && m.played);
+    if(!finalMatch || Number(finalMatch.home_score)===Number(finalMatch.away_score)) throw new Error('Final maçı henüz tamamlanmadı veya skor berabere.');
+    const championId=Number(finalMatch.home_score)>Number(finalMatch.away_score)?finalMatch.home_team_id:finalMatch.away_team_id;
+    const goals={}, assists={};
+    events.forEach(e=>{ goals[e.player_id]=(goals[e.player_id]||0)+Number(e.goals||0); assists[e.player_id]=(assists[e.player_id]||0)+Number(e.assists||0); });
+    const maxGoal=Math.max(0,...Object.values(goals)), maxAssist=Math.max(0,...Object.values(assists));
+    const goalIds=Object.keys(goals).filter(id=>goals[id]===maxGoal && maxGoal>0);
+    const assistIds=Object.keys(assists).filter(id=>assists[id]===maxAssist && maxAssist>0);
+    const names=ids=>ids.map(id=>playerName(id)).join(' / ');
+    const [ftRes, ftpRes, profRes]=await Promise.all([
+        sb.from('fantasy_teams').select('id,name,user_id,captain_slot'),
+        sb.from('fantasy_team_players').select('fantasy_team_id,slot,player_id,gameweek_id'),
+        sb.from('profiles').select('id,username')
+    ]);
+    if(ftRes.error||ftpRes.error) throw new Error('Fantezi sıralaması okunamadı.');
+    const matchGw=Object.fromEntries(matches.map(m=>[m.id,String(m.gameweek_id||'')]));
+    const pp={}; events.forEach(e=>{ const gw=matchGw[e.match_id]; if(!gw)return; const k=e.player_id+'|'+gw; pp[k]=(pp[k]||0)+Number(e.fantasy_points||0); });
+    const rows=ftRes.data||[], picks=ftpRes.data||[], profiles=Object.fromEntries((profRes.data||[]).map(p=>[p.id,p.username]));
+    const ranking=rows.map(t=>{ let score=0; picks.filter(x=>x.fantasy_team_id===t.id).forEach(x=>{ let pts=pp[x.player_id+'|'+String(x.gameweek_id)]||0; if(x.slot===t.captain_slot)pts*=2; score+=pts; }); return {team:t.name,manager:profiles[t.user_id]||'Kullanıcı',points:score}; }).sort((a,b)=>b.points-a.points);
+    const fw=ranking[0]||null;
+    return {champion_team:teamName(championId),top_scorer_name:names(goalIds)||null,top_scorer_goals:maxGoal||null,top_assist_name:names(assistIds)||null,top_assist_count:maxAssist||null,fantasy_champion_team:fw?.team||null,fantasy_champion_manager:fw?.manager||null,fantasy_champion_points:fw?.points??null};
+}
+function renderHallOfFameAdmin(){
+    const el=$('hofArchiveList'); if(!el)return; const rows=window.hallOfFameRows||[];
+    el.innerHTML=rows.length?rows.map(h=>`<div class="card p-3 mb-2"><div class="d-flex justify-content-between"><strong class="text-warning">👑 ${esc(String(h.season_year))} Sezonu</strong><span class="badge bg-success">Arşivlendi</span></div><div class="small mt-2">🏆 ${esc(h.champion_team||'-')} &nbsp; • &nbsp; ⚽ ${esc(h.top_scorer_name||'-')} (${h.top_scorer_goals??'-'}) &nbsp; • &nbsp; 🎯 ${esc(h.top_assist_name||'-')} (${h.top_assist_count??'-'})</div><div class="small text-muted mt-1">⭐ ${esc(h.fantasy_champion_team||'-')} / ${esc(h.fantasy_champion_manager||'-')} ${h.fantasy_champion_points!=null?'· '+h.fantasy_champion_points+' P':''}</div></div>`).join(''):'<div class="text-muted small">Henüz arşivlenen sezon yok.</div>';
+}
+async function previewHallOfFame(){
+    const year=Number($('hofSeasonYear').value); if(!year){alert('Sezon yılını gir.');return;}
+    if((window.hallOfFameRows||[]).some(x=>Number(x.season_year)===year)){ alert(year+' sezonu zaten arşivlenmiş.'); return; }
+    try{
+        const s=await calculateHallOfFameSnapshot();
+        const msg=`${year} sezonu arşivlenecek:
+
+🏆 Şampiyon: ${s.champion_team}
+⚽ Gol Kralı: ${s.top_scorer_name||'-'}${s.top_scorer_goals!=null?' ('+s.top_scorer_goals+' gol)':''}
+🎯 Asist Kralı: ${s.top_assist_name||'-'}${s.top_assist_count!=null?' ('+s.top_assist_count+' asist)':''}
+⭐ Fantezi Şampiyonu: ${s.fantasy_champion_team||'-'} / ${s.fantasy_champion_manager||'-'}${s.fantasy_champion_points!=null?' ('+s.fantasy_champion_points+' P)':''}
+
+Bu kayıt kalıcı sezon arşivine eklenecek. Onaylıyor musun?`;
+        if(!confirm(msg))return;
+        const obj={season_year:year,...s,archived_at:new Date().toISOString()};
+        const r=await sb.from('hall_of_fame').insert(obj); if(r.error)throw r.error;
+        alert('👑 '+year+' sezonu Hall of Fame arşivine kaydedildi!'); await loadAll();
+    }catch(e){alert(e.message||String(e));}
+}
 
 function koMatch(slot){
   if(slot==='semifinal_1') return matches.find(m=>m.stage==='semifinal'&&m.group_name==='SF1');
