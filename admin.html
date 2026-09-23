@@ -1009,6 +1009,42 @@ async function ensureTournamentMilestoneNews(){
             `Final yolundaki eşleşmeler belli oldu. Yarı Final 1: ${teamName(d.sf1.home_team_id)} - ${teamName(d.sf1.away_team_id)}. Yarı Final 2: ${teamName(d.sf2.home_team_id)} - ${teamName(d.sf2.away_team_id)}. Artık gözler büyük final bileti için oynanacak iki kritik maçta!`
         )) || created;
     }
+
+    const finalMatch=matches.find(m=>m.stage==='final');
+    const thirdMatch=matches.find(m=>m.stage==='third_place');
+
+    if(finalMatch){
+        created = (await upsertMilestoneNews(
+            'final_pairing_2026',
+            'FİNALİN ADI BELLİ OLDU! 🔥',
+            `${teamName(finalMatch.home_team_id)} ile ${teamName(finalMatch.away_team_id)} şampiyonluk kupası için karşı karşıya gelecek. Turnuvanın büyük finalinde artık tek hedef kupa! 🏆`
+        )) || created;
+    }
+    if(thirdMatch){
+        created = (await upsertMilestoneNews(
+            'third_place_pairing_2026',
+            "3.'LÜK MÜCADELESİ BELLİ OLDU! 🥉",
+            `${teamName(thirdMatch.home_team_id)} ile ${teamName(thirdMatch.away_team_id)} turnuvayı üçüncü sırada tamamlamak için karşı karşıya gelecek.`
+        )) || created;
+    }
+
+    if(thirdMatch?.played && Number(thirdMatch.home_score)!==Number(thirdMatch.away_score)){
+        const thirdWinner = Number(thirdMatch.home_score)>Number(thirdMatch.away_score) ? thirdMatch.home_team_id : thirdMatch.away_team_id;
+        created = (await upsertMilestoneNews(
+            'third_place_result_2026',
+            `TURNUVANIN 3.'SÜ ${teamName(thirdWinner).toUpperCase()}! 🥉`,
+            `${teamName(thirdMatch.home_team_id)} ${thirdMatch.home_score} - ${thirdMatch.away_score} ${teamName(thirdMatch.away_team_id)}. Mücadelenin ardından ${teamName(thirdWinner)} turnuvayı üçüncü sırada tamamladı.`
+        )) || created;
+    }
+
+    if(finalMatch?.played && Number(finalMatch.home_score)!==Number(finalMatch.away_score)){
+        const champion = Number(finalMatch.home_score)>Number(finalMatch.away_score) ? finalMatch.home_team_id : finalMatch.away_team_id;
+        created = (await upsertMilestoneNews(
+            'champion_2026',
+            `ŞAMPİYON ${teamName(champion).toUpperCase()}! 🏆`,
+            `${teamName(finalMatch.home_team_id)} ${finalMatch.home_score} - ${finalMatch.away_score} ${teamName(finalMatch.away_team_id)}. Büyük finalin ardından ${teamName(champion)} kupaya uzandı ve turnuvanın şampiyonu oldu! 🏆🔥`
+        )) || created;
+    }
     return created;
 }
 
