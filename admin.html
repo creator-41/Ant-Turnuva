@@ -122,6 +122,7 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
         <li class="nav-item"><button class="nav-link" data-tab="events">İstatistikler</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="points">Puan Hesaplama</button></li>
 <li class="nav-item"><button class="nav-link" data-tab="knockout">🏆 Final Aşaması</button></li>
+        <li class="nav-item"><button class="nav-link" data-tab="news">📰 ANT Spor</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="notifications">🔔 Bildirimler</button></li>
     </ul>
 
@@ -278,6 +279,23 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
     </section>
 
     <!-- BİLDİRİMLER -->
+    <!-- ANT SPOR -->
+    <section id="tab-news" class="tab-pane-admin hidden">
+        <div class="d-flex justify-content-between align-items-center mb-3 gap-2 flex-wrap">
+            <div><h4 class="mb-1">📰 ANT Spor</h4><div class="muted small">Maçlardan otomatik manşet üret, istersen düzenleyip yayınla.</div></div>
+            <button class="btn btn-info" onclick="openNewsModal()"><i class="bi bi-plus-lg"></i> Manuel Haber</button>
+        </div>
+        <div class="card p-3 mb-3">
+            <label class="form-label text-info fw-bold">Maçtan otomatik haber üret</label>
+            <div class="d-flex gap-2 flex-column flex-md-row">
+                <select id="newsMatchSelect" class="form-select"></select>
+                <button class="btn btn-warning fw-bold text-nowrap" onclick="generateSelectedMatchNews()">✨ Manşet Üret / Yenile</button>
+            </div>
+            <div class="muted small mt-2">Gol/asist kayıtlarını da okuyarak duble, hat-trick, farklı galibiyet, yarı final/final gibi manşetler seçer.</div>
+        </div>
+        <div id="newsList"></div>
+    </section>
+
     <section id="tab-notifications" class="tab-pane-admin hidden">
         <h4>🔔 Bildirim Gönder</h4>
         <div class="card p-3 mb-3">
@@ -361,6 +379,19 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
     </div>
 </div><div class="modal-footer border-secondary"><button class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-info fw-bold" onclick="saveEvent()">Kaydet</button></div></div></div></div>
 
+<!-- NEWS MODAL -->
+<div class="modal fade" id="newsModal"><div class="modal-dialog modal-lg"><div class="modal-content bg-dark text-white">
+<div class="modal-header"><h5 id="newsModalTitle">ANT Spor Haberi</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+<div class="modal-body">
+<input type="hidden" id="newsId">
+<label class="form-label">Başlık</label><input id="newsTitle" class="form-control mb-3" maxlength="180" placeholder="Manşet...">
+<label class="form-label">Haber metni</label><textarea id="newsContent" class="form-control mb-3" rows="5" maxlength="1500" placeholder="Haber metni..."></textarea>
+<label class="form-label">Bağlı maç (isteğe bağlı)</label><select id="newsMatch" class="form-select mb-3"></select>
+<div class="form-check form-switch"><input id="newsPublished" class="form-check-input" type="checkbox" checked><label class="form-check-label fw-bold" for="newsPublished">Yayında göster</label></div>
+</div>
+<div class="modal-footer border-secondary"><button class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-info fw-bold" onclick="saveNews()">Haberi Kaydet</button></div>
+</div></div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = 'https://rmoalquwkfsyrsoqenzb.supabase.co';
@@ -368,7 +399,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_A8-3DVa2k_Nmow4W8h_Reg_qITGWrRf';
 const configured = !SUPABASE_URL.includes('BURAYA_');
 const sb = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-let teams = []; let players = []; let matches = []; let events = []; let gameweeks = []; let currentMatchEventsMap = {}; let tournamentSettings={id:1,knockout_enabled:false};
+let teams = []; let players = []; let matches = []; let events = []; let gameweeks = []; let news = []; let currentMatchEventsMap = {}; let tournamentSettings={id:1,knockout_enabled:false};
 
 const modal = id => bootstrap.Modal.getOrCreateInstance(document.getElementById(id));
 function $(id){ return document.getElementById(id); }
@@ -448,16 +479,18 @@ async function loadAll(){
     let prevSort = $('eventSortSelect')?.value || 'newest';
     let prevSearch = $('eventSearchInput')?.value || '';
 
-    const [t, p, m, e, gw, ts] = await Promise.all([
+    const [t, p, m, e, gw, ts, nw] = await Promise.all([
         sb.from('teams').select('*').order('name'),
         sb.from('players').select('*').order('name'),
         sb.from('matches').select('*').order('match_date', { ascending:false }),
         sb.from('match_events').select('*').order('created_at', { ascending:false }),
         sb.from('gameweeks').select('*').order('id', { ascending:true }),
-        sb.from('tournament_settings').select('*').eq('id',1).maybeSingle()
+        sb.from('tournament_settings').select('*').eq('id',1).maybeSingle(),
+        sb.from('news').select('*').order('created_at', { ascending:false })
     ]);
     if(t.error || p.error || m.error || e.error){ alert('Veri okunamadı!'); return; }
-    teams = t.data || []; players = p.data || []; matches = m.data || []; events = e.data || []; gameweeks = gw.data || []; tournamentSettings=ts?.data||{id:1,knockout_enabled:false};
+    if(nw?.error){ console.error('ANT Spor okunamadı:', nw.error); news = []; }
+    teams = t.data || []; players = p.data || []; matches = m.data || []; events = e.data || []; gameweeks = gw.data || []; news = nw?.data || []; tournamentSettings=ts?.data||{id:1,knockout_enabled:false};
     
     fillSelect('filterTeamSelect', teams, t => t.name, t => t.id);
     $('filterTeamSelect').insertAdjacentHTML('afterbegin', '<option value="">🛡️ Tüm Takımlar</option>');
@@ -470,6 +503,12 @@ async function loadAll(){
     if($('eventSortSelect')) $('eventSortSelect').value = prevSort;
     if($('eventSearchInput')) $('eventSearchInput').value = prevSearch;
 
+    // ANT Spor: turnuva kilometre taşı haberlerini eksikse otomatik oluştur.
+    const milestoneCreated = await ensureTournamentMilestoneNews();
+    if(milestoneCreated){
+        const freshNews = await sb.from('news').select('*').order('created_at', { ascending:false });
+        if(!freshNews.error) news = freshNews.data || [];
+    }
     renderAll();
 }
 
@@ -488,6 +527,7 @@ function renderAll(){
     renderEventsTable();
     renderPointsTable();
     renderKnockoutAdmin();
+    renderNewsAdmin();
 }
 
 function renderEventsTable(){
@@ -769,6 +809,7 @@ async function finishLiveMatch(id){
     const {error}=await sb.from('matches').update({is_live:false,played:true}).eq('id',id);
     if(error){alert(error.message);return;}
     await sendAutomaticPush('🏆 Maç Sonucu', `${teamName(m.home_team_id)} ${Number(m.home_score??0)} - ${Number(m.away_score??0)} ${teamName(m.away_team_id)}`);
+    await upsertAutoNewsForMatch(id);
     await loadAll();
     if($('liveMatchSelect')) $('liveMatchSelect').value=id;
     renderLiveMatchPanel();
@@ -858,7 +899,255 @@ async function saveMatch(){
         );
     }
 
+    if(played) await upsertAutoNewsForMatch(finalMatchId);
     modal('matchModal').hide(); await loadAll();
+}
+
+
+function newsMatchLabel(m){
+    const stage = m.stage==='semifinal'?'Yarı Final':m.stage==='final'?'Final':m.stage==='third_place'?"3.'lük":`Grup ${m.group_name||''}`;
+    return `${teamName(m.home_team_id)} ${m.played ? Number(m.home_score??0)+'-'+Number(m.away_score??0) : 'vs'} ${teamName(m.away_team_id)} • ${stage}`;
+}
+
+function renderNewsAdmin(){
+    const select=$('newsMatchSelect');
+    if(select){
+        const played=matches.filter(m=>m.played).sort((a,b)=>new Date(b.match_date)-new Date(a.match_date));
+        select.innerHTML='<option value="">Oynanmış maç seç...</option>'+played.map(m=>`<option value="${m.id}">${esc(newsMatchLabel(m))}</option>`).join('');
+    }
+    const list=$('newsList'); if(!list) return;
+    list.innerHTML = news.map(n=>{
+        const m=n.match_id?matches.find(x=>x.id===n.match_id):null;
+        return `<div class="card p-3 mb-3">
+            <div class="d-flex justify-content-between align-items-start gap-3">
+                <div class="flex-grow-1">
+                    <div class="d-flex gap-2 align-items-center flex-wrap mb-2"><span class="badge ${n.published?'bg-success':'bg-secondary'}">${n.published?'YAYINDA':'TASLAK'}</span>${n.is_auto?'<span class="badge bg-warning text-dark">OTOMATİK</span>':'<span class="badge bg-info text-dark">MANUEL</span>'}</div>
+                    <h5 class="text-warning mb-2">${esc(n.title)}</h5>
+                    <div class="text-light mb-2" style="white-space:pre-line">${esc(n.content)}</div>
+                    <div class="muted small">${m?esc(newsMatchLabel(m))+' • ':''}${fmt(n.created_at)}</div>
+                </div>
+                <div class="d-flex gap-1"><button class="btn btn-sm btn-outline-info" onclick="openNewsModal('${n.id}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteNews('${n.id}')"><i class="bi bi-trash"></i></button></div>
+            </div>
+        </div>`;
+    }).join('') || '<div class="card p-4 text-center muted">Henüz ANT Spor haberi yok.</div>';
+}
+
+function openNewsModal(id=null){
+    const n=id?news.find(x=>x.id===id):null;
+    $('newsId').value=n?.id||'';
+    $('newsTitle').value=n?.title||'';
+    $('newsContent').value=n?.content||'';
+    $('newsPublished').checked=n?!!n.published:true;
+    $('newsModalTitle').textContent=n?'Haberi Düzenle':'Manuel Haber Ekle';
+    $('newsMatch').innerHTML='<option value="">Maça bağlı değil</option>'+matches.map(m=>`<option value="${m.id}">${esc(newsMatchLabel(m))}</option>`).join('');
+    $('newsMatch').value=n?.match_id||'';
+    modal('newsModal').show();
+}
+
+async function saveNews(){
+    const id=$('newsId').value, title=$('newsTitle').value.trim(), content=$('newsContent').value.trim();
+    if(!title || !content){ alert('Başlık ve haber metni boş olamaz.'); return; }
+    const obj={title,content,match_id:$('newsMatch').value||null,published:$('newsPublished').checked,is_auto:id?(news.find(x=>x.id===id)?.is_auto||false):false,updated_at:new Date().toISOString()};
+    const r=id?await sb.from('news').update(obj).eq('id',id):await sb.from('news').insert(obj);
+    if(r.error){ alert('Haber kaydedilemedi: '+r.error.message); return; }
+    modal('newsModal').hide(); await loadAll();
+}
+
+async function deleteNews(id){
+    if(!confirm('Bu haberi silelim mi?')) return;
+    const r=await sb.from('news').delete().eq('id',id);
+    if(r.error){ alert(r.error.message); return; }
+    await loadAll();
+}
+
+
+function groupStandings(groupName){
+    const rows={};
+    teams.filter(t=>t.group_name===groupName).forEach(t=>rows[t.id]={id:t.id,name:t.name,played:0,wins:0,draws:0,losses:0,gf:0,ga:0,points:0});
+    matches.filter(m=>m.stage==='group' && m.group_name===groupName && m.played).forEach(m=>{
+        const h=rows[m.home_team_id], a=rows[m.away_team_id]; if(!h||!a) return;
+        const hs=Number(m.home_score??0), as=Number(m.away_score??0);
+        h.played++;a.played++;h.gf+=hs;h.ga+=as;a.gf+=as;a.ga+=hs;
+        if(hs>as){h.wins++;h.points+=3;a.losses++;}
+        else if(hs<as){a.wins++;a.points+=3;h.losses++;}
+        else{h.draws++;a.draws++;h.points++;a.points++;}
+    });
+    return Object.values(rows).map(x=>({...x,gd:x.gf-x.ga})).sort((a,b)=>b.points-a.points||b.gd-a.gd||b.gf-a.gf||a.name.localeCompare(b.name,'tr'));
+}
+function tournamentMilestoneData(){
+    const a=groupStandings('A'), b=groupStandings('B');
+    const sf1=matches.find(m=>m.stage==='semifinal'&&m.group_name==='SF1');
+    const sf2=matches.find(m=>m.stage==='semifinal'&&m.group_name==='SF2');
+    const qualifiedIds = sf1&&sf2 ? [sf1.home_team_id,sf1.away_team_id,sf2.home_team_id,sf2.away_team_id] : [...a.slice(0,2),...b.slice(0,2)].map(x=>x.id);
+    const qualified=[...new Set(qualifiedIds)].map(teamName).filter(Boolean);
+    const eliminated=teams.filter(t=>!qualifiedIds.includes(t.id)).map(t=>t.name);
+    return {a,b,sf1,sf2,qualified,eliminated};
+}
+async function upsertMilestoneNews(sourceKey,title,content){
+    const {data:existing,error:findErr}=await sb.from('news').select('id').eq('source_key',sourceKey).maybeSingle();
+    if(findErr){ console.error('ANT Spor kilometre taşı kontrolü:',findErr); return false; }
+    if(existing?.id) return false;
+    const {error}=await sb.from('news').insert({title,content,match_id:null,published:true,is_auto:true,source_key:sourceKey,updated_at:new Date().toISOString()});
+    if(error){ console.error('ANT Spor kilometre taşı haberi:',error); return false; }
+    return true;
+}
+async function ensureTournamentMilestoneNews(){
+    if(!tournamentSettings?.knockout_enabled) return false;
+    let created=false;
+    const d=tournamentMilestoneData();
+    const q=d.qualified.length?d.qualified.join(', '):'Yarı finalistler';
+    const e=d.eliminated.length?d.eliminated.join(', '):'—';
+    created = (await upsertMilestoneNews(
+        'group_stage_complete_2026',
+        'GRUPLAR TAMAMLANDI, YARI FİNAL HEYECANI BAŞLIYOR! 🔥',
+        `Grup aşamasında perde kapandı. Yarı finale yükselen ekipler: ${q}. Turnuvaya veda eden ekipler: ${e}. Gözler artık yarı final mücadelesinde!`
+    )) || created;
+    if(d.sf1 && d.sf2){
+        created = (await upsertMilestoneNews(
+            'semifinal_pairings_2026',
+            'YARI FİNAL EŞLEŞMELERİ BELLİ OLDU! 🚨',
+            `Final yolundaki eşleşmeler belli oldu. Yarı Final 1: ${teamName(d.sf1.home_team_id)} - ${teamName(d.sf1.away_team_id)}. Yarı Final 2: ${teamName(d.sf2.home_team_id)} - ${teamName(d.sf2.away_team_id)}. Artık gözler büyük final bileti için oynanacak iki kritik maçta!`
+        )) || created;
+    }
+    return created;
+}
+
+async function buildAutoNewsForMatch(matchId){
+    let m=matches.find(x=>x.id===matchId);
+    if(!m){
+        const {data:freshMatch}=await sb.from('matches').select('*').eq('id',matchId).maybeSingle();
+        m=freshMatch;
+    }
+    if(!m || !m.played) return null;
+
+    const home=teamName(m.home_team_id), away=teamName(m.away_team_id);
+    const hs=Number(m.home_score??0), as=Number(m.away_score??0);
+    const winnerId=hs>as?m.home_team_id:as>hs?m.away_team_id:null;
+    const winner=winnerId?teamName(winnerId):null;
+    const loser=winnerId?(winnerId===m.home_team_id?away:home):null;
+    const diff=Math.abs(hs-as), totalGoals=hs+as;
+
+    const {data: matchEvents, error:eventErr}=await sb.from('match_events').select('*').eq('match_id',matchId);
+    if(eventErr) console.error(eventErr);
+    const evs=matchEvents||[];
+    const star=[...evs].sort((a,b)=>Number(b.goals||0)-Number(a.goals||0) || Number(b.assists||0)-Number(a.assists||0))[0];
+    const starGoals=Number(star?.goals||0), starAssists=Number(star?.assists||0), starName=star?playerName(star.player_id):'';
+    const W=(winner||'').toLocaleUpperCase('tr-TR'), P=(starName||'').toLocaleUpperCase('tr-TR');
+
+    // Aynı manşetin peş peşe gelmesini önlemek için son 20 haberi kontrol ediyoruz.
+    const {data:recentRows}=await sb.from('news').select('title').order('created_at',{ascending:false}).limit(20);
+    const recentTitles=(recentRows||[]).map(x=>String(x.title||'').trim());
+    const pick=(arr)=>{
+        const fresh=arr.filter(x=>!recentTitles.includes(x));
+        const pool=fresh.length?fresh:arr;
+        return pool[Math.floor(Math.random()*pool.length)];
+    };
+
+    let titles=[];
+    if(m.stage==='final' && winner) titles=[
+        `🏆 ŞAMPİYON ${W}!`, `${W} ZİRVEDE! KUPA ONLARIN 🏆`, `KUPANIN SAHİBİ ${W}! 🏆`,
+        `${W} TARİH YAZDI: ŞAMPİYON! 👑`, `ŞAMPİYONLUK GECESİ: ${W} 🏆`, `${W} MUTLU SONA ULAŞTI! 🎉`,
+        `TAHTIN YENİ SAHİBİ ${W}! 👑`, `${W} KUPAYI HAVAYA KALDIRDI! 🏆`, `FİNALİN GALİBİ, SEZONUN ŞAMPİYONU: ${W}!`,
+        `${W} SON SÖZÜ SÖYLEDİ: ŞAMPİYON! 🔥`, `KUPA ${W}'A GİTTİ! 🏆`, `${W} SEZONU ZİRVEDE TAMAMLADI!`
+    ];
+    else if(m.stage==='semifinal' && winner) titles=[
+        `${W} FİNAL BİLETİNİ KAPTI! 🎟️`, `${W} ADINI FİNALE YAZDIRDI! 🔥`, `FİNAL YOLCUSU ${W}! 🚀`,
+        `${W} BİR ADIM UZAKTA: FİNALDE!`, `${W} FİNALE YÜRÜDÜ! ⚽`, `YARI FİNALDEN ${W} ÇIKTI!`,
+        `${W} FİNAL KAPISINI AÇTI! 🔑`, `BÜYÜK FİNALDE ${W} VAR! 🎟️`, `${W} HEDEFİNE BİR ADIM DAHA YAKLAŞTI!`,
+        `FİNALİN ADI BELLİ OLUYOR: ${W}!`, `${W} YARI FİNAL ENGELİNİ AŞTI!`, `FİNAL SAHNESİNDE ${W}! 🔥`
+    ];
+    else if(m.stage==='third_place' && winner) titles=[
+        `🥉 ${W} ÜÇÜNCÜLÜĞÜ KAPTI!`, `${W} TURNUVAYI KÜRSÜDE BİTİRDİ! 🥉`, `BRONZ ${W}'IN! 🥉`,
+        `${W} SEZONU ÜÇÜNCÜ TAMAMLADI!`, `KÜRSÜNÜN ÜÇÜNCÜ BASAMAĞI ${W}'IN!`, `${W} SON MAÇI GALİBİYETLE KAPATTI!`
+    ];
+    else if(starGoals>=4) titles=[
+        `${P} DURDURULAMIYOR: ${starGoals} GOL! 🔥`, `${P} GOL OLDU YAĞDI! 🌧️⚽`, `${starGoals} GOL, TEK İMZA: ${P}!`,
+        `${P} SAHAYI ATEŞE VERDİ! 🔥`, `${P}'DEN UNUTULMAZ GECE! ⭐`, `GOL MAKİNESİ ${P}! ⚽`,
+        `${P} RAKİP KALEYE ACIMADI!`, `${P}'DEN GOL RESİTALİ! 🎯`, `SAHNE ${P}'NİN: TAM ${starGoals} GOL!`, `${P} FREN TUTMADI! 🔥`
+    ];
+    else if(starGoals===3) titles=[
+        `${P} ŞOV! HAT-TRICK 🔥`, `TOPU EVE GÖTÜRÜYOR: ${P}! 🎩`, `${P}'DEN GOL RESİTALİ: 3 GOL! ⚽`,
+        `3 GOL, TEK İMZA: ${P}! 🔥`, `${P} DURDURULAMADI! ⭐`, `GECENİN ADAMI ${P}: HAT-TRICK!`,
+        `${P} SAHNEYİ TEK BAŞINA ALDI! 🎭`, `${P}'DEN ÜÇLÜ TARİFE! ⚽⚽⚽`, `HAT-TRICK SAHNESİNDE ${P}! 🎩`,
+        `${P} FİŞİ ÜÇ GOLLE ÇEKTİ! 🔥`, `KALEDE ${P} FIRTINASI! 🌪️`, `${P}'DEN 3 GOLLÜK İMZA!`
+    ];
+    else if(starGoals===2) titles=[
+        `${P}'DAN DUBLE! ⚽⚽`, `${P} İKİLEDİ! 🔥`, `${P}'DAN ÇİFTE DARBE! 💥`,
+        `İKİ GOLLE SAHNE ${P}'NİN! ⭐`, `${P} FİŞİ ÇEKTİ! 🔥`, `${P}'DEN ÇİFTE TARİFE! ⚽`,
+        `${P} İKİ KEZ SAHNEDE! 🎯`, `${P}'NİN GECESİ: 2 GOL!`, `KALEDE ${P} İMZASI: DUBLE!`,
+        `${P} DURMADI, İKİLEDİ! ⚡`, `${P}'DEN İKİ GOLLÜK GÖSTERİ!`, `ÇİFTE SEVİNÇ: ${P}! ⚽⚽`
+    ];
+    else if(winner && diff>=4) titles=[
+        `${W}'DAN GÖVDE GÖSTERİSİ! 💥`, `${W} FARKA KOŞTU! 🔥`, `${W}'DAN RAKİBİNE AĞIR TARİFE!`,
+        `${W} SAHADA FIRTINA GİBİ ESTİ! 🌪️`, `${W} GOL OLDU YAĞDI! ⚽`, `FARKLI GALİBİYET ${W}'IN!`,
+        `${W} VİTES YÜKSELTTİ! 🚀`, `${W}'DAN NET MESAJ! 💪`, `${W} DURDURULAMADI! 🔥`,
+        `SAHADA TEK HÂKİM: ${W}!`, `${W}'DAN GOL ŞOV! 🎯`, `${W} RAKİBİNE GEÇİT VERMEDİ!`
+    ];
+    else if(hs===0 && as===0) titles=[
+        `SESSİZ GECE: GOL SESİ ÇIKMADI`, `KALELER SESSİZ KALDI: 0-0`, `90 DAKİKA, GOL YOK!`,
+        `PUANLAR GOLSÜZ PAYLAŞILDI 🤝`, `KİLİT AÇILMADI: 0-0`, `İKİ TAKIM DA DUVARI AŞAMADI!`,
+        `GOL YOK, MÜCADELE ÇOK!`, `FILELER HAVALANMADI: 0-0`
+    ];
+    else if(!winner && totalGoals>=4) titles=[
+        `GOL DÜELLOSUNDA KAZANAN YOK! 🔥`, `NEFES KESEN MAÇTA PUANLAR PAYLAŞILDI!`, `GOL YAĞMURU BERABERLİKLE BİTTİ! ⚽`,
+        `İKİ TAKIM DA VAZGEÇMEDİ! 🤝`, `BOL GOLLÜ GECEDEN BERABERLİK ÇIKTI!`, `KAZANAN YOK, FUTBOL ÇOK! 🔥`
+    ];
+    else if(!winner) titles=[
+        `PUANLAR PAYLAŞILDI 🤝`, `DENGE BOZULMADI!`, `KAZANAN ÇIKMADI!`, `İKİ TAKIM BİRER PUANA RAZI OLDU`,
+        `MÜCADELE BERABERLİKLE SONUÇLANDI`, `SON DÜDÜKTE EŞİTLİK!`, `TARAFlar BİRBİRİNE ÜSTÜNLÜK KURAMADI`.replace('TARAFlar','TARAFLAR'),
+        `PUANLAR KARDEŞ PAYI! 🤝`
+    ];
+    else if(winner && diff===1) titles=[
+        `NEFES KESEN MAÇTA KAZANAN ${W}!`, `${W} KIL PAYI! 😮`, `${W} ZORU BAŞARDI! 🔥`,
+        `İNCE HESAP, 3 PUAN: ${W}!`, `${W} TEK FARKLA GÜLDÜ!`, `SON DÜDÜKTE SEVİNEN ${W}!`,
+        `${W} KRİTİK GALİBİYETİ KAPTI!`, `${W} BIRAKMADI, KAZANDI! 💪`, `HEYECAN DOLU MAÇ ${W}'IN!`,
+        `${W} ZAFERE UZANDI! ⚽`, `ÜÇ PUAN İÇİN YETTİ: ${W}!`, `${W} İNCE FARKLA ÖNDE!`
+    ];
+    else titles=[
+        `3 PUAN ${W}'IN!`, `${W} KAZANMAYI BİLDİ!`, `${W} SAHADAN MUTLU AYRILDI!`,
+        `${W} ÜÇ PUANI CEBİNE KOYDU!`, `${W} HEDEFE ULAŞTI! 🎯`, `GALİBİYET ${W}'IN!`,
+        `${W} İŞİ BİTİRDİ! 🔥`, `${W} KAYIPSIZ GEÇTİ!`, `${W} SON SÖZÜ SÖYLEDİ!`,
+        `${W} SAHADA GÜLDÜ!`, `${W} ÜÇ PUANLA DÖNDÜ!`, `${W} GALİBİYETLE NOKTALADI!`
+    ];
+
+    const title=pick(titles);
+    const score=`${home} ${hs} - ${as} ${away}.`;
+    let bodyPool=[];
+    if(winner) bodyPool=[
+        `${score} ${winner}, ${loser} karşısında sahadan galibiyetle ayrıldı.`,
+        `${score} Mücadelenin sonunda gülen taraf ${winner} oldu.`,
+        `${score} ${winner}, aldığı sonuçla üç puanı hanesine yazdırdı.`,
+        `${score} Karşılaşmada üstünlüğü ele alan ${winner}, mücadeleyi kazanmayı başardı.`,
+        `${score} Son düdükle birlikte galibiyet sevincini yaşayan ekip ${winner} oldu.`,
+        `${score} ${winner}, ${loser} engelini aşarak önemli bir galibiyete imza attı.`
+    ]; else bodyPool=[
+        `${score} Karşılaşmada taraflar puanları paylaştı.`, `${score} Mücadelede eşitlik bozulmadı ve iki ekip de sahadan birer puanla ayrıldı.`,
+        `${score} Son düdükte kazanan çıkmadı.`, `${score} İki takım da birbirine üstünlük kuramayınca puanlar paylaşıldı.`
+    ];
+    let content=pick(bodyPool);
+    if(star && (starGoals>0 || starAssists>0)){
+        const parts=[]; if(starGoals) parts.push(`${starGoals} gol`); if(starAssists) parts.push(`${starAssists} asist`);
+        const stat=parts.join(' ve ');
+        const starSentences=[
+            `${starName}, ${stat} ile karşılaşmanın öne çıkan isimlerinden biri oldu.`,
+            `${starName} geceye ${stat} ile damga vurdu.`, `${starName}, yaptığı ${stat} ile skor katkısında başrolü oynadı.`,
+            `Maçın dikkat çeken performanslarından biri ${stat} üreten ${starName}'den geldi.`, `${starName} karşılaşmayı ${stat} ile tamamladı.`
+        ];
+        content += ` ${pick(starSentences)}`;
+    }
+    return {title,content,match_id:matchId,published:true,is_auto:true,updated_at:new Date().toISOString()};
+}
+async function upsertAutoNewsForMatch(matchId){
+    const obj=await buildAutoNewsForMatch(matchId); if(!obj) return;
+    const {data:existing}=await sb.from('news').select('id,is_auto').eq('match_id',matchId).eq('is_auto',true).maybeSingle();
+    const r=existing?.id?await sb.from('news').update(obj).eq('id',existing.id):await sb.from('news').insert(obj);
+    if(r.error) console.error('ANT Spor otomatik haber hatası:',r.error);
+}
+
+async function generateSelectedMatchNews(){
+    const id=$('newsMatchSelect')?.value; if(!id){ alert('Önce oynanmış bir maç seç.'); return; }
+    await upsertAutoNewsForMatch(id); await loadAll();
+    alert('ANT Spor manşeti hazır! 📰');
 }
 
 async function deleteMatch(id){ if(confirm('Emin misin?')){ await sb.from('matches').delete().eq('id', id); loadAll(); } }
@@ -1001,6 +1290,9 @@ async function saveEvent(){
             await sendAutomaticPush('⚽ GOOOL!', goalText);
         }
 
+        const eventMatchId = obj.match_id;
+        const relatedMatch = matches.find(x=>x.id===eventMatchId);
+        if(relatedMatch?.played) await upsertAutoNewsForMatch(eventMatchId);
         modal('eventModal').hide();
         await loadAll();
     }
@@ -1041,7 +1333,9 @@ async function saveKnockoutVisibility(){
   const v=$('knockoutEnabled').checked;
   const r=await sb.from('tournament_settings').update({knockout_enabled:v,updated_at:new Date().toISOString()}).eq('id',1);
   if(r.error){alert(r.error.message);$('knockoutEnabled').checked=!v;return;}
-  tournamentSettings.knockout_enabled=v;renderKnockoutAdmin();
+  tournamentSettings.knockout_enabled=v;
+  if(v) await ensureTournamentMilestoneNews();
+  await loadAll();
 }
 async function saveKnockoutMatch(slot){
   const one=slot==='semifinal_1',home=$(one?'sf1Home':'sf2Home').value,away=$(one?'sf1Away':'sf2Away').value;
