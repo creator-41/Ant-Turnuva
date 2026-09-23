@@ -2191,7 +2191,7 @@
                 events.forEach(e=>{ if(Number(e.goals||0)>0) goals[e.player_id]=(goals[e.player_id]||0)+Number(e.goals); if(Number(e.assists||0)>0) assists[e.player_id]=(assists[e.player_id]||0)+Number(e.assists); });
                 const pr=Object.fromEntries((await supabaseClient.from('players').select('*')).data?.map(p=>[p.id,p])||[]);
                 const list=(obj,label)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,v],i)=>{ const playerName=pr[id]?.name||'Bilinmiyor'; const safePlayer=playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); return `<li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary" style="cursor:pointer" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safePlayer}')"><div><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'} me-2">${i+1}</span><strong>${esc(playerName)}</strong> <small class="text-muted">(${esc(teamMap[pr[id]?.team_id]?.name||'')})</small></div><span class="badge bg-primary fs-6">${v} ${label}</span></li>`; }).join('')||'<li class="list-group-item bg-dark text-muted border-secondary">Henüz veri yok.</li>';
-                let html = `<h5 class="text-info mb-3"><i class="bi bi-bar-chart-line-fill me-2"></i>İstatistikler</h5><div class="card p-3 mb-3 border-warning" style="cursor:pointer" onclick="openHallOfFame()"><div class="d-flex align-items-center justify-content-between"><div><h6 class="text-warning fw-bold mb-1">👑 Hall of Fame</h6><div class="small text-muted">Geçmiş sezonların şampiyonları ve kralları</div></div><i class="bi bi-chevron-right text-warning fs-4"></i></div></div><div class="card p-3"><h6 class="text-warning">Gol Krallığı</h6><ul class="list-group">${list(goals,'Gol')}</ul></div><div class="card p-3"><h6 class="text-info">Asist Krallığı</h6><ul class="list-group">${list(assists,'Asist')}</ul></div>`;
+                let html = `<h5 class="text-info mb-3"><i class="bi bi-bar-chart-line-fill me-2"></i>İstatistikler</h5><div class="card p-3 mb-3 border-warning" style="cursor:pointer" onclick="openHallOfFame()"><div class="d-flex align-items-center justify-content-between"><div><h6 class="text-warning fw-bold mb-1">👑 Hall of Fame</h6><div class="small text-muted">Geçmiş sezonların şampiyonları ve kralları</div></div><i class="bi bi-chevron-right text-warning fs-4"></i></div></div>${buildTournamentRecordsHTML(teams,matches,events,pr,teamMap)}<div class="card p-3"><h6 class="text-warning">Gol Krallığı</h6><ul class="list-group">${list(goals,'Gol')}</ul></div><div class="card p-3"><h6 class="text-info">Asist Krallığı</h6><ul class="list-group">${list(assists,'Asist')}</ul></div>`;
                 content.innerHTML = html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
             } else if(tabName==='kadrolar') {
                 const playersRes = await supabaseClient.from('players').select('*').order('name'); 
@@ -2225,6 +2225,29 @@
             }
         }
 
+
+        function buildTournamentRecordsHTML(teams,matches,events,playerMap,teamMap){
+            const played=(matches||[]).filter(m=>m.played).slice().sort((a,b)=>new Date(a.match_date)-new Date(b.match_date));
+            if(!played.length) return `<div class="card p-3 mb-3"><h6 class="text-info fw-bold mb-1">📊 Turnuva Rekorları</h6><div class="small text-muted">Rekorlar maçlar oynandıkça otomatik oluşacak.</div></div>`;
+            const tn=id=>teamMap[id]?.name||'Bilinmiyor';
+            let mostGoals=null,biggest=null;
+            played.forEach(m=>{const h=Number(m.home_score||0),a=Number(m.away_score||0),total=h+a,diff=Math.abs(h-a);if(!mostGoals||total>mostGoals.total)mostGoals={m,total};if(diff>0&&(!biggest||diff>biggest.diff))biggest={m,diff};});
+            const teamGoals={}; teams.forEach(t=>teamGoals[t.id]=0); played.forEach(m=>{teamGoals[m.home_team_id]=(teamGoals[m.home_team_id]||0)+Number(m.home_score||0);teamGoals[m.away_team_id]=(teamGoals[m.away_team_id]||0)+Number(m.away_score||0);});
+            const topTeamId=Object.keys(teamGoals).sort((a,b)=>teamGoals[b]-teamGoals[a])[0];
+            const matchPlayerGoals={}; (events||[]).forEach(e=>{const g=Number(e.goals||0);if(g>0){const k=`${e.match_id}|${e.player_id}`;matchPlayerGoals[k]=(matchPlayerGoals[k]||0)+g;}});
+            let topPlayer=null;Object.entries(matchPlayerGoals).forEach(([k,g])=>{if(!topPlayer||g>topPlayer.goals){const [matchId,playerId]=k.split('|');topPlayer={matchId,playerId,goals:g};}});
+            const streak={}; teams.forEach(t=>streak[t.id]={now:0,best:0});played.forEach(m=>{const h=Number(m.home_score||0),a=Number(m.away_score||0);[[m.home_team_id,h>a],[m.away_team_id,a>h]].forEach(([id,win])=>{if(!streak[id])streak[id]={now:0,best:0};streak[id].now=win?streak[id].now+1:0;streak[id].best=Math.max(streak[id].best,streak[id].now);});});
+            const streakId=Object.keys(streak).sort((a,b)=>streak[b].best-streak[a].best)[0];
+            const score=m=>`${tn(m.home_team_id)} ${Number(m.home_score||0)}-${Number(m.away_score||0)} ${tn(m.away_team_id)}`;
+            const rec=(icon,title,value,sub='')=>`<div class="d-flex gap-3 py-2 border-bottom border-secondary"><div style="font-size:24px;min-width:32px">${icon}</div><div class="flex-grow-1"><div class="small text-muted">${title}</div><div class="fw-bold text-white">${value}</div>${sub?`<div class="small text-muted">${sub}</div>`:''}</div></div>`;
+            return `<div class="card p-3 mb-3"><div class="d-flex align-items-center justify-content-between mb-2"><div><h6 class="text-info fw-bold mb-0">📊 Turnuva Rekorları</h6><div class="small text-muted">Oynanan maçlardan otomatik hesaplanır</div></div><span class="badge bg-dark border border-secondary">${played.length} Maç</span></div>
+            ${mostGoals?rec('⚽','En Gollü Maç',score(mostGoals.m),`${mostGoals.total} gol`):''}
+            ${biggest?rec('💥','En Farklı Galibiyet',score(biggest.m),`${biggest.diff} gol fark`):''}
+            ${topPlayer?rec('🎩','Bir Maçta En Çok Gol',`${esc(playerMap[topPlayer.playerId]?.name||'Bilinmiyor')} • ${topPlayer.goals} Gol`,esc(tn(playerMap[topPlayer.playerId]?.team_id))):''}
+            ${topTeamId?rec('🔥','En Golcü Takım',`${esc(tn(topTeamId))} • ${teamGoals[topTeamId]} Gol`):''}
+            ${streakId&&streak[streakId].best>0?rec('📈','En Uzun Galibiyet Serisi',`${esc(tn(streakId))} • ${streak[streakId].best} Maç`):''}
+            </div>`;
+        }
 
         function championPollCandidates(sf1, sf2){
             const ids=[sf1?.home_team_id,sf1?.away_team_id,sf2?.home_team_id,sf2?.away_team_id].filter(Boolean);
