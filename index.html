@@ -422,6 +422,23 @@
     
         /* Oyuncu başarım rozetleri */
         /* Oyuncu profili: uzun içerik taşmasın, maç detayının üstünde katmanlansın */
+        /* Oyuncu kariyer geçmişi */
+        .career-section{background:#111827;border:1px solid #334155;border-radius:14px;padding:12px;margin-bottom:12px;}
+        .career-match{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #273449;}
+        .career-match:last-child{border-bottom:0;}
+        .career-match-title{font-size:.82rem;font-weight:700;color:#f8fafc;}
+        .career-match-meta{font-size:.7rem;color:#94a3b8;margin-top:2px;}
+        .career-match-stats{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
+        .career-chart{display:flex;align-items:flex-end;gap:7px;height:126px;padding:8px 4px 0;overflow-x:auto;}
+        .career-bar-col{min-width:42px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;}
+        .career-bar-value{font-size:.68rem;color:#cbd5e1;font-weight:700;}
+        .career-bar{width:28px;min-height:4px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#f59e0b,#2563eb);}
+        .career-bar-label{font-size:.62rem;color:#94a3b8;white-space:nowrap;}
+        .career-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px;}
+        .career-summary>div{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:8px;text-align:center;}
+        .career-summary strong{display:block;font-size:1.05rem;color:#fff;}
+        .career-summary span{font-size:.64rem;color:#94a3b8;}
+
         #playerProfileModal { z-index: 1080 !important; }
         #playerProfileModal .modal-dialog { max-height: 85vh; }
         #playerProfileModal .modal-content { max-height: 85vh; display:flex; flex-direction:column; overflow:hidden; }
@@ -843,6 +860,7 @@
         let playedMatchesDetails = {};
         let knockoutEnabled = false;
         let dbEventsGlobal = [];
+        let dbMatchesGlobal = [];
         let playerProfileReturnMatchId = null;
 
         const defaultSquad = { st: "+ ST", os1: "+ OS", os2: "+ OS", os3: "+ OS", def1: "+ DEF", def2: "+ DEF", gk: "+ GK", sub1: "+ YDK 1", sub2: "+ YDK 2", sub3: "+ YDK 3", sub4: "+ YDK 4" };
@@ -946,6 +964,35 @@
             return { initials, position, rating, tier };
         }
 
+        function renderPlayerCareer(playerName) {
+            const clean = String(playerName || '').replace(' (K)', '').trim().toLocaleLowerCase('tr-TR');
+            const player = dbPlayersGlobal.find(p => String(p.name || '').replace(' (K)', '').trim().toLocaleLowerCase('tr-TR') === clean);
+            if (!player) return '';
+            const teamById = Object.fromEntries(rawTeamsGlobal.map(t => [t.id, t]));
+            const rows = dbEventsGlobal
+                .filter(e => e.player_id === player.id && (Number(e.goals || 0) > 0 || Number(e.assists || 0) > 0))
+                .map(e => {
+                    const m = dbMatchesGlobal.find(x => x.id === e.match_id);
+                    if (!m || !m.played) return null;
+                    const home = teamById[m.home_team_id]?.name || 'Bilinmiyor';
+                    const away = teamById[m.away_team_id]?.name || 'Bilinmiyor';
+                    return { id:m.id, date:m.match_date, home, away, score:`${Number(m.home_score ?? 0)} - ${Number(m.away_score ?? 0)}`, goals:Number(e.goals||0), assists:Number(e.assists||0), contribution:Number(e.goals||0)+Number(e.assists||0), stage:m.stage||'group' };
+                }).filter(Boolean).sort((a,b)=>new Date(b.date)-new Date(a.date));
+            const totalMatches = rows.length;
+            const totalGoals = rows.reduce((a,x)=>a+x.goals,0);
+            const totalAssists = rows.reduce((a,x)=>a+x.assists,0);
+            const recent = rows.slice(0,5);
+            const chartRows = [...rows].reverse().slice(-8);
+            const maxContribution = Math.max(1, ...chartRows.map(x=>x.contribution));
+            const playerTeam = rawTeamsGlobal.find(t => t.id === player.team_id);
+            const rawTeamColor = String(playerTeam?.color || '#3b82f6').trim();
+            const chartColor = /^#[0-9a-fA-F]{6}$/.test(rawTeamColor) ? rawTeamColor : '#3b82f6';
+            const stageName = st => st==='semifinal'?'Yarı Final':st==='final'?'Final':st==='third_place'?"3.'lük":'Grup';
+            const recentHtml = recent.length ? recent.map(x=>`<div class="career-match"><div><div class="career-match-title">${esc(x.home)} ${esc(x.score)} ${esc(x.away)}</div><div class="career-match-meta">${esc(fmt(x.date))} • ${stageName(x.stage)}</div></div><div class="career-match-stats">${x.goals?`<span class="badge bg-success">⚽ ${x.goals}</span>`:''}${x.assists?`<span class="badge bg-warning text-dark">🎯 ${x.assists}</span>`:''}</div></div>`).join('') : '<div class="text-muted small py-2">Henüz kayıtlı gol/asist katkısı bulunan maç yok.</div>';
+            const chartHtml = chartRows.length ? `<div class="career-chart">${chartRows.map((x,i)=>{const h=Math.max(5,Math.round((x.contribution/maxContribution)*82));return `<div class="career-bar-col" title="${esc(x.home)} ${esc(x.score)} ${esc(x.away)}"><div class="career-bar-value">${x.contribution}</div><div class="career-bar" style="height:${h}px;background:${chartColor};box-shadow:0 0 12px ${chartColor}55"></div><div class="career-bar-label">M${i+1}</div></div>`}).join('')}</div>` : '<div class="text-muted small py-2">Grafik için henüz performans verisi yok.</div>';
+            return `<div class="career-section text-start"><div class="small fw-bold text-info mb-2"><i class="bi bi-activity me-1"></i>OYUNCU KARİYERİ</div><div class="career-summary"><div><strong>${totalMatches}</strong><span>Katkı Yaptığı Maç</span></div><div><strong>${totalGoals}</strong><span>Gol</span></div><div><strong>${totalAssists}</strong><span>Asist</span></div></div><div class="small fw-bold text-white mb-1">📈 Sezon Performansı</div>${chartHtml}<div class="small fw-bold text-white mt-3 mb-1">🕘 Son Maç Katkıları</div>${recentHtml}</div>`;
+        }
+
         function openPlayerProfile(playerName, fromMatch = false) {
             if (!fromMatch) playerProfileReturnMatchId = null;
             // Maç detayından açıldıysa alttaki maç modalını KAPATMA.
@@ -977,6 +1024,7 @@
                     <div class="ant-card-foot">ANT FANTEZİ LİG • 2026</div>
                 </div>
                 ${renderPlayerAchievements(playerName)}
+                ${renderPlayerCareer(playerName)}
                 ${isInSquad ? '<div class="text-center mb-3"><span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Kadromda</span></div>' : ''}
                 <div class="card bg-dark border-secondary p-2 mb-3 text-start">
                     <div class="small text-muted mb-1">Oyuncu Profili</div>
@@ -1608,6 +1656,7 @@
                 rawTeamsGlobal = teamsRes.data || []; 
                 dbPlayersGlobal = playersRes.data || []; 
                 const dbMatches = matchesRes.data || []; 
+                dbMatchesGlobal = dbMatches;
                 const dbEvents = eventsRes.data || [];
                 dbEventsGlobal = dbEvents;
                 const dbProfiles = profilesRes.data || [];
