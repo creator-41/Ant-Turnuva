@@ -883,9 +883,19 @@
         }
 
         function openPlayerProfileFromSelect(playerName) {
+            // Takım Kur oyuncu seçim ekranını kapatma; profil onun üstüne açılsın.
             const playerModalEl = document.getElementById('playerModal');
-            if(playerModalEl) { const inst = bootstrap.Modal.getInstance(playerModalEl); if(inst) inst.hide(); }
+            const openedOverPlayerSelect = !!(playerModalEl && playerModalEl.classList.contains('show'));
             openPlayerProfile(playerName);
+            const profileEl = document.getElementById('playerProfileModal');
+            if(profileEl) profileEl.dataset.openedOverPlayerSelect = openedOverPlayerSelect ? '1' : '0';
+            if(openedOverPlayerSelect) {
+                setTimeout(() => {
+                    const backs = document.querySelectorAll('.modal-backdrop');
+                    const topBackdrop = backs[backs.length - 1];
+                    if(topBackdrop) topBackdrop.classList.add('player-profile-backdrop');
+                }, 0);
+            }
         }
 
         function getPlayerAchievements(playerName) {
@@ -994,14 +1004,18 @@
         }
 
         document.getElementById('playerProfileModal')?.addEventListener('hidden.bs.modal', function () {
-            // Üst modal kapanınca Bootstrap body'den modal-open sınıfını kaldırabilir.
-            // Altta maç detayı hâlâ açıksa scroll kilidini koru.
+            // Üst profil kapanınca alttaki modal açıksa onu aynen koru.
             const matchEl = document.getElementById('matchDetailModal');
-            if (this.dataset.openedOverMatch === '1' && matchEl?.classList.contains('show')) {
+            const playerSelectEl = document.getElementById('playerModal');
+            const matchStillOpen = this.dataset.openedOverMatch === '1' && matchEl?.classList.contains('show');
+            const playerSelectStillOpen = this.dataset.openedOverPlayerSelect === '1' && playerSelectEl?.classList.contains('show');
+            if (matchStillOpen || playerSelectStillOpen) {
                 document.body.classList.add('modal-open');
-                matchEl.setAttribute('aria-hidden', 'false');
             }
+            if (matchStillOpen) matchEl.setAttribute('aria-hidden', 'false');
+            if (playerSelectStillOpen) playerSelectEl.setAttribute('aria-hidden', 'false');
             this.dataset.openedOverMatch = '0';
+            this.dataset.openedOverPlayerSelect = '0';
         });
 
         function openSlotChoiceForPlayerFromProfile(playerName) {
