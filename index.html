@@ -457,6 +457,17 @@
         .achievement-badge{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#1e293b;border:1px solid #475569;color:#f8fafc;font-size:.78rem;font-weight:700}
         .achievement-badge.live-title{border-color:#f59e0b;background:rgba(245,158,11,.13);color:#fde68a}
         .achievement-empty{font-size:.8rem;color:#94a3b8}
+    
+        /* Şampiyonluk Anketi */
+        .champ-poll-card{border:1px solid rgba(245,158,11,.55);background:linear-gradient(145deg,#1e293b,#111827);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+        .champ-poll-option{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;margin-bottom:8px;border:1px solid #475569;border-radius:12px;background:#0f172a;color:#fff;text-align:left}
+        .champ-poll-option:hover,.champ-poll-option.selected{border-color:#f59e0b}
+        .champ-poll-dot{width:13px;height:13px;border-radius:50%;flex:0 0 13px}
+        .champ-poll-bar{height:8px;border-radius:999px;background:#334155;overflow:hidden}
+        .champ-poll-fill{height:100%;border-radius:999px;transition:width .35s ease}
+        .champ-poll-result{padding:9px 0;border-bottom:1px solid rgba(71,85,105,.45)}
+        .champ-poll-result:last-child{border-bottom:0}
+
     </style>
 </head>
 <body>
@@ -1718,6 +1729,7 @@
                 window.globalProfileMap = profileMap;
 
                 showTab('Fantezi', document.querySelector('.nav-bottom-item:nth-child(6)'));
+                maybeShowChampionPollPrompt();
             } catch (err) { console.error('Supabase veri yükleme hatası:', err); }
         }
 
@@ -2127,6 +2139,7 @@
                 </div>` : '';
 
                 content.innerHTML = `
+                    <div id="championPollFinals" class="mb-3"></div>
                     <div class="knockout-wrap">
                         <h5 class="text-warning text-center mb-3"><i class="bi bi-trophy-fill me-2"></i>Final Ağacı</h5>
                         ${championHTML}
@@ -2147,6 +2160,8 @@
                         </div>
                     </div>
                     <div style="height:110px"></div>`;
+
+                renderChampionPollCard(sf1, sf2);
 
                 if(championId) {
                     const celebrationKey = `ant_champion_2026_${championId}_${Number(finalMatch.home_score??0)}_${Number(finalMatch.away_score??0)}`;
@@ -2210,6 +2225,73 @@
             }
         }
 
+
+        function championPollCandidates(sf1, sf2){
+            const ids=[sf1?.home_team_id,sf1?.away_team_id,sf2?.home_team_id,sf2?.away_team_id].filter(Boolean);
+            return [...new Set(ids)].map(id=>rawTeamsGlobal.find(t=>t.id===id)).filter(Boolean);
+        }
+        function championPollLocked(sf1, sf2){
+            const semis=[sf1,sf2].filter(Boolean);
+            if(!semis.length) return true;
+            if(semis.some(m=>m.played || m.is_live)) return true;
+            const dates=semis.map(m=>new Date(m.match_date).getTime()).filter(Number.isFinite);
+            return dates.length ? Date.now() >= Math.min(...dates) : false;
+        }
+        async function getChampionPollResults(){
+            const {data,error}=await supabaseClient.rpc('get_champion_poll_results');
+            if(error){ console.warn('Anket sonuçları okunamadı:',error); return []; }
+            return data||[];
+        }
+        async function getMyChampionVote(){
+            if(!currentUser) return null;
+            const {data,error}=await supabaseClient.rpc('get_my_champion_vote');
+            if(error){ console.warn('Kullanıcı anket oyu okunamadı:',error); return null; }
+            return Array.isArray(data) ? (data[0]?.team_id||null) : (data?.team_id||null);
+        }
+        function pollResultHTML(results,candidates,myVote){
+            const byId=Object.fromEntries((results||[]).map(r=>[r.team_id,Number(r.vote_count||0)]));
+            const total=Object.values(byId).reduce((a,b)=>a+b,0);
+            return `<div class="small text-muted mb-2">${total} oy kullanıldı${myVote?' • ✓ Oyun kaydedildi':''}</div>`+
+            candidates.map(t=>{const count=byId[t.id]||0,pct=total?Math.round(count*100/total):0;return `<div class="champ-poll-result"><div class="d-flex justify-content-between align-items-center mb-1"><span class="fw-bold">${myVote===t.id?'✓ ':''}${esc(t.name)}</span><span class="text-warning fw-bold">%${pct}</span></div><div class="champ-poll-bar"><div class="champ-poll-fill" style="width:${pct}%;background:${t.color||'#f59e0b'}"></div></div></div>`}).join('');
+        }
+        async function renderChampionPollCard(sf1,sf2){
+            const host=document.getElementById('championPollFinals'); if(!host)return;
+            const candidates=championPollCandidates(sf1,sf2); if(candidates.length<2){host.innerHTML='';return;}
+            const locked=championPollLocked(sf1,sf2), myVote=await getMyChampionVote(), results=await getChampionPollResults();
+            const body=(myVote||locked)?pollResultHTML(results,candidates,myVote):`<div class="small text-light mb-2">Yarı finaller başlamadan favorini seç. Sonuçlar oy verdikten sonra görünür.</div><button class="btn btn-warning btn-sm fw-bold" onclick="openChampionPoll()">Oyunu Kullan 🗳️</button>`;
+            host.innerHTML=`<div class="card champ-poll-card p-3"><div class="d-flex justify-content-between align-items-start gap-2 mb-2"><div><div class="text-warning fw-bold">🏆 Şampiyonluk Anketi</div><div class="small ${locked?'text-danger':'text-muted'}">${locked?'🔒 Oylama sona erdi':'Yarı finaller başlamadan oyunu kullan'}</div></div>${myVote&&!locked?'<button class="btn btn-outline-warning btn-sm" onclick="openChampionPoll()">Oyunu Değiştir</button>':''}</div>${body}</div>`;
+        }
+        async function openChampionPoll(){
+            const sf1=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF1'),sf2=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF2');
+            const candidates=championPollCandidates(sf1,sf2),locked=championPollLocked(sf1,sf2),body=document.getElementById('championPollModalBody');
+            if(!currentUser){
+                body.innerHTML=`<div class="text-center py-3"><div style="font-size:42px">🔐</div><h6 class="mt-2">Oy kullanmak için giriş yapmalısın</h6><button class="btn btn-primary mt-2" data-bs-dismiss="modal" onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('authModal')).show()">Giriş Yap</button></div>`;
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('championPollModal')).show(); return;
+            }
+            const myVote=await getMyChampionVote();
+            if(locked){const results=await getChampionPollResults();body.innerHTML=`<div class="alert alert-secondary py-2">🔒 Yarı finaller başladığı için oylama sona erdi.</div>${pollResultHTML(results,candidates,myVote)}`;}
+            else if(myVote){const results=await getChampionPollResults();body.innerHTML=`<div class="small text-muted mb-3">Mevcut oyun ✓ ile işaretli. Yarı finaller başlamadan değiştirebilirsin.</div>${pollResultHTML(results,candidates,myVote)}<hr class="border-secondary"><div class="small fw-bold mb-2">Oyunu değiştir:</div>${candidates.map(t=>`<button class="champ-poll-option ${myVote===t.id?'selected':''}" onclick="castChampionVote('${t.id}')"><span class="champ-poll-dot" style="background:${t.color||'#64748b'}"></span><strong>${esc(t.name)}</strong></button>`).join('')}`;}
+            else{body.innerHTML=`<div class="text-center mb-3"><div style="font-size:44px">🏆</div><div class="fw-bold">2026 ANT Fantezi Lig şampiyonunu seç</div><div class="small text-muted">Sonuçları oyunu kullandıktan sonra göreceksin.</div></div>${candidates.map(t=>`<button class="champ-poll-option" onclick="castChampionVote('${t.id}')"><span class="champ-poll-dot" style="background:${t.color||'#64748b'}"></span><strong>${esc(t.name)}</strong></button>`).join('')}`;}
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('championPollModal')).show();
+        }
+        async function castChampionVote(teamId){
+            if(!currentUser){openChampionPoll();return;}
+            const body=document.getElementById('championPollModalBody'),old=body.innerHTML;
+            body.innerHTML='<div class="text-center py-4"><span class="spinner-border text-warning"></span><div class="mt-2">Oyun kaydediliyor...</div></div>';
+            const {error}=await supabaseClient.rpc('cast_champion_vote',{p_team_id:teamId});
+            if(error){body.innerHTML=`<div class="alert alert-danger">Oy kaydedilemedi. ${esc(error.message||'Oylama kapanmış olabilir.')}</div>`+old;return;}
+            localStorage.setItem('ant_champion_poll_voted_2026','1');
+            const sf1=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF1'),sf2=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF2'),candidates=championPollCandidates(sf1,sf2),results=await getChampionPollResults();
+            body.innerHTML=`<div class="alert alert-success py-2">✓ Oyun kaydedildi!</div>${pollResultHTML(results,candidates,teamId)}`;renderChampionPollCard(sf1,sf2);
+        }
+        async function maybeShowChampionPollPrompt(){
+            const sf1=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF1'),sf2=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF2');
+            if(championPollCandidates(sf1,sf2).length<4||championPollLocked(sf1,sf2))return;
+            if(currentUser&&await getMyChampionVote())return;
+            const snooze=Number(localStorage.getItem('ant_champion_poll_snooze_2026')||0);if(snooze&&Date.now()-snooze<86400000)return;
+            setTimeout(()=>{const body=document.getElementById('championPollModalBody');body.innerHTML=`<div class="text-center py-2"><div style="font-size:54px">🏆</div><h5 class="text-warning fw-bold">ŞAMPİYON KİM OLACAK?</h5><p class="text-muted">Yarı final heyecanı başladı. 2026 ANT Fantezi Lig şampiyonunu seç.</p><div class="d-grid gap-2"><button class="btn btn-warning fw-bold" onclick="openChampionPoll()">Oyunu Kullan 🗳️</button><button class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="localStorage.setItem('ant_champion_poll_snooze_2026',Date.now())">Şimdi Değil</button></div></div>`;bootstrap.Modal.getOrCreateInstance(document.getElementById('championPollModal')).show();},1400);
+        }
+
         let currentBottomTab = 'Fantezi';
         let fixtureHasLiveMatch = false;
         showTab = function(tabName, element) {
@@ -2270,5 +2352,18 @@
 
         loadLiveData();
     </script>
+
+    <div class="modal fade" id="championPollModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-warning fw-bold">🏆 Şampiyon Kim Olacak?</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="championPollModalBody"></div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
