@@ -206,6 +206,53 @@
                 min-width: 38px;
                 min-height: 38px;
             }
+
+            /* ANT Spor haber arşivi - maç detay ekranıyla aynı güvenli mobil düzen */
+            #antSporArchiveModal.modal {
+                padding-top: max(58px, calc(env(safe-area-inset-top) + 18px)) !important;
+                padding-right: 10px !important;
+                padding-bottom: max(18px, env(safe-area-inset-bottom)) !important;
+                padding-left: 10px !important;
+                overflow: hidden !important;
+            }
+            #antSporArchiveModal .modal-dialog {
+                width: 100% !important;
+                max-width: none !important;
+                height: 100% !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                margin: 0 !important;
+                transform: none !important;
+            }
+            #antSporArchiveModal .modal-content {
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                border-radius: 18px !important;
+                overflow: hidden !important;
+                display: flex !important;
+                flex-direction: column !important;
+                padding-top: 0 !important;
+            }
+            #antSporArchiveModal .modal-header {
+                flex: 0 0 auto !important;
+                padding-top: 12px !important;
+            }
+            #antSporArchiveModal .modal-body {
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 18px !important;
+            }
+            #antSporArchiveModal .btn-close {
+                margin-top: 0 !important;
+                margin-right: 0 !important;
+                min-width: 38px;
+                min-height: 38px;
+            }
         }
 
     
@@ -1789,6 +1836,7 @@
                 content.innerHTML = '<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Turnuva Puan Durumu</h5>' + html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
 
             } else if(tabName==='fikstur') {
+                fixtureHasLiveMatch = matches.some(m => !!m.is_live);
                 const played=matches.filter(m=>m.played)
                     .sort((a,b)=>new Date(b.match_date)-new Date(a.match_date)),
                       upcoming=matches.filter(m=>!m.played)
@@ -1837,6 +1885,7 @@
         }
 
         let currentBottomTab = 'Fantezi';
+        let fixtureHasLiveMatch = false;
         showTab = function(tabName, element) {
             currentBottomTab = tabName;
             document.querySelectorAll('.nav-bottom-item').forEach(el => el.classList.remove('active'));
@@ -1844,9 +1893,12 @@
             renderLiveTab(tabName);
         };
 
-        // Fikstür açıkken canlı skorları otomatik yenile.
+        // Yalnızca Fikstür açıkken VE gerçekten canlı maç varsa otomatik yenile.
+        // Canlı maç yoksa hiçbir periyodik Supabase sorgusu yapılmaz.
         setInterval(() => {
-            if(currentBottomTab === 'fikstur' && !document.hidden) renderLiveTab('fikstur');
+            if(currentBottomTab === 'fikstur' && fixtureHasLiveMatch && !document.hidden) {
+                renderLiveTab('fikstur');
+            }
         }, 5000);
 
         openMatchDetail = function(matchId) {
