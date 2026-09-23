@@ -468,6 +468,31 @@
         .champ-poll-result{padding:9px 0;border-bottom:1px solid rgba(71,85,105,.45)}
         .champ-poll-result:last-child{border-bottom:0}
 
+    
+        /* Takım İstatistik Profili */
+        .team-profile-hero{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:18px;background:linear-gradient(135deg,var(--team-color),#0f172a 72%);box-shadow:0 14px 30px rgba(0,0,0,.28)}
+        .team-profile-dot{width:52px;height:52px;border-radius:16px;background:var(--team-color);border:2px solid rgba(255,255,255,.75);box-shadow:0 8px 22px rgba(0,0,0,.3)}
+        .team-profile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:14px}
+        .team-profile-stat{background:rgba(15,23,42,.72);border:1px solid rgba(255,255,255,.13);border-radius:11px;padding:8px 4px;text-align:center}
+        .team-profile-stat strong{display:block;font-size:1.05rem}.team-profile-stat span{font-size:.66rem;color:#cbd5e1}
+        .team-form{display:flex;gap:7px;flex-wrap:wrap}.team-form-badge{width:31px;height:31px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:.78rem}
+        .team-player-row,.team-match-row{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:9px 10px;margin-bottom:7px}
+        .team-player-row{cursor:pointer}
+        .team-name-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+        #teamProfileModal{z-index:1065!important}
+        #teamProfileModal .modal-content{max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
+        #teamProfileModal .modal-body{flex:1 1 auto;min-height:0;overflow-y:auto!important;-webkit-overflow-scrolling:touch}
+        .team-profile-backdrop{z-index:1058!important}
+        #playerProfileModal{z-index:1080!important}
+        @media (max-width:767.98px){
+            #teamProfileModal.modal{padding-top:max(58px,calc(env(safe-area-inset-top) + 18px))!important;padding-right:10px!important;padding-bottom:max(18px,env(safe-area-inset-bottom))!important;padding-left:10px!important;overflow:hidden!important}
+            #teamProfileModal .modal-dialog{width:100%!important;max-width:none!important;height:100%!important;min-height:0!important;max-height:none!important;margin:0!important;transform:none!important}
+            #teamProfileModal .modal-content{width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;border-radius:18px!important}
+            #teamProfileModal .modal-header{flex:0 0 auto!important;padding-top:12px!important}
+            #teamProfileModal .modal-body{flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;padding-bottom:18px!important}
+            .team-profile-grid{grid-template-columns:repeat(4,1fr)}
+        }
+
     </style>
 </head>
 <body>
@@ -599,6 +624,19 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-3" id="playerProfileBody"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="teamProfileModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-secondary pb-2">
+                    <h5 class="modal-title fs-6"><i class="bi bi-shield-fill text-info me-2"></i>Takım Profili</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3" id="teamProfileBody"></div>
             </div>
         </div>
     </div>
@@ -1004,12 +1042,78 @@
             return `<div class="career-section text-start"><div class="small fw-bold text-info mb-2"><i class="bi bi-activity me-1"></i>OYUNCU KARİYERİ</div><div class="career-summary"><div><strong>${totalMatches}</strong><span>Katkı Yaptığı Maç</span></div><div><strong>${totalGoals}</strong><span>Gol</span></div><div><strong>${totalAssists}</strong><span>Asist</span></div></div><div class="small fw-bold text-white mb-1">📈 Sezon Performansı</div>${chartHtml}<div class="small fw-bold text-white mt-3 mb-1">🕘 Son Maç Katkıları</div>${recentHtml}</div>`;
         }
 
+
+        function openTeamProfile(teamId) {
+            const team = rawTeamsGlobal.find(t=>t.id===teamId);
+            if(!team) return;
+            const played = dbMatchesGlobal.filter(m=>m.played && (m.home_team_id===teamId || m.away_team_id===teamId))
+                .slice().sort((a,b)=>new Date(a.match_date)-new Date(b.match_date));
+            let wins=0,draws=0,losses=0,gf=0,ga=0;
+            const form=[];
+            played.forEach(m=>{
+                const home=m.home_team_id===teamId, own=Number(home?m.home_score:m.away_score)||0, opp=Number(home?m.away_score:m.home_score)||0;
+                gf+=own; ga+=opp;
+                if(own>opp){wins++;form.push('G');} else if(own<opp){losses++;form.push('M');} else {draws++;form.push('B');}
+            });
+            const roster=dbPlayersGlobal.filter(p=>p.team_id===teamId).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'tr'));
+            const pstats={};
+            roster.forEach(p=>pstats[p.id]={goals:0,assists:0});
+            dbEventsGlobal.forEach(e=>{
+                if(!pstats[e.player_id]) return;
+                const m=dbMatchesGlobal.find(x=>x.id===e.match_id);
+                if(!m?.played) return;
+                pstats[e.player_id].goals+=Number(e.goals||0);
+                pstats[e.player_id].assists+=Number(e.assists||0);
+            });
+            const leaders=roster.map(p=>({p,...(pstats[p.id]||{goals:0,assists:0})}));
+            const maxG=Math.max(0,...leaders.map(x=>x.goals)), maxA=Math.max(0,...leaders.map(x=>x.assists));
+            const scorers=maxG?leaders.filter(x=>x.goals===maxG):[];
+            const assisters=maxA?leaders.filter(x=>x.assists===maxA):[];
+            const tn=id=>rawTeamsGlobal.find(t=>t.id===id)?.name||'Bilinmiyor';
+            const recent=[...played].sort((a,b)=>new Date(b.match_date)-new Date(a.match_date)).slice(0,5);
+            const stageName=st=>st==='semifinal'?'Yarı Final':st==='final'?'Final':st==='third_place'?"3.'lük":'Grup';
+            const formHtml=form.slice(-5).map(x=>`<span class="team-form-badge ${x==='G'?'bg-success':x==='B'?'bg-warning text-dark':'bg-danger'}">${x}</span>`).join('')||'<span class="text-muted small">Henüz oynanan maç yok.</span>';
+            const leaderNames=arr=>arr.length?arr.map(x=>`${esc(x.p.name)} (${x.goals||x.assists})`).join(', '):'—';
+            const safeName=n=>String(n).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+            const rosterHtml=roster.length?roster.map(p=>{
+                const st=pstats[p.id]||{goals:0,assists:0};
+                return `<div class="team-player-row d-flex justify-content-between align-items-center gap-2" onclick="openPlayerProfile('${safeName(p.name)}')"><div><strong>${esc(p.name)}</strong></div><div class="small text-nowrap"><span class="text-warning">⚽ ${st.goals}</span> <span class="text-info ms-2">🎯 ${st.assists}</span></div></div>`;
+            }).join(''):'<div class="text-muted small">Kadro bulunamadı.</div>';
+            const recentHtml=recent.length?recent.map(m=>`<div class="team-match-row"><div class="d-flex justify-content-between gap-2"><strong>${esc(tn(m.home_team_id))} ${Number(m.home_score||0)}-${Number(m.away_score||0)} ${esc(tn(m.away_team_id))}</strong><span class="small text-muted text-nowrap">${stageName(m.stage||'group')}</span></div><div class="small text-muted mt-1">${esc(fmt(m.match_date))}</div></div>`).join(''):'<div class="text-muted small">Henüz oynanan maç yok.</div>';
+            const color=/^#[0-9a-fA-F]{6}$/.test(String(team.color||''))?team.color:'#3b82f6';
+            document.getElementById('teamProfileBody').innerHTML=`
+                <div class="team-profile-hero mb-3" style="--team-color:${color}">
+                    <div class="d-flex align-items-center gap-3"><div class="team-profile-dot"></div><div><div class="small text-light opacity-75">2026 ANT Fantezi Lig</div><h3 class="mb-0 fw-bold">${esc(team.name)}</h3></div></div>
+                    <div class="team-profile-grid">
+                        <div class="team-profile-stat"><strong>${played.length}</strong><span>O</span></div>
+                        <div class="team-profile-stat"><strong>${wins}</strong><span>G</span></div>
+                        <div class="team-profile-stat"><strong>${draws}</strong><span>B</span></div>
+                        <div class="team-profile-stat"><strong>${losses}</strong><span>M</span></div>
+                    </div>
+                    <div class="team-profile-grid">
+                        <div class="team-profile-stat"><strong>${gf}</strong><span>ATILAN</span></div>
+                        <div class="team-profile-stat"><strong>${ga}</strong><span>YENİLEN</span></div>
+                        <div class="team-profile-stat"><strong>${gf-ga>0?'+'+(gf-ga):gf-ga}</strong><span>AVERAJ</span></div>
+                        <div class="team-profile-stat"><strong>${wins*3+draws}</strong><span>PUAN*</span></div>
+                    </div>
+                </div>
+                <div class="card p-3 mb-3"><h6 class="text-info fw-bold">🔥 Son Form</h6><div class="team-form">${formHtml}</div><div class="small text-muted mt-2">Son 5 oynanan maç</div></div>
+                <div class="card p-3 mb-3"><h6 class="text-warning fw-bold">⭐ Takım Liderleri</h6><div class="small mb-2"><span class="text-muted">Gol:</span> <strong>${maxG?leaderNames(scorers):'—'}</strong></div><div class="small"><span class="text-muted">Asist:</span> <strong>${maxA?leaderNames(assisters):'—'}</strong></div></div>
+                <div class="card p-3 mb-3"><h6 class="text-info fw-bold">👥 Kadro</h6>${rosterHtml}</div>
+                <div class="card p-3 mb-3"><h6 class="text-warning fw-bold">📅 Son Maçlar</h6>${recentHtml}</div>
+                <div class="small text-muted text-center">* Profildeki puan tüm oynanan maçlardan 3/1 puan sistemiyle hesaplanır.</div>`;
+            const el=document.getElementById('teamProfileModal');
+            bootstrap.Modal.getOrCreateInstance(el).show();
+        }
+
         function openPlayerProfile(playerName, fromMatch = false) {
             if (!fromMatch) playerProfileReturnMatchId = null;
             // Maç detayından açıldıysa alttaki maç modalını KAPATMA.
             // Oyuncu profili ikinci katman olarak üstüne açılır; kapanınca maç detayı aynen kalır.
             const matchModalEl = document.getElementById('matchDetailModal');
+            const teamModalEl = document.getElementById('teamProfileModal');
             const openedOverMatch = !!(fromMatch && matchModalEl && matchModalEl.classList.contains('show'));
+            const openedOverTeam = !!(teamModalEl && teamModalEl.classList.contains('show'));
 
             let team = getPlayerTeam(playerName);
             let stats = getPlayerStats(playerName);
@@ -1051,8 +1155,9 @@
             const profileEl = document.getElementById('playerProfileModal');
             const profileModal = bootstrap.Modal.getOrCreateInstance(profileEl);
             profileEl.dataset.openedOverMatch = openedOverMatch ? '1' : '0';
+            profileEl.dataset.openedOverTeam = openedOverTeam ? '1' : '0';
             profileModal.show();
-            if (openedOverMatch) {
+            if (openedOverMatch || openedOverTeam) {
                 // Bootstrap'ın yeni oluşturduğu backdrop'u iki modalın arasına yerleştir.
                 setTimeout(() => {
                     const backs = document.querySelectorAll('.modal-backdrop');
@@ -1066,15 +1171,19 @@
             // Üst profil kapanınca alttaki modal açıksa onu aynen koru.
             const matchEl = document.getElementById('matchDetailModal');
             const playerSelectEl = document.getElementById('playerModal');
+            const teamEl = document.getElementById('teamProfileModal');
             const matchStillOpen = this.dataset.openedOverMatch === '1' && matchEl?.classList.contains('show');
             const playerSelectStillOpen = this.dataset.openedOverPlayerSelect === '1' && playerSelectEl?.classList.contains('show');
-            if (matchStillOpen || playerSelectStillOpen) {
+            const teamStillOpen = this.dataset.openedOverTeam === '1' && teamEl?.classList.contains('show');
+            if (matchStillOpen || playerSelectStillOpen || teamStillOpen) {
                 document.body.classList.add('modal-open');
             }
             if (matchStillOpen) matchEl.setAttribute('aria-hidden', 'false');
             if (playerSelectStillOpen) playerSelectEl.setAttribute('aria-hidden', 'false');
+            if (teamStillOpen) teamEl.setAttribute('aria-hidden', 'false');
             this.dataset.openedOverMatch = '0';
             this.dataset.openedOverPlayerSelect = '0';
+            this.dataset.openedOverTeam = '0';
         });
 
         function openSlotChoiceForPlayerFromProfile(playerName) {
@@ -2172,7 +2281,7 @@
             } else if(tabName === 'puan-durumu') {
                 const html=['A','B'].map(group=>{
                     const data=buildStandings(teams.filter(t=>t.group_name===group), matches.filter(m=>m.group_name===group && (m.stage || 'group') === 'group'));
-                    return `<h5 class="text-info mb-3 mt-2"><i class="bi bi-shield-fill me-2"></i>${group} GRUBU</h5><div class="card p-2 mb-3"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle standings-table" style="font-size:12px"><colgroup><col class="col-rank"><col class="col-team"><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody>${data.map((x,i)=>`<tr><td><span class="d-inline-flex align-items-center justify-content-center gap-1" style="min-width:38px"><i class="bi ${i<2?'bi-arrow-up-circle-fill text-success':'bi-arrow-down-circle-fill text-danger'}" title="${i<2?'Üst tura çıkıyor':'Elenecek sıra'}"></i><strong>${i+1}</strong></span></td><td class="text-start fw-bold">${esc(x.name)}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gd>0?'+'+x.gd:x.gd}</td><td><span class="badge" style="background-color:${teams.find(t=>t.name===x.name)?.color||teamColors[x.name]?.c1||'#475569'};color:#fff;min-width:32px;">${x.points}</span></td></tr>`).join('')||'<tr><td colspan="10" class="text-muted">Takım yok</td></tr>'}</tbody></table></div></div>`;
+                    return `<h5 class="text-info mb-3 mt-2"><i class="bi bi-shield-fill me-2"></i>${group} GRUBU</h5><div class="card p-2 mb-3"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle standings-table" style="font-size:12px"><colgroup><col class="col-rank"><col class="col-team"><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody>${data.map((x,i)=>`<tr><td><span class="d-inline-flex align-items-center justify-content-center gap-1" style="min-width:38px"><i class="bi ${i<2?'bi-arrow-up-circle-fill text-success':'bi-arrow-down-circle-fill text-danger'}" title="${i<2?'Üst tura çıkıyor':'Elenecek sıra'}"></i><strong>${i+1}</strong></span></td><td class="text-start fw-bold">${(()=>{const t=teams.find(z=>z.name===x.name);return t?`<span class="team-name-link" title="Takım profilini aç" onclick="openTeamProfile('${t.id}')">${esc(x.name)}</span>`:esc(x.name)})()}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gd>0?'+'+x.gd:x.gd}</td><td><span class="badge" style="background-color:${teams.find(t=>t.name===x.name)?.color||teamColors[x.name]?.c1||'#475569'};color:#fff;min-width:32px;">${x.points}</span></td></tr>`).join('')||'<tr><td colspan="10" class="text-muted">Takım yok</td></tr>'}</tbody></table></div></div>`;
                 }).join('');
                 content.innerHTML = '<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Turnuva Puan Durumu</h5>' + html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
 
