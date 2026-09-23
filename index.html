@@ -478,7 +478,7 @@
         .team-form{display:flex;gap:7px;flex-wrap:wrap}.team-form-badge{width:31px;height:31px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:.78rem}
         .team-player-row,.team-match-row{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:9px 10px;margin-bottom:7px}
         .team-player-row{cursor:pointer}
-        .team-name-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+        .team-name-link{cursor:pointer;text-decoration:none!important}
         #teamProfileModal{z-index:1065!important}
         #teamProfileModal .modal-content{max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
         #teamProfileModal .modal-body{flex:1 1 auto;min-height:0;overflow-y:auto!important;-webkit-overflow-scrolling:touch}
@@ -1048,12 +1048,18 @@
             if(!team) return;
             const played = dbMatchesGlobal.filter(m=>m.played && (m.home_team_id===teamId || m.away_team_id===teamId))
                 .slice().sort((a,b)=>new Date(a.match_date)-new Date(b.match_date));
+            const groupPlayed = played.filter(m=>(m.stage||'group')==='group');
             let wins=0,draws=0,losses=0,gf=0,ga=0;
             const form=[];
             played.forEach(m=>{
                 const home=m.home_team_id===teamId, own=Number(home?m.home_score:m.away_score)||0, opp=Number(home?m.away_score:m.home_score)||0;
                 gf+=own; ga+=opp;
                 if(own>opp){wins++;form.push('G');} else if(own<opp){losses++;form.push('M');} else {draws++;form.push('B');}
+            });
+            let groupPoints=0;
+            groupPlayed.forEach(m=>{
+                const home=m.home_team_id===teamId, own=Number(home?m.home_score:m.away_score)||0, opp=Number(home?m.away_score:m.home_score)||0;
+                groupPoints += own>opp ? 3 : own===opp ? 1 : 0;
             });
             const roster=dbPlayersGlobal.filter(p=>p.team_id===teamId).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'tr'));
             const pstats={};
@@ -1094,14 +1100,14 @@
                         <div class="team-profile-stat"><strong>${gf}</strong><span>ATILAN</span></div>
                         <div class="team-profile-stat"><strong>${ga}</strong><span>YENİLEN</span></div>
                         <div class="team-profile-stat"><strong>${gf-ga>0?'+'+(gf-ga):gf-ga}</strong><span>AVERAJ</span></div>
-                        <div class="team-profile-stat"><strong>${wins*3+draws}</strong><span>PUAN*</span></div>
+                        <div class="team-profile-stat"><strong>${groupPoints}</strong><span>GRUP PUANI</span></div>
                     </div>
                 </div>
                 <div class="card p-3 mb-3"><h6 class="text-info fw-bold">🔥 Son Form</h6><div class="team-form">${formHtml}</div><div class="small text-muted mt-2">Son 5 oynanan maç</div></div>
                 <div class="card p-3 mb-3"><h6 class="text-warning fw-bold">⭐ Takım Liderleri</h6><div class="small mb-2"><span class="text-muted">Gol:</span> <strong>${maxG?leaderNames(scorers):'—'}</strong></div><div class="small"><span class="text-muted">Asist:</span> <strong>${maxA?leaderNames(assisters):'—'}</strong></div></div>
                 <div class="card p-3 mb-3"><h6 class="text-info fw-bold">👥 Kadro</h6>${rosterHtml}</div>
                 <div class="card p-3 mb-3"><h6 class="text-warning fw-bold">📅 Son Maçlar</h6>${recentHtml}</div>
-                <div class="small text-muted text-center">* Profildeki puan tüm oynanan maçlardan 3/1 puan sistemiyle hesaplanır.</div>`;
+                <div class="small text-muted text-center">Grup puanı yalnızca grup aşamasındaki maçlardan hesaplanır; final aşaması puanı değiştirmez.</div>`;
             const el=document.getElementById('teamProfileModal');
             bootstrap.Modal.getOrCreateInstance(el).show();
         }
@@ -2232,8 +2238,8 @@
                     const w=winnerId(m);
                     return `<div class="ko-match" ${m.played ? `onclick="openMatchDetail('${m.id}')" style="cursor:pointer"` : ''}>
                         <div class="ko-date"><strong>${title}</strong> • ${fmt(m.match_date)}</div>
-                        <div class="ko-team ${w===m.home_team_id?'winner':''}"><span>${esc(teamN(m.home_team_id))}</span><span class="ko-score">${m.played?Number(m.home_score??0):'-'}</span></div>
-                        <div class="ko-team ${w===m.away_team_id?'winner':''}"><span>${esc(teamN(m.away_team_id))}</span><span class="ko-score">${m.played?Number(m.away_score??0):'-'}</span></div>
+                        <div class="ko-team ${w===m.home_team_id?'winner':''}"><span class="team-name-link" onclick="event.stopPropagation();openTeamProfile('${m.home_team_id}')">${esc(teamN(m.home_team_id))}</span><span class="ko-score">${m.played?Number(m.home_score??0):'-'}</span></div>
+                        <div class="ko-team ${w===m.away_team_id?'winner':''}"><span class="team-name-link" onclick="event.stopPropagation();openTeamProfile('${m.away_team_id}')">${esc(teamN(m.away_team_id))}</span><span class="ko-score">${m.played?Number(m.away_score??0):'-'}</span></div>
                     </div>`;
                 };
 
@@ -2241,7 +2247,7 @@
                 const championHTML = championId ? `<div class="champion-box champion-celebration">
                     <div class="champion-trophy">🏆</div>
                     <div class="text-warning small fw-bold champion-kicker mt-2">2026 ANT TURNUVA ŞAMPİYONU</div>
-                    <div class="champion-name text-white mt-2">${esc(teamN(championId))}</div>
+                    <div class="champion-name text-white mt-2 team-name-link" onclick="openTeamProfile('${championId}')">${esc(teamN(championId))}</div>
                     <div class="champion-score">Final: ${esc(teamN(finalMatch.home_team_id))} ${Number(finalMatch.home_score??0)} - ${Number(finalMatch.away_score??0)} ${esc(teamN(finalMatch.away_team_id))}</div>
                     <div class="small text-warning mt-2">🎉 TEBRİKLER 🎉</div>
                     <button class="btn btn-sm btn-warning fw-bold mt-3" onclick="openSeasonFinale(window.antSeasonFinaleContext)">🎬 Sezon Finalini İzle</button>
