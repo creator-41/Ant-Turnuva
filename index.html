@@ -371,6 +371,16 @@
             50% { opacity:.72; box-shadow:0 0 0 6px rgba(239,68,68,0); }
         }
 
+    
+        /* Hall of Fame - mobilde maç detaylarıyla aynı güvenli alan düzeni */
+        @media (max-width: 767.98px) {
+            #hallOfFameModal.modal { padding-top:max(58px, calc(env(safe-area-inset-top) + 18px)) !important; padding-right:10px !important; padding-bottom:max(18px, env(safe-area-inset-bottom)) !important; padding-left:10px !important; overflow:hidden !important; }
+            #hallOfFameModal .modal-dialog { width:100% !important; max-width:none !important; height:100% !important; min-height:0 !important; max-height:none !important; margin:0 !important; transform:none !important; }
+            #hallOfFameModal .modal-content { width:100% !important; height:100% !important; min-height:0 !important; max-height:none !important; border-radius:18px !important; overflow:hidden !important; display:flex !important; flex-direction:column !important; }
+            #hallOfFameModal .modal-header { flex:0 0 auto !important; padding-top:12px !important; }
+            #hallOfFameModal .modal-body { flex:1 1 auto !important; min-height:0 !important; max-height:none !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch; padding-bottom:18px !important; }
+            #hallOfFameModal .btn-close { margin-top:0 !important; margin-right:0 !important; min-width:38px; min-height:38px; }
+        }
     </style>
 </head>
 <body>
@@ -546,6 +556,19 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-3" id="antSporArchiveBody"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="hallOfFameModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="bi bi-gem text-warning me-2"></i>Hall of Fame</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3" id="hallOfFameBody"></div>
             </div>
         </div>
     </div>
@@ -1416,6 +1439,24 @@
             } catch (err) { console.error('Supabase veri yükleme hatası:', err); }
         }
 
+
+        async function openHallOfFame(){
+            const body=document.getElementById('hallOfFameBody');
+            body.innerHTML='<div class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Arşiv yükleniyor...</div>';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('hallOfFameModal')).show();
+            const {data,error}=await supabaseClient.from('hall_of_fame').select('*').order('season_year',{ascending:false});
+            if(error){ body.innerHTML='<div class="alert alert-warning mb-0">Hall of Fame henüz kurulmamış veya okunamadı.</div>'; return; }
+            if(!data?.length){ body.innerHTML='<div class="text-center py-5"><div style="font-size:48px">👑</div><h6 class="mt-3">Henüz arşivlenen sezon yok</h6><div class="text-muted small">Sezon tamamlandığında şampiyonlar burada kalıcı olarak yer alacak.</div></div>'; return; }
+            body.innerHTML=data.map((h,i)=>`<div class="card p-3 mb-3 ${i===0?'border-warning':''}">
+                <div class="text-center mb-3"><div style="font-size:34px">👑</div><h4 class="text-warning fw-bold mb-0">${esc(String(h.season_year))} SEZONU</h4></div>
+                <div class="d-flex justify-content-between border-bottom border-secondary py-2"><span>🏆 Turnuva Şampiyonu</span><strong>${esc(h.champion_team||'-')}</strong></div>
+                <div class="d-flex justify-content-between border-bottom border-secondary py-2"><span>⚽ Gol Kralı</span><strong class="text-end">${esc(h.top_scorer_name||'-')}${h.top_scorer_goals!=null?' · '+Number(h.top_scorer_goals)+' Gol':''}</strong></div>
+                <div class="d-flex justify-content-between border-bottom border-secondary py-2"><span>🎯 Asist Kralı</span><strong class="text-end">${esc(h.top_assist_name||'-')}${h.top_assist_count!=null?' · '+Number(h.top_assist_count)+' Asist':''}</strong></div>
+                <div class="d-flex justify-content-between border-bottom border-secondary py-2"><span>⭐ Fantezi Şampiyonu</span><strong class="text-end">${esc(h.fantasy_champion_team||'-')}${h.fantasy_champion_manager?' · '+esc(h.fantasy_champion_manager):''}${h.fantasy_champion_points!=null?' · '+Number(h.fantasy_champion_points)+' P':''}</strong></div>
+                <div class="d-flex justify-content-between py-2"><span>🔮 Tahmin Ligi</span><strong class="text-end">${h.prediction_champion_name?esc(h.prediction_champion_name)+(h.prediction_champion_points!=null?' · '+Number(h.prediction_champion_points)+' P':''):'Henüz yok'}</strong></div>
+            </div>`).join('');
+        }
+
         function fmt(value){
             if(!value) return '-';
             const date = new Date(value);
@@ -1850,7 +1891,7 @@
                 events.forEach(e=>{ if(Number(e.goals||0)>0) goals[e.player_id]=(goals[e.player_id]||0)+Number(e.goals); if(Number(e.assists||0)>0) assists[e.player_id]=(assists[e.player_id]||0)+Number(e.assists); });
                 const pr=Object.fromEntries((await supabaseClient.from('players').select('*')).data?.map(p=>[p.id,p])||[]);
                 const list=(obj,label)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,v],i)=>{ const playerName=pr[id]?.name||'Bilinmiyor'; const safePlayer=playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); return `<li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary" style="cursor:pointer" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safePlayer}')"><div><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'} me-2">${i+1}</span><strong>${esc(playerName)}</strong> <small class="text-muted">(${esc(teamMap[pr[id]?.team_id]?.name||'')})</small></div><span class="badge bg-primary fs-6">${v} ${label}</span></li>`; }).join('')||'<li class="list-group-item bg-dark text-muted border-secondary">Henüz veri yok.</li>';
-                let html = `<h5 class="text-info mb-3"><i class="bi bi-bar-chart-line-fill me-2"></i>İstatistikler</h5><div class="card p-3"><h6 class="text-warning">Gol Krallığı</h6><ul class="list-group">${list(goals,'Gol')}</ul></div><div class="card p-3"><h6 class="text-info">Asist Krallığı</h6><ul class="list-group">${list(assists,'Asist')}</ul></div>`;
+                let html = `<h5 class="text-info mb-3"><i class="bi bi-bar-chart-line-fill me-2"></i>İstatistikler</h5><div class="card p-3 mb-3 border-warning" style="cursor:pointer" onclick="openHallOfFame()"><div class="d-flex align-items-center justify-content-between"><div><h6 class="text-warning fw-bold mb-1">👑 Hall of Fame</h6><div class="small text-muted">Geçmiş sezonların şampiyonları ve kralları</div></div><i class="bi bi-chevron-right text-warning fs-4"></i></div></div><div class="card p-3"><h6 class="text-warning">Gol Krallığı</h6><ul class="list-group">${list(goals,'Gol')}</ul></div><div class="card p-3"><h6 class="text-info">Asist Krallığı</h6><ul class="list-group">${list(assists,'Asist')}</ul></div>`;
                 content.innerHTML = html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
             } else if(tabName==='kadrolar') {
                 const playersRes = await supabaseClient.from('players').select('*').order('name'); 
