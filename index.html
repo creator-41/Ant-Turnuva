@@ -493,6 +493,33 @@
             .team-profile-grid{grid-template-columns:repeat(4,1fr)}
         }
 
+    
+        /* Takım Kadroları - premium saha görünümü */
+        .squad-team-card{border:1px solid #334155!important;border-radius:16px!important;background:#172033!important;box-shadow:0 8px 22px rgba(0,0,0,.16);transition:border-color .2s ease,box-shadow .2s ease}
+        .squad-team-head{padding:16px 18px!important;background:linear-gradient(135deg,#1e293b,#172033)!important;border-left:4px solid var(--team-color)!important}
+        .squad-team-dot{width:15px;height:15px;border-radius:50%;background:var(--team-color);box-shadow:0 0 12px color-mix(in srgb,var(--team-color) 55%,transparent);flex:0 0 auto}
+        .squad-team-name{font-size:1rem;letter-spacing:.1px}
+        .squad-count{background:#64748b!important;border:1px solid rgba(255,255,255,.14);padding:6px 10px;border-radius:9px}
+        .squad-stage{padding:24px 18px!important;background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--team-color) 12%,transparent),transparent 42%),linear-gradient(145deg,#182231,#101722)!important;border-top:1px solid #475569!important}
+        .squad-pitch{position:relative;overflow:hidden;width:min(100%,720px);min-height:420px;margin:0 auto;padding:24px 18px;border:2px solid rgba(255,255,255,.94);border-radius:14px;background:repeating-linear-gradient(to bottom,#13b981 0,#13b981 52px,#079669 52px,#079669 104px);box-shadow:inset 0 0 24px rgba(0,0,0,.32),0 16px 35px rgba(0,0,0,.28),0 0 26px color-mix(in srgb,var(--team-color) 12%,transparent)}
+        .squad-pitch .pitch-mark{position:absolute;pointer-events:none;border-color:rgba(255,255,255,.52)!important}
+        .squad-pitch .pitch-box{top:0;left:50%;width:210px;height:78px;border:2px solid;border-top:0;transform:translateX(-50%)}
+        .squad-pitch .pitch-mid{top:50%;left:0;right:0;height:2px;background:rgba(255,255,255,.52);transform:translateY(-50%)}
+        .squad-pitch .pitch-circle{top:50%;left:50%;width:105px;height:105px;border:2px solid;border-radius:50%;transform:translate(-50%,-50%)}
+        .squad-pitch .squad-row{position:relative;z-index:2;min-height:82px;margin-bottom:10px!important;gap:22px!important}
+        .squad-pitch .player-card{transform:scale(1.13);transform-origin:center;cursor:pointer;margin:5px 7px!important}
+        .squad-pitch .jersey-name-tag{font-size:9px!important;max-width:88px!important;line-height:1.15!important;margin-top:2px;box-shadow:0 3px 8px rgba(0,0,0,.4)}
+        @media(max-width:767.98px){
+          .squad-team-head{padding:13px 12px!important}
+          .squad-stage{padding:14px 8px!important}
+          .squad-pitch{width:100%;min-height:0;padding:16px 5px;border-radius:12px;background:repeating-linear-gradient(to bottom,#13b981 0,#13b981 42px,#079669 42px,#079669 84px)}
+          .squad-pitch .pitch-box{width:130px;height:52px}.squad-pitch .pitch-circle{width:70px;height:70px}
+          .squad-pitch .squad-row{min-height:68px;gap:7px!important;margin-bottom:7px!important;flex-wrap:nowrap!important}
+          .squad-pitch .player-card{transform:scale(1.02);margin:2px!important;min-width:0}
+          .squad-pitch .jersey-name-tag{font-size:7.5px!important;max-width:68px!important}
+          .squad-count{font-size:.7rem}
+        }
+
     </style>
 </head>
 <body>
@@ -1894,20 +1921,18 @@
 
             const chunkArray = (arr, size) => {
                 let results = [];
-                for (let i = 0; i < arr.length; i += size) {
-                    results.push(arr.slice(i, i + size));
-                }
+                for (let i = 0; i < arr.length; i += size) results.push(arr.slice(i, i + size));
                 return results;
             };
 
             const renderRowsHtml = (arr) => {
                 let chunks = chunkArray(arr, 4);
                 return chunks.map(chunk => `
-                    <div class="d-flex justify-content-center flex-wrap gap-2 mb-2">
+                    <div class="squad-row d-flex justify-content-center align-items-center gap-2 mb-2">
                         ${chunk.map(p => `
-                            <div class="player-card" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')" style="margin: 2px;">
+                            <div class="player-card" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')" style="margin:2px;">
                                 ${generateJerseySVG(teamColor || '#38bdf8', '#0f172a', '#ffffff', p.name.includes('(K)'))}
-                                <div class="jersey-name-tag" style="font-size: 8px; max-width: 75px; white-space: normal; line-height: 1.1;">${esc(p.name)}</div>
+                                <div class="jersey-name-tag">${esc(p.name)}</div>
                             </div>
                         `).join('')}
                     </div>
@@ -1915,11 +1940,10 @@
             };
 
             return `
-                <div style="background: repeating-linear-gradient(to bottom, #10b981, #10b981 26px, #059669 26px, #059669 52px); border: 2px solid #ffffff; border-radius: 8px; padding: 12px 6px; position: relative; overflow: hidden; max-width: 360px; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.4);">
-                    <div style="position: absolute; top:0; left:50%; width:120px; height:45px; border:2px solid rgba(255,255,255,0.4); border-top:none; transform:translateX(-50%); pointer-events:none;"></div>
-                    <div style="position: absolute; top:50%; left:0; right:0; height:1.5px; background:rgba(255,255,255,0.4); transform:translateY(-50%); pointer-events:none;"></div>
-                    <div style="position: absolute; top:50%; left:50%; width:60px; height:60px; border:1.5px solid rgba(255,255,255,0.4); border-radius:50%; transform:translate(-50%,-50%); pointer-events:none;"></div>
-                    
+                <div class="squad-pitch" style="--team-color:${teamColor || '#38bdf8'}">
+                    <div class="pitch-mark pitch-box"></div>
+                    <div class="pitch-mark pitch-mid"></div>
+                    <div class="pitch-mark pitch-circle"></div>
                     ${renderRowsHtml(fwd)}
                     ${renderRowsHtml(os)}
                     ${renderRowsHtml(def)}
@@ -2320,16 +2344,16 @@
                     const pitchHTML = generateTeamPitchHTML(t.name, teamPlayers, tColor);
 
                     html += `
-                        <div class="card mb-2 overflow-hidden">
-                            <div class="p-3 d-flex justify-content-between align-items-center" style="cursor: pointer; background: #1e293b;" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                        <div class="card squad-team-card mb-2 overflow-hidden" style="--team-color:${tColor}">
+                            <div class="squad-team-head d-flex justify-content-between align-items-center" style="cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${tColor};"></span>
-                                    <h6 class="mb-0 fw-bold text-white">${esc(t.name)}</h6>
+                                    <span class="squad-team-dot"></span>
+                                    <h6 class="squad-team-name mb-0 fw-bold text-white">${esc(t.name)}</h6>
                                 </div>
-                                <span class="badge bg-secondary">${teamPlayers.length} Oyuncu <i class="bi bi-chevron-down ms-1"></i></span>
+                                <span class="badge squad-count">${teamPlayers.length} Oyuncu <i class="bi bi-chevron-down ms-1"></i></span>
                             </div>
                             <div id="${collapseId}" class="collapse">
-                                <div class="p-3 bg-dark border-top border-secondary text-center">
+                                <div class="squad-stage text-center" style="--team-color:${tColor}">
                                     ${teamPlayers.length > 0 ? pitchHTML : '<span class="text-muted">Bu takımda henüz oyuncu yok.</span>'}
                                 </div>
                             </div>
