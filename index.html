@@ -2227,25 +2227,64 @@
 
 
         function buildTournamentRecordsHTML(teams,matches,events,playerMap,teamMap){
+            playerMap=playerMap||{};
+            teamMap=teamMap||Object.fromEntries((teams||[]).map(t=>[t.id,t]));
             const played=(matches||[]).filter(m=>m.played).slice().sort((a,b)=>new Date(a.match_date)-new Date(b.match_date));
-            if(!played.length) return `<div class="card p-3 mb-3"><h6 class="text-info fw-bold mb-1">📊 Turnuva Rekorları</h6><div class="small text-muted">Rekorlar maçlar oynandıkça otomatik oluşacak.</div></div>`;
+            if(!played.length) return `<div class="card p-3 mb-3"><h6 class="text-info fw-bold mb-1">📊 Turnuva Rekorları</h6><div class="small text-muted">Henüz rekor oluşmadı.</div></div>`;
             const tn=id=>teamMap[id]?.name||'Bilinmiyor';
-            let mostGoals=null,biggest=null;
-            played.forEach(m=>{const h=Number(m.home_score||0),a=Number(m.away_score||0),total=h+a,diff=Math.abs(h-a);if(!mostGoals||total>mostGoals.total)mostGoals={m,total};if(diff>0&&(!biggest||diff>biggest.diff))biggest={m,diff};});
-            const teamGoals={}; teams.forEach(t=>teamGoals[t.id]=0); played.forEach(m=>{teamGoals[m.home_team_id]=(teamGoals[m.home_team_id]||0)+Number(m.home_score||0);teamGoals[m.away_team_id]=(teamGoals[m.away_team_id]||0)+Number(m.away_score||0);});
-            const topTeamId=Object.keys(teamGoals).sort((a,b)=>teamGoals[b]-teamGoals[a])[0];
-            const matchPlayerGoals={}; (events||[]).forEach(e=>{const g=Number(e.goals||0);if(g>0){const k=`${e.match_id}|${e.player_id}`;matchPlayerGoals[k]=(matchPlayerGoals[k]||0)+g;}});
-            let topPlayer=null;Object.entries(matchPlayerGoals).forEach(([k,g])=>{if(!topPlayer||g>topPlayer.goals){const [matchId,playerId]=k.split('|');topPlayer={matchId,playerId,goals:g};}});
-            const streak={}; teams.forEach(t=>streak[t.id]={now:0,best:0});played.forEach(m=>{const h=Number(m.home_score||0),a=Number(m.away_score||0);[[m.home_team_id,h>a],[m.away_team_id,a>h]].forEach(([id,win])=>{if(!streak[id])streak[id]={now:0,best:0};streak[id].now=win?streak[id].now+1:0;streak[id].best=Math.max(streak[id].best,streak[id].now);});});
-            const streakId=Object.keys(streak).sort((a,b)=>streak[b].best-streak[a].best)[0];
             const score=m=>`${tn(m.home_team_id)} ${Number(m.home_score||0)}-${Number(m.away_score||0)} ${tn(m.away_team_id)}`;
-            const rec=(icon,title,value,sub='')=>`<div class="d-flex gap-3 py-2 border-bottom border-secondary"><div style="font-size:24px;min-width:32px">${icon}</div><div class="flex-grow-1"><div class="small text-muted">${title}</div><div class="fw-bold text-white">${value}</div>${sub?`<div class="small text-muted">${sub}</div>`:''}</div></div>`;
-            return `<div class="card p-3 mb-3"><div class="d-flex align-items-center justify-content-between mb-2"><div><h6 class="text-info fw-bold mb-0">📊 Turnuva Rekorları</h6><div class="small text-muted">Oynanan maçlardan otomatik hesaplanır</div></div><span class="badge bg-dark border border-secondary">${played.length} Maç</span></div>
-            ${mostGoals?rec('⚽','En Gollü Maç',score(mostGoals.m),`${mostGoals.total} gol`):''}
-            ${biggest?rec('💥','En Farklı Galibiyet',score(biggest.m),`${biggest.diff} gol fark`):''}
-            ${topPlayer?rec('🎩','Bir Maçta En Çok Gol',`${esc(playerMap[topPlayer.playerId]?.name||'Bilinmiyor')} • ${topPlayer.goals} Gol`,esc(tn(playerMap[topPlayer.playerId]?.team_id))):''}
-            ${topTeamId?rec('🔥','En Golcü Takım',`${esc(tn(topTeamId))} • ${teamGoals[topTeamId]} Gol`):''}
-            ${streakId&&streak[streakId].best>0?rec('📈','En Uzun Galibiyet Serisi',`${esc(tn(streakId))} • ${streak[streakId].best} Maç`):''}
+
+            const matchRows=played.map(m=>({
+                m,
+                total:Number(m.home_score||0)+Number(m.away_score||0),
+                diff:Math.abs(Number(m.home_score||0)-Number(m.away_score||0))
+            }));
+            const maxTotal=Math.max(...matchRows.map(x=>x.total));
+            const mostGoals=matchRows.filter(x=>x.total===maxTotal);
+            const winRows=matchRows.filter(x=>x.diff>0);
+            const maxDiff=winRows.length?Math.max(...winRows.map(x=>x.diff)):0;
+            const biggest=winRows.filter(x=>x.diff===maxDiff);
+
+            const teamGoals={}; (teams||[]).forEach(t=>teamGoals[t.id]=0);
+            played.forEach(m=>{
+                teamGoals[m.home_team_id]=(teamGoals[m.home_team_id]||0)+Number(m.home_score||0);
+                teamGoals[m.away_team_id]=(teamGoals[m.away_team_id]||0)+Number(m.away_score||0);
+            });
+            const maxTeamGoals=Math.max(...Object.values(teamGoals));
+            const topTeamIds=Object.keys(teamGoals).filter(id=>teamGoals[id]===maxTeamGoals);
+
+            const matchPlayerGoals={};
+            (events||[]).filter(e=>played.some(m=>m.id===e.match_id)).forEach(e=>{
+                const g=Number(e.goals||0);
+                if(g>0){const k=`${e.match_id}|${e.player_id}`;matchPlayerGoals[k]=(matchPlayerGoals[k]||0)+g;}
+            });
+            const mpgEntries=Object.entries(matchPlayerGoals);
+            const maxPlayerGoals=mpgEntries.length?Math.max(...mpgEntries.map(([,g])=>g)):0;
+            const topPlayers=mpgEntries.filter(([,g])=>g===maxPlayerGoals).map(([k,g])=>{
+                const [matchId,playerId]=k.split('|'); return {matchId,playerId,goals:g};
+            });
+
+            const streak={}; (teams||[]).forEach(t=>streak[t.id]={now:0,best:0});
+            played.forEach(m=>{
+                const h=Number(m.home_score||0),a=Number(m.away_score||0);
+                [[m.home_team_id,h>a],[m.away_team_id,a>h]].forEach(([id,win])=>{
+                    if(!streak[id])streak[id]={now:0,best:0};
+                    streak[id].now=win?streak[id].now+1:0;
+                    streak[id].best=Math.max(streak[id].best,streak[id].now);
+                });
+            });
+            const maxStreak=Math.max(...Object.values(streak).map(x=>x.best));
+            const streakIds=Object.keys(streak).filter(id=>streak[id].best===maxStreak&&maxStreak>0);
+
+            const lines=arr=>arr.map(x=>`<div class="fw-bold text-white">${x}</div>`).join('');
+            const rec=(icon,title,values,sub='')=>`<div class="d-flex gap-3 py-2 border-bottom border-secondary"><div style="font-size:24px;min-width:32px">${icon}</div><div class="flex-grow-1"><div class="small text-muted">${title}</div>${lines(values)}${sub?`<div class="small text-muted">${sub}</div>`:''}</div></div>`;
+
+            return `<div class="card p-3 mb-3"><div class="d-flex align-items-center justify-content-between mb-2"><h6 class="text-info fw-bold mb-0">📊 Turnuva Rekorları</h6><span class="badge bg-dark border border-secondary">${played.length} Maç</span></div>
+            ${rec('⚽','En Gollü Maç',mostGoals.map(x=>esc(score(x.m))),`${maxTotal} gol`)}
+            ${biggest.length?rec('💥','En Farklı Galibiyet',biggest.map(x=>esc(score(x.m))),`${maxDiff} gol fark`):''}
+            ${topPlayers.length?rec('🎩','Bir Maçta En Çok Gol',topPlayers.map(x=>`${esc(playerMap[x.playerId]?.name||'Bilinmiyor')} • ${x.goals} Gol`)):''}
+            ${topTeamIds.length?rec('🔥','En Golcü Takım',topTeamIds.map(id=>`${esc(tn(id))} • ${teamGoals[id]} Gol`)):''}
+            ${streakIds.length?rec('📈','En Uzun Galibiyet Serisi',streakIds.map(id=>`${esc(tn(id))} • ${streak[id].best} Maç`)):''}
             </div>`;
         }
 
