@@ -421,6 +421,20 @@
 
     
         /* Oyuncu başarım rozetleri */
+        /* Oyuncu profili: uzun içerik taşmasın, maç detayının üstünde katmanlansın */
+        #playerProfileModal { z-index: 1080 !important; }
+        #playerProfileModal .modal-dialog { max-height: 85vh; }
+        #playerProfileModal .modal-content { max-height: 85vh; display:flex; flex-direction:column; overflow:hidden; }
+        #playerProfileModal .modal-header { flex:0 0 auto; }
+        #playerProfileModal .modal-body { flex:1 1 auto; min-height:0; overflow-y:auto !important; -webkit-overflow-scrolling:touch; padding-bottom:24px !important; }
+        .player-profile-backdrop { z-index: 1070 !important; }
+        @media (max-width: 767.98px) {
+            #playerProfileModal .modal-dialog { max-height: calc(100dvh - 120px); margin-top:60px; margin-bottom:20px; }
+            #playerProfileModal .modal-content { max-height: calc(100dvh - 120px); }
+            .achievement-list{display:grid !important;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px !important;}
+            .achievement-badge{justify-content:center;text-align:center;padding:7px 6px !important;font-size:.72rem !important;}
+        }
+
         .achievement-wrap{background:rgba(15,23,42,.78);border:1px solid #334155;border-radius:14px;padding:12px;margin-bottom:14px}
         .achievement-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
         .achievement-badge{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#1e293b;border:1px solid #475569;color:#f8fafc;font-size:.78rem;font-weight:700}
@@ -924,9 +938,10 @@
 
         function openPlayerProfile(playerName, fromMatch = false) {
             if (!fromMatch) playerProfileReturnMatchId = null;
-            let matchModalEl = document.getElementById('matchDetailModal');
-            let matchModalInstance = matchModalEl ? bootstrap.Modal.getInstance(matchModalEl) : null;
-            if(matchModalInstance) matchModalInstance.hide();
+            // Maç detayından açıldıysa alttaki maç modalını KAPATMA.
+            // Oyuncu profili ikinci katman olarak üstüne açılır; kapanınca maç detayı aynen kalır.
+            const matchModalEl = document.getElementById('matchDetailModal');
+            const openedOverMatch = !!(fromMatch && matchModalEl && matchModalEl.classList.contains('show'));
 
             let team = getPlayerTeam(playerName);
             let stats = getPlayerStats(playerName);
@@ -964,8 +979,30 @@
                     ? `<button class="btn btn-outline-danger btn-sm w-100 fw-bold" onclick="removePlayerFromSquadByName('${playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"><i class="bi bi-person-x-fill me-1"></i> Kadrodan Çıkar</button>`
                     : `<button class="btn btn-primary btn-sm w-100 fw-bold" onclick="openSlotChoiceForPlayerFromProfile('${playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"><i class="bi bi-plus-lg me-1"></i> Kadroma Ekle</button>`}
             `;
-            new bootstrap.Modal(document.getElementById('playerProfileModal')).show();
+            const profileEl = document.getElementById('playerProfileModal');
+            const profileModal = bootstrap.Modal.getOrCreateInstance(profileEl);
+            profileEl.dataset.openedOverMatch = openedOverMatch ? '1' : '0';
+            profileModal.show();
+            if (openedOverMatch) {
+                // Bootstrap'ın yeni oluşturduğu backdrop'u iki modalın arasına yerleştir.
+                setTimeout(() => {
+                    const backs = document.querySelectorAll('.modal-backdrop');
+                    const topBackdrop = backs[backs.length - 1];
+                    if (topBackdrop) topBackdrop.classList.add('player-profile-backdrop');
+                }, 0);
+            }
         }
+
+        document.getElementById('playerProfileModal')?.addEventListener('hidden.bs.modal', function () {
+            // Üst modal kapanınca Bootstrap body'den modal-open sınıfını kaldırabilir.
+            // Altta maç detayı hâlâ açıksa scroll kilidini koru.
+            const matchEl = document.getElementById('matchDetailModal');
+            if (this.dataset.openedOverMatch === '1' && matchEl?.classList.contains('show')) {
+                document.body.classList.add('modal-open');
+                matchEl.setAttribute('aria-hidden', 'false');
+            }
+            this.dataset.openedOverMatch = '0';
+        });
 
         function openSlotChoiceForPlayerFromProfile(playerName) {
             bootstrap.Modal.getInstance(document.getElementById('playerProfileModal')).hide();
