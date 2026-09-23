@@ -419,6 +419,13 @@
         .ant-card-stat strong{display:block;font-size:21px;line-height:1;font-weight:900}.ant-card-stat span{display:block;font-size:9px;letter-spacing:.8px;margin-top:4px;opacity:.72;font-weight:800}
         .ant-card-foot{position:relative;text-align:center;font-size:9px;letter-spacing:1.2px;font-weight:800;opacity:.55;margin-top:12px;z-index:1}
 
+    
+        /* Oyuncu başarım rozetleri */
+        .achievement-wrap{background:rgba(15,23,42,.78);border:1px solid #334155;border-radius:14px;padding:12px;margin-bottom:14px}
+        .achievement-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+        .achievement-badge{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#1e293b;border:1px solid #475569;color:#f8fafc;font-size:.78rem;font-weight:700}
+        .achievement-badge.live-title{border-color:#f59e0b;background:rgba(245,158,11,.13);color:#fde68a}
+        .achievement-empty{font-size:.8rem;color:#94a3b8}
     </style>
 </head>
 <body>
@@ -821,6 +828,8 @@
         let topAssists = [];
         let playedMatchesDetails = {};
         let knockoutEnabled = false;
+        let dbEventsGlobal = [];
+        let playerProfileReturnMatchId = null;
 
         const defaultSquad = { st: "+ ST", os1: "+ OS", os2: "+ OS", os3: "+ OS", def1: "+ DEF", def2: "+ DEF", gk: "+ GK", sub1: "+ YDK 1", sub2: "+ YDK 2", sub3: "+ YDK 3", sub4: "+ YDK 4" };
         let mySquad = { ...defaultSquad };
@@ -865,6 +874,38 @@
             openPlayerProfile(playerName);
         }
 
+        function getPlayerAchievements(playerName) {
+            const clean = String(playerName || '').replace(' (K)', '').trim().toLocaleLowerCase('tr-TR');
+            const player = dbPlayersGlobal.find(p => String(p.name || '').replace(' (K)', '').trim().toLocaleLowerCase('tr-TR') === clean);
+            if (!player) return [];
+            const stats = getPlayerStats(playerName);
+            const evs = dbEventsGlobal.filter(e => e.player_id === player.id);
+            const maxGoalsInMatch = evs.reduce((m,e) => Math.max(m, Number(e.goals || 0)), 0);
+            const badges = [];
+            if (maxGoalsInMatch >= 3) badges.push({icon:'🎩', name:'Hat-Trick', title:false});
+            else if (maxGoalsInMatch >= 2) badges.push({icon:'⚽', name:'Duble', title:false});
+            if (Number(stats.goals) >= 10) badges.push({icon:'💣', name:"10'luk Golcü", title:false});
+            else if (Number(stats.goals) >= 5) badges.push({icon:'🔥', name:'Gol Makinesi', title:false});
+            if (Number(stats.assists) >= 5) badges.push({icon:'🎯', name:'Asist Ustası', title:false});
+            else if (Number(stats.assists) >= 3) badges.push({icon:'🤝', name:'Takım Oyuncusu', title:false});
+            if (Number(stats.goals) >= 1 && Number(stats.assists) >= 1) badges.push({icon:'✨', name:'Skorer', title:false});
+            const maxGoals = Math.max(0, ...Object.values(globalPlayerStats).map(x => Number(x.goals || 0)));
+            const maxAssists = Math.max(0, ...Object.values(globalPlayerStats).map(x => Number(x.assists || 0)));
+            if (maxGoals > 0 && Number(stats.goals) === maxGoals) badges.push({icon:'👑', name:'Gol Kralı', title:true});
+            if (maxAssists > 0 && Number(stats.assists) === maxAssists) badges.push({icon:'🪄', name:'Asist Kralı', title:true});
+            return badges;
+        }
+
+        function renderPlayerAchievements(playerName) {
+            const badges = getPlayerAchievements(playerName);
+            return `<div class="achievement-wrap text-start"><div class="small fw-bold text-warning"><i class="bi bi-award-fill me-1"></i>BAŞARIMLAR & UNVANLAR</div>${badges.length ? `<div class="achievement-list">${badges.map(b=>`<span class="achievement-badge ${b.title?'live-title':''}" title="${b.title?'Güncel unvan':'Kalıcı performans başarımı'}"><span>${b.icon}</span>${esc(b.name)}</span>`).join('')}</div>` : '<div class="achievement-empty mt-2">Henüz kazanılmış başarım yok.</div>'}</div>`;
+        }
+
+        function openPlayerProfileFromMatch(playerName, matchId) {
+            playerProfileReturnMatchId = matchId;
+            openPlayerProfile(playerName, true);
+        }
+
         function getAntCardMeta(playerName, stats) {
             const clean = String(playerName || '').replace(' (K)', '').trim();
             const words = clean.split(/\s+/).filter(Boolean);
@@ -881,7 +922,8 @@
             return { initials, position, rating, tier };
         }
 
-        function openPlayerProfile(playerName) {
+        function openPlayerProfile(playerName, fromMatch = false) {
+            if (!fromMatch) playerProfileReturnMatchId = null;
             let matchModalEl = document.getElementById('matchDetailModal');
             let matchModalInstance = matchModalEl ? bootstrap.Modal.getInstance(matchModalEl) : null;
             if(matchModalInstance) matchModalInstance.hide();
@@ -909,6 +951,7 @@
                     </div>
                     <div class="ant-card-foot">ANT FANTEZİ LİG • 2026</div>
                 </div>
+                ${renderPlayerAchievements(playerName)}
                 ${isInSquad ? '<div class="text-center mb-3"><span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Kadromda</span></div>' : ''}
                 <div class="card bg-dark border-secondary p-2 mb-3 text-start">
                     <div class="small text-muted mb-1">Oyuncu Profili</div>
@@ -1515,6 +1558,7 @@
                 dbPlayersGlobal = playersRes.data || []; 
                 const dbMatches = matchesRes.data || []; 
                 const dbEvents = eventsRes.data || [];
+                dbEventsGlobal = dbEvents;
                 const dbProfiles = profilesRes.data || [];
                 knockoutEnabled = !!settingsRes.data?.knockout_enabled;
                 const knockoutNav = document.getElementById('knockoutNav');
@@ -2111,6 +2155,14 @@
             document.getElementById('matchDetailBody').innerHTML=`<div class="text-center mb-3"><small class="text-muted">${esc(match.date)}</small><h3 class="text-warning fw-bold my-2">${esc(match.score)}</h3><div class="fw-bold text-white">${esc(match.homeTeam)} - ${esc(match.awayTeam)}</div></div><hr class="border-secondary"><h6 class="text-info small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Maçın Skor Katkıları <small class="text-muted fw-normal">(Oyuncu profili için isme tıklayın)</small></h6><div>${goalsContent}</div>`;
             new bootstrap.Modal(document.getElementById('matchDetailModal')).show();
         };
+
+        // Oyuncu profili maç detayından açıldıysa kapatınca aynı maç detayına geri dön.
+        document.getElementById('playerProfileModal')?.addEventListener('hidden.bs.modal', () => {
+            if (!playerProfileReturnMatchId) return;
+            const matchId = playerProfileReturnMatchId;
+            playerProfileReturnMatchId = null;
+            setTimeout(() => openMatchDetail(matchId), 120);
+        });
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW kayıt hatası:', err)));
