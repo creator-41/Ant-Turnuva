@@ -578,6 +578,48 @@ button:not(:disabled):active,
 }
 </style>
 
+
+<style id="antStandingsFinalRoad">
+/* Puan Durumu > Final Yolu */
+.ant-final-road{margin-top:22px;padding:16px 10px 18px;border:1px solid rgba(245,158,11,.28);border-radius:18px;background:linear-gradient(145deg,rgba(30,41,59,.96),rgba(15,23,42,.98));overflow:hidden}
+.ant-final-road-title{text-align:center;color:#fbbf24;font-weight:900;font-size:1rem;margin-bottom:4px}
+.ant-final-road-sub{text-align:center;color:#94a3b8;font-size:.72rem;margin-bottom:16px}
+.ant-road-grid{display:grid;grid-template-columns:minmax(0,1fr) 92px minmax(0,1fr);grid-template-rows:auto 58px auto;align-items:center;gap:8px 5px;position:relative}
+.ant-road-side{display:flex;flex-direction:column;gap:8px}
+.ant-road-team{min-height:43px;display:flex;align-items:center;gap:7px;padding:7px 8px;border:1px solid #334155;border-radius:11px;background:#111827;color:#fff;font-size:.76rem;font-weight:800;line-height:1.15}
+.ant-road-team.right{justify-content:flex-end;text-align:right}
+.ant-road-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:var(--road-color,#64748b);box-shadow:0 0 8px color-mix(in srgb,var(--road-color,#64748b) 65%,transparent)}
+.ant-road-seed{font-size:.62rem;color:#94a3b8;font-weight:800;display:block;margin-bottom:2px}
+.ant-road-winner{grid-column:1/2;grid-row:2;position:relative;height:58px}
+.ant-road-winner.right{grid-column:3/4}
+.ant-bracket-left,.ant-bracket-right{position:absolute;inset:-54px 0 -54px 0;pointer-events:none}
+.ant-bracket-left::before,.ant-bracket-right::before{content:'';position:absolute;top:18px;bottom:18px;width:22px;border-top:2px solid #64748b;border-bottom:2px solid #64748b}
+.ant-bracket-left::before{right:10px;border-right:2px solid #64748b;border-radius:0 7px 7px 0}
+.ant-bracket-right::before{left:10px;border-left:2px solid #64748b;border-radius:7px 0 0 7px}
+.ant-bracket-left::after,.ant-bracket-right::after{content:'';position:absolute;top:50%;width:34px;height:2px;background:linear-gradient(90deg,#64748b,#f59e0b);transform:translateY(-1px)}
+.ant-bracket-left::after{right:-24px}
+.ant-bracket-right::after{left:-24px;transform:translateY(-1px) scaleX(-1)}
+.ant-road-qualified{position:absolute;top:50%;transform:translateY(-50%);font-size:.56rem;color:#86efac;font-weight:900;white-space:nowrap;max-width:72px;overflow:hidden;text-overflow:ellipsis}
+.ant-road-winner .ant-road-qualified{right:22px}
+.ant-road-winner.right .ant-road-qualified{left:22px}
+.ant-road-cup{grid-column:2;grid-row:1/4;align-self:center;justify-self:center;width:86px;min-height:102px;border-radius:18px;border:1px solid rgba(245,158,11,.55);background:radial-gradient(circle at 50% 30%,rgba(245,158,11,.2),rgba(15,23,42,.98) 65%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 10px 28px rgba(0,0,0,.28)}
+.ant-road-trophy{font-size:2rem;filter:drop-shadow(0 0 9px rgba(245,158,11,.4))}
+.ant-road-final-label{font-size:.58rem;color:#fbbf24;font-weight:900;letter-spacing:.7px;margin-top:2px}
+.ant-road-champ{font-size:.66rem;color:#fff;font-weight:900;margin-top:5px;max-width:76px;line-height:1.12}
+.ant-road-left-top{grid-column:1;grid-row:1}.ant-road-left-bottom{grid-column:1;grid-row:3}
+.ant-road-right-top{grid-column:3;grid-row:1}.ant-road-right-bottom{grid-column:3;grid-row:3}
+.ant-road-line-l,.ant-road-line-r{position:absolute;top:50%;height:1px;background:linear-gradient(90deg,#475569,#f59e0b);width:35px}
+.ant-road-line-l{left:calc(50% - 80px)}.ant-road-line-r{right:calc(50% - 80px);transform:scaleX(-1)}
+@media(max-width:420px){
+ .ant-final-road{padding-left:7px;padding-right:7px}
+ .ant-road-grid{grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr);gap:6px 3px}
+ .ant-road-cup{width:68px;min-height:92px}
+ .ant-road-team{font-size:.66rem;padding:6px 5px;gap:4px;min-height:42px}
+ .ant-road-seed{font-size:.55rem}.ant-bracket-left::before,.ant-bracket-right::before{width:15px}.ant-bracket-left::after,.ant-bracket-right::after{width:25px}.ant-road-qualified{font-size:.49rem;max-width:48px}
+ .ant-road-champ{font-size:.57rem;max-width:62px}.ant-road-line-l,.ant-road-line-r{display:none}
+}
+</style>
+
 </head>
 <body>
 <script>
@@ -2392,7 +2434,54 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                     const data=buildStandings(teams.filter(t=>t.group_name===group), matches.filter(m=>m.group_name===group && (m.stage || 'group') === 'group'));
                     return `<h5 class="text-info mb-3 mt-2"><i class="bi bi-shield-fill me-2"></i>${group} GRUBU</h5><div class="card p-2 mb-3"><div class="table-responsive"><table class="table table-dark table-striped mb-0 text-center align-middle standings-table" style="font-size:12px"><colgroup><col class="col-rank"><col class="col-team"><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>#</th><th class="text-start">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AG</th><th>YG</th><th>A</th><th>P</th></tr></thead><tbody>${data.map((x,i)=>`<tr><td><span class="d-inline-flex align-items-center justify-content-center gap-1" style="min-width:38px"><i class="bi ${i<2?'bi-arrow-up-circle-fill text-success':'bi-arrow-down-circle-fill text-danger'}" title="${i<2?'Üst tura çıkıyor':'Elenecek sıra'}"></i><strong>${i+1}</strong></span></td><td class="text-start fw-bold">${(()=>{const t=teams.find(z=>z.name===x.name);return t?`<span class="team-name-link" title="Takım profilini aç" onclick="openTeamProfile('${t.id}')">${esc(x.name)}</span>`:esc(x.name)})()}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gd>0?'+'+x.gd:x.gd}</td><td><span class="badge" style="background-color:${teams.find(t=>t.name===x.name)?.color||teamColors[x.name]?.c1||'#475569'};color:#fff;min-width:32px;">${x.points}</span></td></tr>`).join('')||'<tr><td colspan="10" class="text-muted">Takım yok</td></tr>'}</tbody></table></div></div>`;
                 }).join('');
-                content.innerHTML = '<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Turnuva Puan Durumu</h5>' + html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
+                const finalRoadHTML = (()=>{
+                    if(!knockoutEnabled) return '';
+                    const groupData={};
+                    ['A','B'].forEach(g=>groupData[g]=buildStandings(
+                        teams.filter(t=>t.group_name===g),
+                        matches.filter(m=>m.group_name===g && (m.stage||'group')==='group')
+                    ));
+                    const teamFromStanding=(g,i)=>{
+                        const row=groupData[g]?.[i]; if(!row)return null;
+                        return teams.find(t=>t.name===row.name)||null;
+                    };
+                    const A1=teamFromStanding('A',0), A2=teamFromStanding('A',1),
+                          B1=teamFromStanding('B',0), B2=teamFromStanding('B',1);
+                    const sf1=matches.find(m=>m.stage==='semifinal'&&m.group_name==='SF1');
+                    const sf2=matches.find(m=>m.stage==='semifinal'&&m.group_name==='SF2');
+                    const finalM=matches.find(m=>m.stage==='final');
+                    const winner=m=>{
+                        if(!m||!m.played)return null;
+                        const h=Number(m.home_score),a=Number(m.away_score);
+                        if(h===a)return null;
+                        return h>a?m.home_team_id:m.away_team_id;
+                    };
+                    const teamName=id=>teamMap[id]?.name||'Bekleniyor';
+                    const teamBox=(team,seed,side='')=>`<div class="ant-road-team ${side}" style="--road-color:${team?.color||'#64748b'}">
+                        ${side==='right'?'':`<span class="ant-road-dot"></span>`}
+                        <span><span class="ant-road-seed">${seed}</span>${esc(team?.name||'Henüz belli değil')}</span>
+                        ${side==='right'?`<span class="ant-road-dot"></span>`:''}
+                    </div>`;
+                    const w1=winner(sf1),w2=winner(sf2),champ=winner(finalM);
+                    return `<div class="ant-final-road">
+                        <div class="ant-final-road-title">🏆 FİNAL YOLU</div>
+                        <div class="ant-final-road-sub">Grup sıralamasından kupaya</div>
+                        <div class="ant-road-grid">
+                            <div class="ant-road-left-top ant-road-side">${teamBox(A1,'A GRUBU 1.')}</div>
+                            <div class="ant-road-left-bottom ant-road-side">${teamBox(B2,'B GRUBU 2.')}</div>
+                            <div class="ant-road-right-top ant-road-side">${teamBox(B1,'B GRUBU 1.','right')}</div>
+                            <div class="ant-road-right-bottom ant-road-side">${teamBox(A2,'A GRUBU 2.','right')}</div>
+                            <div class="ant-road-winner"><span class="ant-bracket-left"></span>${w1?`<span class="ant-road-qualified">${esc(teamName(w1))}</span>`:''}</div>
+                            <div class="ant-road-winner right"><span class="ant-bracket-right"></span>${w2?`<span class="ant-road-qualified">${esc(teamName(w2))}</span>`:''}</div>
+                            <div class="ant-road-cup">
+                                <div class="ant-road-trophy">🏆</div>
+                                <div class="ant-road-final-label">${champ?'ŞAMPİYON':'FİNAL'}</div>
+                                <div class="ant-road-champ">${champ?esc(teamName(champ)):(w1&&w2?esc(teamName(w1))+' vs '+esc(teamName(w2)):'Kupa Yolu')}</div>
+                            </div>
+                        </div>
+                    </div>`;
+                })();
+                content.innerHTML = '<h5 class="text-info mb-3"><i class="bi bi-table me-2"></i>Turnuva Puan Durumu</h5>' + finalRoadHTML + '<div class="mt-4"></div>' + html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
 
             } else if(tabName==='fikstur') {
                 fixtureHasLiveMatch = matches.some(m => !!m.is_live);
