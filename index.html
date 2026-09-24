@@ -1264,7 +1264,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
 
         function resetSquad() {
             if(confirm("Kadroyu sıfırlamak istediğine emin misin?")) {
-                mySquad = { ...defaultSquad }; captainSlot = null; renderPitch();
+                mySquad = { ...defaultSquad }; captainSlot = null; antVibrate([50,60,50]); renderPitch();
                 showNotification("Kadro sıfırlandı.", "warning");
             }
         }
@@ -1324,6 +1324,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
         function placePlayerToSlot(slotKey) {
             if(selectedPlayerForPlacement) {
                 mySquad[slotKey] = selectedPlayerForPlacement;
+                antVibrate(35);
                 renderPitch();
                 bootstrap.Modal.getInstance(document.getElementById('slotChooseModal')).hide();
                 selectedPlayerForPlacement = null;
@@ -1356,6 +1357,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             if(Object.values(mySquad).includes(playerName)) { alert("Bu oyuncu zaten kadroda!"); return; }
             if(currentActiveSlot) {
                 mySquad[currentActiveSlot] = playerName;
+                antVibrate(35);
                 renderPitch();
                 bootstrap.Modal.getInstance(document.getElementById('playerModal')).hide();
             }
@@ -1722,6 +1724,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                 }
                 
                 fantasyTeamName = name;
+                antVibrate(70);
                 showNotification("Kadron başarıyla kaydedildi!", "success");
                 showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
 
@@ -2508,6 +2511,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             const {error}=await supabaseClient.rpc('cast_champion_vote',{p_team_id:teamId});
             if(error){body.innerHTML=`<div class="alert alert-danger">Oy kaydedilemedi. ${esc(error.message||'Oylama kapanmış olabilir.')}</div>`+old;return;}
             localStorage.setItem('ant_champion_poll_voted_2026','1');
+            antVibrate(50);
             const sf1=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF1'),sf2=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF2'),candidates=championPollCandidates(sf1,sf2),results=await getChampionPollResults();
             body.innerHTML=`<div class="alert alert-success py-2">✓ Oyun kaydedildi!</div>${pollResultHTML(results,candidates,teamId)}`;renderChampionPollCard(sf1,sf2);
         }
@@ -2522,7 +2526,9 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
         let currentBottomTab = 'Fantezi';
         let fixtureHasLiveMatch = false;
         showTab = function(tabName, element) {
+            const previousBottomTab = currentBottomTab;
             currentBottomTab = tabName;
+            if (navigator.onLine !== false && previousBottomTab !== tabName) antVibrate(20);
             document.querySelectorAll('.nav-bottom-item').forEach(el => el.classList.remove('active'));
             if(element) element.classList.add('active');
             renderLiveTab(tabName);
@@ -2665,6 +2671,16 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
     setTimeout(protectShowTab, 0);
   }
 })();
+</script>
+
+
+<script>
+/* ANT hafif dokunsal geri bildirim */
+function antVibrate(pattern){
+  try {
+    if ('vibrate' in navigator) navigator.vibrate(pattern);
+  } catch (_) {}
+}
 </script>
 
 </body>

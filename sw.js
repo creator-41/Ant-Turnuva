@@ -10,7 +10,8 @@ self.addEventListener('push', event => {
     badge: data.badge || '/logo.png',
     data: { url: data.url || 'https://antturnuva.com.tr/' },
     tag: data.tag || 'ant-fantezi-lig',
-    renotify: true
+    renotify: true,
+    vibrate: [80]
   };
   event.waitUntil((async () => {
     await self.registration.showNotification(title, options);
