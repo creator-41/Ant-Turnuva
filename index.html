@@ -2612,5 +2612,18 @@
     })();
     </script>
 
+<script>
+(function(){
+  const clearAntBadge=async()=>{
+    try{
+      if('clearAppBadge' in navigator) await navigator.clearAppBadge();
+      else if('setAppBadge' in navigator) await navigator.setAppBadge(0);
+    }catch(_){}
+  };
+  window.addEventListener('pageshow',clearAntBadge);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible') clearAntBadge();});
+  clearAntBadge();
+})();
+</script>
 </body>
 </html>
