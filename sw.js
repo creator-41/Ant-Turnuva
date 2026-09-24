@@ -12,11 +12,20 @@ self.addEventListener('push', event => {
     tag: data.tag || 'ant-fantezi-lig',
     renotify: true
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil((async () => {
+    await self.registration.showNotification(title, options);
+    try {
+      if (self.navigator && 'setAppBadge' in self.navigator) await self.navigator.setAppBadge(1);
+    } catch (_) {}
+  })());
 });
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
+  try {
+    if (self.navigator && 'clearAppBadge' in self.navigator) self.navigator.clearAppBadge();
+    else if (self.navigator && 'setAppBadge' in self.navigator) self.navigator.setAppBadge(0);
+  } catch (_) {}
   const targetUrl = event.notification.data?.url || 'https://antturnuva.com.tr/';
   event.waitUntil((async () => {
     const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
