@@ -532,6 +532,50 @@
         @media(prefers-reduced-motion:reduce){.ant-launch-logo{animation:none}#antLaunchScreen{transition:none}}
 
     </style>
+
+<style id="antMicroAnimations">
+/* ANT Mikro Animasyonlar — kısa, sade, uygulama hissi */
+@keyframes antTabIn{from{opacity:.35;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes antModalIn{from{opacity:.45;transform:scale(.975) translateY(5px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes antPlayerPop{0%{transform:scale(.90);opacity:.55}65%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
+@keyframes antVotePop{0%{transform:scale(.97)}55%{transform:scale(1.025)}100%{transform:scale(1)}}
+@keyframes antScorePop{0%{transform:scale(1)}45%{transform:scale(1.16);text-shadow:0 0 18px rgba(239,68,68,.7)}100%{transform:scale(1)}}
+@keyframes antSuccessPop{0%{transform:scale(.98);opacity:.65}55%{transform:scale(1.015);opacity:1}100%{transform:scale(1)}}
+
+#main-content.ant-tab-enter{animation:antTabIn .18s ease-out both}
+.modal.show .modal-dialog{animation:antModalIn .18s ease-out both}
+.player-card.ant-player-pop{animation:antPlayerPop .26s cubic-bezier(.2,.85,.3,1.2) both}
+.champ-poll-option.ant-vote-pop,.alert-success.ant-success-pop{animation:antVotePop .24s ease-out both}
+.live-score.ant-score-pop{display:inline-block;animation:antScorePop .28s ease-out both}
+
+/* Parmağın altında küçük basılma hissi */
+button:not(:disabled):active,
+.btn:not(:disabled):active,
+.nav-bottom-item:active,
+.match-card:active,
+.team-name-link:active,
+.champ-poll-option:active,
+.slot-select-btn:active,
+.add-to-squad-btn:not(:disabled):active{
+    transform:scale(.975);
+    transition:transform .06s ease;
+}
+
+/* Kaydetme başarılı olduğunda kısa görsel onay */
+#saveSquadBtn.ant-save-success{animation:antSuccessPop .28s ease-out both}
+
+@media (prefers-reduced-motion:reduce){
+  #main-content.ant-tab-enter,
+  .modal.show .modal-dialog,
+  .player-card.ant-player-pop,
+  .champ-poll-option.ant-vote-pop,
+  .alert-success.ant-success-pop,
+  .live-score.ant-score-pop,
+  #saveSquadBtn.ant-save-success{animation:none!important}
+  button,.btn,.nav-bottom-item,.match-card,.team-name-link,.champ-poll-option,.slot-select-btn,.add-to-squad-btn{transition:none!important}
+}
+</style>
+
 </head>
 <body>
 <script>
@@ -1325,7 +1369,9 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             if(selectedPlayerForPlacement) {
                 mySquad[slotKey] = selectedPlayerForPlacement;
                 antVibrate(35);
+                const justAddedPlayer = selectedPlayerForPlacement;
                 renderPitch();
+                antAnimateSquadPlayer(justAddedPlayer);
                 bootstrap.Modal.getInstance(document.getElementById('slotChooseModal')).hide();
                 selectedPlayerForPlacement = null;
             }
@@ -1359,6 +1405,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                 mySquad[currentActiveSlot] = playerName;
                 antVibrate(35);
                 renderPitch();
+                antAnimateSquadPlayer(playerName);
                 bootstrap.Modal.getInstance(document.getElementById('playerModal')).hide();
             }
         }
@@ -1725,6 +1772,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                 
                 fantasyTeamName = name;
                 antVibrate(70);
+                if(btn){btn.classList.add('ant-save-success');setTimeout(()=>btn.classList.remove('ant-save-success'),360);}
                 showNotification("Kadron başarıyla kaydedildi!", "success");
                 showTab('Fantezi', document.querySelector('.nav-bottom-item.active'));
 
@@ -2513,7 +2561,9 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             localStorage.setItem('ant_champion_poll_voted_2026','1');
             antVibrate(50);
             const sf1=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF1'),sf2=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF2'),candidates=championPollCandidates(sf1,sf2),results=await getChampionPollResults();
-            body.innerHTML=`<div class="alert alert-success py-2">✓ Oyun kaydedildi!</div>${pollResultHTML(results,candidates,teamId)}`;renderChampionPollCard(sf1,sf2);
+            body.innerHTML=`<div class="alert alert-success py-2 ant-success-pop">✓ Oyun kaydedildi!</div>${pollResultHTML(results,candidates,teamId)}`;
+            const votedOption=body.querySelector('.champ-poll-option.selected'); if(votedOption) votedOption.classList.add('ant-vote-pop');
+            renderChampionPollCard(sf1,sf2);
         }
         async function maybeShowChampionPollPrompt(){
             const sf1=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF1'),sf2=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF2');
@@ -2531,7 +2581,10 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             if (navigator.onLine !== false && previousBottomTab !== tabName) antVibrate(20);
             document.querySelectorAll('.nav-bottom-item').forEach(el => el.classList.remove('active'));
             if(element) element.classList.add('active');
-            renderLiveTab(tabName);
+            Promise.resolve(renderLiveTab(tabName)).then(()=>{
+                antAnimateTab();
+                antWatchLiveScores();
+            });
         };
 
         // Yalnızca Fikstür açıkken VE gerçekten canlı maç varsa otomatik yenile.
@@ -2681,6 +2734,54 @@ function antVibrate(pattern){
     if ('vibrate' in navigator) navigator.vibrate(pattern);
   } catch (_) {}
 }
+</script>
+
+
+<script id="antMicroAnimationLogic">
+(function(){
+  window.antAnimateTab = function(){
+    const el=document.getElementById('main-content');
+    if(!el) return;
+    el.classList.remove('ant-tab-enter');
+    void el.offsetWidth;
+    el.classList.add('ant-tab-enter');
+    setTimeout(()=>el.classList.remove('ant-tab-enter'),240);
+  };
+
+  window.antAnimateSquadPlayer = function(playerName){
+    requestAnimationFrame(()=>{
+      document.querySelectorAll('#pitch-container .player-card').forEach(card=>{
+        const tag=card.querySelector('.jersey-name-tag');
+        if(!tag) return;
+        const name=tag.textContent.replace(/^\(C\)\s*/,'').trim();
+        if(name===playerName){
+          card.classList.remove('ant-player-pop');
+          void card.offsetWidth;
+          card.classList.add('ant-player-pop');
+          setTimeout(()=>card.classList.remove('ant-player-pop'),340);
+        }
+      });
+    });
+  };
+
+  /* Canlı skor gerçekten değişirse pulse; 5 sn yenilemede aynı skor için animasyon yok. */
+  const liveScores=new Map();
+  window.antWatchLiveScores = function(){
+    document.querySelectorAll('.match-card').forEach(card=>{
+      const score=card.querySelector('.live-score');
+      if(!score) return;
+      const teams=[...card.querySelectorAll('.fixture-team')].map(x=>x.textContent.trim()).join('|');
+      const key=teams || score.textContent.trim();
+      const val=score.textContent.trim();
+      if(liveScores.has(key) && liveScores.get(key)!==val){
+        score.classList.remove('ant-score-pop');
+        void score.offsetWidth;
+        score.classList.add('ant-score-pop');
+      }
+      liveScores.set(key,val);
+    });
+  };
+})();
 </script>
 
 </body>
