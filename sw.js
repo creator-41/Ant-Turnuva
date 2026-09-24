@@ -38,3 +38,43 @@ self.addEventListener('notificationclick', event => {
     return clients.openWindow(targetUrl);
   })());
 });
+
+// ANT Offline ekranı — yalnızca offline sayfası ve logo önbelleğe alınır.
+// Ana uygulama/index cache'lenmez; güncel sürümün eski cache'de kalması önlenir.
+const ANT_OFFLINE_CACHE = 'ant-offline-v1';
+const ANT_OFFLINE_URL = '/offline.html';
+
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(ANT_OFFLINE_CACHE);
+    await cache.addAll([ANT_OFFLINE_URL, '/logo.png']);
+    await self.skipWaiting();
+  })());
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
+      keys
+        .filter(key => key.startsWith('ant-offline-') && key !== ANT_OFFLINE_CACHE)
+        .map(key => caches.delete(key))
+    );
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.mode !== 'navigate') return;
+
+  event.respondWith((async () => {
+    try {
+      return await fetch(request);
+    } catch (_) {
+      const cache = await caches.open(ANT_OFFLINE_CACHE);
+      return (await cache.match(ANT_OFFLINE_URL)) || Response.error();
+    }
+  })());
+});
+
