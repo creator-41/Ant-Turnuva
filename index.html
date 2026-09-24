@@ -590,18 +590,23 @@ button:not(:disabled):active,
 .ant-road-team.right{justify-content:flex-end;text-align:right}
 .ant-road-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:var(--road-color,#64748b);box-shadow:0 0 8px color-mix(in srgb,var(--road-color,#64748b) 65%,transparent)}
 .ant-road-seed{font-size:.62rem;color:#94a3b8;font-weight:800;display:block;margin-bottom:2px}
-.ant-road-winner{grid-column:1/2;grid-row:2;position:relative;height:58px}
-.ant-road-winner.right{grid-column:3/4}
-.ant-bracket-left,.ant-bracket-right{position:absolute;inset:-54px 0 -54px 0;pointer-events:none}
-.ant-bracket-left::before,.ant-bracket-right::before{content:'';position:absolute;top:18px;bottom:18px;width:22px;border-top:2px solid #64748b;border-bottom:2px solid #64748b}
-.ant-bracket-left::before{right:10px;border-right:2px solid #64748b;border-radius:0 7px 7px 0}
-.ant-bracket-right::before{left:10px;border-left:2px solid #64748b;border-radius:7px 0 0 7px}
-.ant-bracket-left::after,.ant-bracket-right::after{content:'';position:absolute;top:50%;width:34px;height:2px;background:linear-gradient(90deg,#64748b,#f59e0b);transform:translateY(-1px)}
-.ant-bracket-left::after{right:-24px}
-.ant-bracket-right::after{left:-24px;transform:translateY(-1px) scaleX(-1)}
-.ant-road-qualified{position:absolute;top:50%;transform:translateY(-50%);font-size:.56rem;color:#86efac;font-weight:900;white-space:nowrap;max-width:72px;overflow:hidden;text-overflow:ellipsis}
-.ant-road-winner .ant-road-qualified{right:22px}
-.ant-road-winner.right .ant-road-qualified{left:22px}
+.ant-road-winner{grid-column:1/2;grid-row:2;position:relative;height:58px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px}
+.ant-road-winner.right{grid-column:3/4;justify-content:flex-start;padding-left:4px;padding-right:0}
+.ant-bracket-left,.ant-bracket-right{position:absolute;top:-48px;bottom:-48px;width:42px;pointer-events:none}
+.ant-bracket-left{right:5px}.ant-bracket-right{left:5px}
+.ant-bracket-left::before,.ant-bracket-right::before{content:'';position:absolute;top:8px;bottom:8px;width:20px;border-top:2px solid #64748b;border-bottom:2px solid #64748b}
+.ant-bracket-left::before{right:0;border-right:2px solid #64748b;border-radius:0 7px 7px 0}
+.ant-bracket-right::before{left:0;border-left:2px solid #64748b;border-radius:7px 0 0 7px}
+.ant-bracket-left::after,.ant-bracket-right::after{content:'';position:absolute;top:50%;width:25px;height:2px;background:#64748b;transform:translateY(-1px)}
+.ant-bracket-left::after{right:-25px}.ant-bracket-right::after{left:-25px}
+.ant-finalist-lane{position:relative;z-index:2;min-width:112px;max-width:190px;padding:6px 10px;border-radius:10px;background:#111827;border:1px solid rgba(34,197,94,.48);box-shadow:0 0 12px rgba(34,197,94,.08);color:#fff;font-size:.68rem;font-weight:900;line-height:1.12;text-align:center}
+.ant-finalist-lane::after{content:'';position:absolute;top:50%;width:18px;height:2px;background:linear-gradient(90deg,#22c55e,#f59e0b);transform:translateY(-1px)}
+.ant-road-winner .ant-finalist-lane{margin-right:27px}
+.ant-road-winner .ant-finalist-lane::after{right:-19px}
+.ant-road-winner.right .ant-finalist-lane{margin-left:27px}
+.ant-road-winner.right .ant-finalist-lane::after{left:-19px;transform:translateY(-1px) scaleX(-1)}
+.ant-finalist-label{display:block;color:#86efac;font-size:.51rem;letter-spacing:.55px;margin-bottom:2px}
+.ant-finalist-wait{color:#64748b;border-color:#334155;font-weight:800}
 .ant-road-cup{grid-column:2;grid-row:1/4;align-self:center;justify-self:center;width:86px;min-height:102px;border-radius:18px;border:1px solid rgba(245,158,11,.55);background:radial-gradient(circle at 50% 30%,rgba(245,158,11,.2),rgba(15,23,42,.98) 65%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 10px 28px rgba(0,0,0,.28)}
 .ant-road-trophy{font-size:2rem;filter:drop-shadow(0 0 9px rgba(245,158,11,.4))}
 .ant-road-final-label{font-size:.58rem;color:#fbbf24;font-weight:900;letter-spacing:.7px;margin-top:2px}
@@ -615,9 +620,36 @@ button:not(:disabled):active,
  .ant-road-grid{grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr);gap:6px 3px}
  .ant-road-cup{width:68px;min-height:92px}
  .ant-road-team{font-size:.66rem;padding:6px 5px;gap:4px;min-height:42px}
- .ant-road-seed{font-size:.55rem}.ant-bracket-left::before,.ant-bracket-right::before{width:15px}.ant-bracket-left::after,.ant-bracket-right::after{width:25px}.ant-road-qualified{font-size:.49rem;max-width:48px}
+ .ant-road-seed{font-size:.55rem}.ant-bracket-left,.ant-bracket-right{width:31px}.ant-bracket-left::before,.ant-bracket-right::before{width:14px}.ant-bracket-left::after,.ant-bracket-right::after{width:17px}.ant-bracket-left::after{right:-17px}.ant-bracket-right::after{left:-17px}.ant-finalist-lane{min-width:70px;max-width:92px;font-size:.56rem;padding:5px 4px}.ant-road-winner .ant-finalist-lane{margin-right:18px}.ant-road-winner.right .ant-finalist-lane{margin-left:18px}.ant-finalist-label{font-size:.44rem}
  .ant-road-champ{font-size:.57rem;max-width:62px}.ant-road-line-l,.ant-road-line-r{display:none}
 }
+</style>
+
+
+<style id="antChampionCupGlow">
+.ant-road-cup{overflow:hidden;isolation:isolate}
+.ant-road-cup::before{
+  content:'';position:absolute;inset:-42%;z-index:-2;pointer-events:none;
+  background:conic-gradient(from 0deg,
+    transparent 0deg 18deg,rgba(250,204,21,.14) 20deg 25deg,transparent 27deg 58deg,
+    rgba(251,191,36,.10) 60deg 66deg,transparent 68deg 104deg,
+    rgba(255,255,255,.08) 106deg 110deg,transparent 112deg 150deg,
+    rgba(250,204,21,.13) 152deg 158deg,transparent 160deg 198deg,
+    rgba(255,255,255,.07) 200deg 204deg,transparent 206deg 244deg,
+    rgba(251,191,36,.11) 246deg 252deg,transparent 254deg 300deg,
+    rgba(250,204,21,.13) 302deg 308deg,transparent 310deg 360deg);
+  animation:antCupRays 9s linear infinite;
+}
+.ant-road-cup::after{
+  content:'';position:absolute;inset:14%;z-index:-1;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(250,204,21,.22) 0%,rgba(245,158,11,.08) 42%,transparent 72%);
+  filter:blur(5px);animation:antCupGlow 2.4s ease-in-out infinite alternate;
+}
+.ant-road-trophy{position:relative;z-index:1;animation:antTrophyShine 2.4s ease-in-out infinite alternate}
+@keyframes antCupRays{to{transform:rotate(360deg)}}
+@keyframes antCupGlow{from{opacity:.55;transform:scale(.92)}to{opacity:1;transform:scale(1.13)}}
+@keyframes antTrophyShine{from{filter:drop-shadow(0 0 5px rgba(245,158,11,.35));transform:scale(1)}to{filter:drop-shadow(0 0 13px rgba(250,204,21,.72));transform:scale(1.035)}}
+@media(prefers-reduced-motion:reduce){.ant-road-cup::before,.ant-road-cup::after,.ant-road-trophy{animation:none!important}}
 </style>
 
 </head>
@@ -2471,12 +2503,18 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                             <div class="ant-road-left-bottom ant-road-side">${teamBox(B2,'B GRUBU 2.')}</div>
                             <div class="ant-road-right-top ant-road-side">${teamBox(B1,'B GRUBU 1.','right')}</div>
                             <div class="ant-road-right-bottom ant-road-side">${teamBox(A2,'A GRUBU 2.','right')}</div>
-                            <div class="ant-road-winner"><span class="ant-bracket-left"></span>${w1?`<span class="ant-road-qualified">${esc(teamName(w1))}</span>`:''}</div>
-                            <div class="ant-road-winner right"><span class="ant-bracket-right"></span>${w2?`<span class="ant-road-qualified">${esc(teamName(w2))}</span>`:''}</div>
+                            <div class="ant-road-winner">
+                                <span class="ant-bracket-left"></span>
+                                ${finalM&&finalM.home_team_id?`<span class="ant-finalist-lane"><span class="ant-finalist-label">FİNALİST</span>${esc(teamName(finalM.home_team_id))}</span>`:''}
+                            </div>
+                            <div class="ant-road-winner right">
+                                <span class="ant-bracket-right"></span>
+                                ${finalM&&finalM.away_team_id?`<span class="ant-finalist-lane"><span class="ant-finalist-label">FİNALİST</span>${esc(teamName(finalM.away_team_id))}</span>`:''}
+                            </div>
                             <div class="ant-road-cup">
                                 <div class="ant-road-trophy">🏆</div>
-                                <div class="ant-road-final-label">${champ?'ŞAMPİYON':'FİNAL'}</div>
-                                <div class="ant-road-champ">${champ?esc(teamName(champ)):(w1&&w2?esc(teamName(w1))+' vs '+esc(teamName(w2)):'Kupa Yolu')}</div>
+                                <div class="ant-road-final-label">ŞAMPİYON</div>
+                                ${champ?`<div class="ant-road-champ">${esc(teamName(champ))}</div>`:''}
                             </div>
                         </div>
                     </div>`;
