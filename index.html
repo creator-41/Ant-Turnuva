@@ -2588,18 +2588,27 @@
 
     <script>
     (function(){
+        const launchStartedAt = performance.now();
+        const minimumVisibleMs = 800;
+
         const closeLaunch=()=>{
             const el=document.getElementById('antLaunchScreen');
             if(!el || el.classList.contains('hide')) return;
-            el.classList.add('hide');
-            setTimeout(()=>el.remove(),260);
+            const elapsed = performance.now() - launchStartedAt;
+            const remaining = Math.max(0, minimumVisibleMs - elapsed);
+            setTimeout(()=>{
+                if(!el || el.classList.contains('hide')) return;
+                el.classList.add('hide');
+                setTimeout(()=>el.remove(),260);
+            }, remaining);
         };
+
         if(document.readyState==='interactive' || document.readyState==='complete') {
             requestAnimationFrame(closeLaunch);
         } else {
             document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(closeLaunch),{once:true});
         }
-        setTimeout(closeLaunch,1200);
+        setTimeout(closeLaunch,1600);
     })();
     </script>
 
