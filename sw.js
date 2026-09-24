@@ -41,7 +41,7 @@ self.addEventListener('notificationclick', event => {
 
 
 // ANT Offline: sadece offline.html ve logo.png cache'lenir. index.html cache'lenmez.
-const ANT_OFFLINE_CACHE = 'ant-offline-v2';
+const ANT_OFFLINE_CACHE = 'ant-offline-v3';
 const ANT_OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', event => {

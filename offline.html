@@ -26,9 +26,30 @@ p{color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 22px}
     <div class="code">📡</div>
     <h1>Bağlantı Yok</h1>
     <p>ANT Fantezi Lig'e şu anda ulaşılamıyor. İnternet bağlantını kontrol edip tekrar deneyebilirsin.</p>
-    <button class="btn" type="button" onclick="location.reload()">🔄 Tekrar Dene</button>
+    <button class="btn" type="button" onclick="retryConnection()">🔄 Tekrar Dene</button>
   </section>
   <div class="brand">ANT FANTEZİ LİG</div>
 </main>
+
+<script>
+function retryConnection(){
+  if (navigator.onLine) {
+    window.location.replace('/?online=1');
+    return;
+  }
+  const old = document.getElementById('offlineStatus');
+  if (old) old.remove();
+  const msg = document.createElement('div');
+  msg.id = 'offlineStatus';
+  msg.textContent = '📡 Bağlantı hâlâ yok. İnternet bağlantını kontrol et.';
+  msg.style.cssText = 'margin-top:14px;color:#fbbf24;font-size:13px;font-weight:700;';
+  document.querySelector('.card').appendChild(msg);
+}
+window.addEventListener('online', () => {
+  const msg = document.getElementById('offlineStatus');
+  if (msg) msg.textContent = '✅ İnternet bağlantısı geldi. Tekrar Dene’ye basabilirsin.';
+});
+</script>
+
 </body>
 </html>
