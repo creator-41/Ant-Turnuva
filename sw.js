@@ -66,15 +66,37 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const request = event.request;
-  if (request.mode !== 'navigate') return;
+  const url = new URL(request.url);
 
-  event.respondWith((async () => {
-    try {
-      return await fetch(request);
-    } catch (_) {
-      const cache = await caches.open(ANT_OFFLINE_CACHE);
-      return (await cache.match(ANT_OFFLINE_URL)) || Response.error();
-    }
-  })());
+  // Offline ekranı ve logo: önce cache.
+  if (url.origin === self.location.origin &&
+      (url.pathname === '/offline.html' || url.pathname === '/logo.png')) {
+    event.respondWith((async () => {
+      const cached = await caches.match(request, { ignoreSearch: true });
+      if (cached) return cached;
+      try {
+        const response = await fetch(request);
+        if (response && response.ok) {
+          const cache = await caches.open(ANT_OFFLINE_CACHE);
+          cache.put(request, response.clone());
+        }
+        return response;
+      } catch (_) {
+        return Response.error();
+      }
+    })());
+    return;
+  }
+
+  // Normal sayfalar: daima internetten. İnternet yoksa offline ekranı.
+  if (request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        return await fetch(request);
+      } catch (_) {
+        const cache = await caches.open(ANT_OFFLINE_CACHE);
+        return (await cache.match(ANT_OFFLINE_URL)) || Response.error();
+      }
+    })());
+  }
 });
-
