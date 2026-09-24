@@ -627,28 +627,50 @@ button:not(:disabled):active,
 
 
 <style id="antChampionCupGlow">
-.ant-road-cup{overflow:hidden;isolation:isolate}
+.ant-road-cup{overflow:hidden;isolation:isolate;position:relative}
 .ant-road-cup::before{
-  content:'';position:absolute;inset:-42%;z-index:-2;pointer-events:none;
+  content:'';
+  position:absolute;
+  left:50%;
+  top:38%;
+  width:76px;
+  height:76px;
+  margin-left:-38px;
+  margin-top:-38px;
+  z-index:-2;
+  pointer-events:none;
+  border-radius:50%;
   background:conic-gradient(from 0deg,
-    transparent 0deg 18deg,rgba(250,204,21,.14) 20deg 25deg,transparent 27deg 58deg,
-    rgba(251,191,36,.10) 60deg 66deg,transparent 68deg 104deg,
-    rgba(255,255,255,.08) 106deg 110deg,transparent 112deg 150deg,
-    rgba(250,204,21,.13) 152deg 158deg,transparent 160deg 198deg,
-    rgba(255,255,255,.07) 200deg 204deg,transparent 206deg 244deg,
-    rgba(251,191,36,.11) 246deg 252deg,transparent 254deg 300deg,
-    rgba(250,204,21,.13) 302deg 308deg,transparent 310deg 360deg);
-  animation:antCupRays 9s linear infinite;
+    transparent 0deg 20deg,rgba(250,204,21,.16) 22deg 27deg,transparent 29deg 62deg,
+    rgba(251,191,36,.11) 64deg 70deg,transparent 72deg 108deg,
+    rgba(255,255,255,.08) 110deg 114deg,transparent 116deg 154deg,
+    rgba(250,204,21,.14) 156deg 162deg,transparent 164deg 202deg,
+    rgba(255,255,255,.07) 204deg 208deg,transparent 210deg 248deg,
+    rgba(251,191,36,.12) 250deg 256deg,transparent 258deg 304deg,
+    rgba(250,204,21,.14) 306deg 312deg,transparent 314deg 360deg);
+  transform-origin:50% 50%;
+  animation:antCupRays 10s linear infinite;
 }
 .ant-road-cup::after{
-  content:'';position:absolute;inset:14%;z-index:-1;border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle,rgba(250,204,21,.22) 0%,rgba(245,158,11,.08) 42%,transparent 72%);
-  filter:blur(5px);animation:antCupGlow 2.4s ease-in-out infinite alternate;
+  content:'';
+  position:absolute;
+  left:50%;
+  top:38%;
+  width:54px;
+  height:54px;
+  margin-left:-27px;
+  margin-top:-27px;
+  z-index:-1;
+  border-radius:50%;
+  pointer-events:none;
+  background:radial-gradient(circle,rgba(250,204,21,.28) 0%,rgba(245,158,11,.11) 44%,transparent 74%);
+  filter:blur(5px);
+  animation:antCupGlow 2.4s ease-in-out infinite alternate;
 }
 .ant-road-trophy{position:relative;z-index:1;animation:antTrophyShine 2.4s ease-in-out infinite alternate}
-@keyframes antCupRays{to{transform:rotate(360deg)}}
-@keyframes antCupGlow{from{opacity:.55;transform:scale(.92)}to{opacity:1;transform:scale(1.13)}}
-@keyframes antTrophyShine{from{filter:drop-shadow(0 0 5px rgba(245,158,11,.35));transform:scale(1)}to{filter:drop-shadow(0 0 13px rgba(250,204,21,.72));transform:scale(1.035)}}
+@keyframes antCupRays{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes antCupGlow{from{opacity:.58}to{opacity:1}}
+@keyframes antTrophyShine{from{filter:drop-shadow(0 0 5px rgba(245,158,11,.35));transform:scale(1)}to{filter:drop-shadow(0 0 12px rgba(250,204,21,.7));transform:scale(1.035)}}
 @media(prefers-reduced-motion:reduce){.ant-road-cup::before,.ant-road-cup::after,.ant-road-trophy{animation:none!important}}
 </style>
 
