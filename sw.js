@@ -39,9 +39,9 @@ self.addEventListener('notificationclick', event => {
   })());
 });
 
-// ANT Offline ekranı — yalnızca offline sayfası ve logo önbelleğe alınır.
-// Ana uygulama/index cache'lenmez; güncel sürümün eski cache'de kalması önlenir.
-const ANT_OFFLINE_CACHE = 'ant-offline-v1';
+
+// ANT Offline: sadece offline.html ve logo.png cache'lenir. index.html cache'lenmez.
+const ANT_OFFLINE_CACHE = 'ant-offline-v2';
 const ANT_OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', event => {
@@ -55,11 +55,9 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(
-      keys
-        .filter(key => key.startsWith('ant-offline-') && key !== ANT_OFFLINE_CACHE)
-        .map(key => caches.delete(key))
-    );
+    await Promise.all(keys
+      .filter(k => k.startsWith('ant-offline-') && k !== ANT_OFFLINE_CACHE)
+      .map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -68,17 +66,16 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // Offline ekranı ve logo: önce cache.
   if (url.origin === self.location.origin &&
       (url.pathname === '/offline.html' || url.pathname === '/logo.png')) {
     event.respondWith((async () => {
-      const cached = await caches.match(request, { ignoreSearch: true });
+      const cached = await caches.match(request, {ignoreSearch:true});
       if (cached) return cached;
       try {
         const response = await fetch(request);
         if (response && response.ok) {
           const cache = await caches.open(ANT_OFFLINE_CACHE);
-          cache.put(request, response.clone());
+          await cache.put(request, response.clone());
         }
         return response;
       } catch (_) {
@@ -88,12 +85,10 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Normal sayfalar: daima internetten. İnternet yoksa offline ekranı.
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
-      try {
-        return await fetch(request);
-      } catch (_) {
+      try { return await fetch(request); }
+      catch (_) {
         const cache = await caches.open(ANT_OFFLINE_CACHE);
         return (await cache.match(ANT_OFFLINE_URL)) || Response.error();
       }

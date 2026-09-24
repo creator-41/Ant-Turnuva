@@ -534,6 +534,13 @@
     </style>
 </head>
 <body>
+<script>
+/* ANT bağlantı kontrolü: uygulama internetsiz sıfırdan açılırsa offline ekranına geç. */
+if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) {
+    location.replace('/offline.html');
+}
+</script>
+
     <div id="antLaunchScreen" aria-hidden="true">
         <div class="ant-launch-inner">
             <img class="ant-launch-logo" src="/logo.png" alt="">
@@ -2625,5 +2632,40 @@
   clearAntBadge();
 })();
 </script>
+
+<script>
+/* ANT sekme bağlantı koruması: internet yoksa sekme değişimini engelle. */
+(function(){
+  function antOfflineNotice(){
+    if (typeof window.showNotification === 'function') {
+      window.showNotification('📡 İnternet bağlantısı yok. Bağlantını kontrol edip tekrar dene.', 'warning');
+    } else {
+      alert('📡 İnternet bağlantısı yok.\n\nBağlantını kontrol edip tekrar dene.');
+    }
+  }
+
+  function protectShowTab(){
+    if (typeof window.showTab !== 'function' || window.showTab.__antOfflineProtected) return false;
+    const originalShowTab = window.showTab;
+    const protectedShowTab = function(){
+      if (navigator.onLine === false) {
+        antOfflineNotice();
+        return false;
+      }
+      return originalShowTab.apply(this, arguments);
+    };
+    protectedShowTab.__antOfflineProtected = true;
+    window.showTab = protectedShowTab;
+    return true;
+  }
+
+  if (!protectShowTab()) {
+    document.addEventListener('DOMContentLoaded', protectShowTab, {once:true});
+    window.addEventListener('load', protectShowTab, {once:true});
+    setTimeout(protectShowTab, 0);
+  }
+})();
+</script>
+
 </body>
 </html>
