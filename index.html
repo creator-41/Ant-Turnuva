@@ -845,6 +845,26 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
 
     
 
+
+<div class="modal fade" id="kingShareModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-white border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title fs-6"><i class="bi bi-trophy-fill text-warning me-2"></i>Kral Paylaş Kartı</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="kingShareLoading" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Kart hazırlanıyor...</div>
+        <img id="kingSharePreview" alt="Kral paylaş kartı" style="display:none;width:100%;max-width:430px;border-radius:18px;margin:auto;box-shadow:0 18px 45px rgba(0,0,0,.42)">
+        <div id="kingShareActions" class="d-grid gap-2 mt-3" style="display:none!important">
+          <button class="btn btn-warning fw-bold" onclick="shareAntKingCard()"><i class="bi bi-share-fill me-1"></i> Paylaş</button>
+          <button class="btn btn-outline-light" onclick="saveAntKingCard()"><i class="bi bi-download me-1"></i> PNG Kaydet</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="matchDayShareModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content bg-dark text-white border-secondary">
@@ -2610,7 +2630,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                 events.forEach(e=>{ if(Number(e.goals||0)>0) goals[e.player_id]=(goals[e.player_id]||0)+Number(e.goals); if(Number(e.assists||0)>0) assists[e.player_id]=(assists[e.player_id]||0)+Number(e.assists); });
                 const pr=Object.fromEntries((await supabaseClient.from('players').select('*')).data?.map(p=>[p.id,p])||[]);
                 const list=(obj,label)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,v],i)=>{ const playerName=pr[id]?.name||'Bilinmiyor'; const safePlayer=playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); return `<li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary" style="cursor:pointer" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safePlayer}')"><div><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'} me-2">${i+1}</span><strong>${esc(playerName)}</strong> <small class="text-muted">(${esc(teamMap[pr[id]?.team_id]?.name||'')})</small></div><span class="badge bg-primary fs-6">${v} ${label}</span></li>`; }).join('')||'<li class="list-group-item bg-dark text-muted border-secondary">Henüz veri yok.</li>';
-                let html = `<h5 class="text-info mb-3"><i class="bi bi-bar-chart-line-fill me-2"></i>İstatistikler</h5><div class="card p-3 mb-3 border-warning" style="cursor:pointer" onclick="openHallOfFame()"><div class="d-flex align-items-center justify-content-between"><div><h6 class="text-warning fw-bold mb-1">👑 Hall of Fame</h6><div class="small text-muted">Geçmiş sezonların şampiyonları ve kralları</div></div><i class="bi bi-chevron-right text-warning fs-4"></i></div></div>${buildTournamentRecordsHTML(teams,matches,events,pr,teamMap)}<div class="card p-3"><h6 class="text-warning">Gol Krallığı</h6><ul class="list-group">${list(goals,'Gol')}</ul></div><div class="card p-3"><h6 class="text-info">Asist Krallığı</h6><ul class="list-group">${list(assists,'Asist')}</ul></div>`;
+                let html = `<h5 class="text-info mb-3"><i class="bi bi-bar-chart-line-fill me-2"></i>İstatistikler</h5><div class="card p-3 mb-3 border-warning" style="cursor:pointer" onclick="openHallOfFame()"><div class="d-flex align-items-center justify-content-between"><div><h6 class="text-warning fw-bold mb-1">👑 Hall of Fame</h6><div class="small text-muted">Geçmiş sezonların şampiyonları ve kralları</div></div><i class="bi bi-chevron-right text-warning fs-4"></i></div></div>${buildTournamentRecordsHTML(teams,matches,events,pr,teamMap)}<div class="card p-3"><h6 class="text-warning">Gol Krallığı</h6><ul class="list-group">${list(goals,'Gol')}</ul><button class="ant-share-result-btn mt-3" onclick="openAntKingShare('goal')"><i class="bi bi-share-fill me-1"></i> Gol Kralını Paylaş</button></div><div class="card p-3"><h6 class="text-info">Asist Krallığı</h6><ul class="list-group">${list(assists,'Asist')}</ul><button class="ant-share-result-btn mt-3" onclick="openAntKingShare('assist')"><i class="bi bi-share-fill me-1"></i> Asist Kralını Paylaş</button></div>`;
                 content.innerHTML = html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
             } else if(tabName==='kadrolar') {
                 const playersRes = await supabaseClient.from('players').select('*').order('name'); 
@@ -3066,6 +3086,76 @@ function antVibrate(pattern){
 </script>
 
 
+
+
+<script id="antKingShareCardJS">
+let antKingBlob=null,antKingName='ant-kral.png';
+
+async function openAntKingShare(kind){
+  antVibrate(35);
+  const isGoal=kind==='goal', modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('kingShareModal'));
+  const loading=document.getElementById('kingShareLoading'),img=document.getElementById('kingSharePreview'),actions=document.getElementById('kingShareActions');
+  loading.style.display='block';loading.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Kart hazırlanıyor...';img.style.display='none';actions.style.setProperty('display','none','important');modal.show();
+  try{
+    const [{data:events,error:ee},{data:players,error:pe},{data:teams,error:te}]=await Promise.all([
+      supabaseClient.from('match_events').select('*'),
+      supabaseClient.from('players').select('id,name,team_id'),
+      supabaseClient.from('teams').select('id,name,color')
+    ]);
+    if(ee||pe||te) throw new Error('İstatistik verisi alınamadı');
+    const totals={};
+    (events||[]).forEach(e=>{
+      const pid=e.player_id;if(!pid)return;
+      if(!totals[pid])totals[pid]={goals:0,assists:0};
+      totals[pid].goals+=Number(e.goals||0);totals[pid].assists+=Number(e.assists||0);
+    });
+    const key=isGoal?'goals':'assists';
+    const ranking=(players||[]).map(p=>({...p,value:totals[p.id]?.[key]||0})).filter(p=>p.value>0).sort((a,b)=>b.value-a.value||a.name.localeCompare(b.name,'tr'));
+    if(!ranking.length)throw new Error('Henüz istatistik yok');
+    const king=ranking[0], tm=Object.fromEntries((teams||[]).map(t=>[t.id,t])), team=tm[king.team_id]||{name:'',color:'#f59e0b'};
+    const title=isGoal?'GOL KRALI':'ASİST KRALI', icon=isGoal?'⚽':'🎯', unit=isGoal?'GOL':'ASİST';
+
+    const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;const c=canvas.getContext('2d');
+    const bg=c.createLinearGradient(0,0,1080,1350);bg.addColorStop(0,'#060b16');bg.addColorStop(.52,'#111827');bg.addColorStop(1,'#070b13');c.fillStyle=bg;c.fillRect(0,0,1080,1350);
+    const glow=c.createRadialGradient(540,500,30,540,500,520);glow.addColorStop(0,isGoal?'rgba(245,158,11,.25)':'rgba(56,189,248,.23)');glow.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=glow;c.fillRect(0,0,1080,1050);
+    c.fillStyle=team.color||'#f59e0b';c.fillRect(0,0,18,1350);c.fillRect(1062,0,18,1350);
+
+    c.textAlign='center';c.fillStyle='#7dd3fc';c.font='900 31px Arial';c.fillText('ANT FANTEZİ LİG',540,90);
+    c.fillStyle='#94a3b8';c.font='700 22px Arial';c.fillText('2026 SEZONU',540,130);
+    c.fillStyle=isGoal?'#fbbf24':'#67e8f9';c.font='900 56px Arial';c.fillText(`${icon} ${title}`,540,235);
+
+    // Award halo + crown
+    c.beginPath();c.arc(540,505,215,0,Math.PI*2);c.fillStyle='rgba(30,41,59,.82)';c.fill();
+    c.strokeStyle=isGoal?'rgba(251,191,36,.65)':'rgba(103,232,249,.6)';c.lineWidth=5;c.stroke();
+    c.font='100px Arial';c.fillText('👑',540,440);
+    c.fillStyle=team.color||'#f59e0b';c.beginPath();c.arc(540,555,72,0,Math.PI*2);c.fill();
+    c.fillStyle='#f8fafc';c.font='900 62px Arial';c.fillText(String(king.value),540,577);
+    c.fillStyle='#cbd5e1';c.font='900 23px Arial';c.fillText(unit,540,630);
+
+    let sz=antFitText(c,king.name,800,58,34);c.font=`900 ${sz}px Arial`;c.fillStyle='#f8fafc';c.fillText(king.name,540,790);
+    sz=antFitText(c,team.name,700,34,24);c.font=`800 ${sz}px Arial`;c.fillStyle='#94a3b8';c.fillText(team.name,540,842);
+
+    antRoundRect(c,205,930,670,120,28,'rgba(15,23,42,.9)',isGoal?'rgba(245,158,11,.34)':'rgba(56,189,248,.34)');
+    c.fillStyle=isGoal?'#fbbf24':'#67e8f9';c.font='900 28px Arial';c.fillText(`2026 ${title}`,540,980);
+    c.fillStyle='#e2e8f0';c.font='700 22px Arial';c.fillText(`${king.value} ${unit} İLE ZİRVEDE`,540,1022);
+
+    c.fillStyle='rgba(148,163,184,.85)';c.font='700 21px Arial';c.fillText('antturnuva.com.tr',540,1255);
+    c.fillStyle='#475569';c.font='600 17px Arial';c.fillText('ANT Fantezi Lig • İstatistik Lideri',540,1292);
+
+    antKingBlob=await new Promise(res=>canvas.toBlob(res,'image/png',1));
+    antKingName=`ANT_${title.replace(/\s+/g,'_')}_${king.name}.png`.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'_');
+    img.src=URL.createObjectURL(antKingBlob);img.style.display='block';loading.style.display='none';actions.style.setProperty('display','grid','important');
+  }catch(err){loading.innerHTML='<div class="alert alert-danger mb-0">Kral kartı hazırlanamadı.</div>';console.error(err);}
+}
+async function shareAntKingCard(){
+  if(!antKingBlob)return;const file=new File([antKingBlob],antKingName,{type:'image/png'});
+  try{if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({files:[file],title:'ANT Fantezi Lig'});return;}}catch(e){if(e?.name==='AbortError')return;}
+  saveAntKingCard();
+}
+function saveAntKingCard(){
+  if(!antKingBlob)return;const u=URL.createObjectURL(antKingBlob),a=document.createElement('a');a.href=u;a.download=antKingName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);
+}
+</script>
 
 <script id="antMatchDayShareCardJS">
 let antMatchDayBlob=null, antMatchDayName='ant-mac-gunu.png';
