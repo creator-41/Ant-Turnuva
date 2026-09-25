@@ -3,282 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paylaşım Seçenekleri</title>
+    <title>Uygulamayı İndir</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            font-family: 'Inter', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            background-color: #f4f4f9;
+            padding: 20px;
         }
+
         .container {
-            text-align: center;
-            padding: 2rem;
             background-color: white;
+            padding: 2rem;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            max-width: 90%;
-            width: 400px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
         }
-        h2 {
-            margin-top: 0;
-            color: #333;
-        }
-        p {
-            color: #666;
-            line-height: 1.5;
-            margin-bottom: 1.5rem;
-        }
-        .btn-group {
+        
+        .btn {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        button, .social-btn {
-            padding: 12px 24px;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 12px 20px;
+            margin-bottom: 15px;
+            border: none;
+            border-radius: 8px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-green {
+            background-color: #10b981;
             color: white;
-            border: none;
-            border-radius: 8px;
-            transition: background-color 0.2s ease;
+        }
+
+        .btn-green:hover {
+            background-color: #059669;
+        }
+        
+        /* Üstte çıkan bilgilendirme menüsü (Top Banner) */
+        .instruction-banner {
+            position: fixed;
+            top: -100%; /* Başlangıçta ekranın dışında */
+            left: 0;
             width: 100%;
-            text-decoration: none;
-            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 25px 20px 20px;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            text-align: center;
+            z-index: 1001;
+            transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-sizing: border-box;
         }
-        #shareButton {
-            background-color: #007aff; /* iOS mavi */
+
+        .instruction-banner.active {
+            top: 0; /* Aktif olunca yukarıdan iner */
         }
-        #shareButton:hover { background-color: #0056b3; }
         
-        #copyButton {
-            background-color: #6c757d; /* Gri */
-        }
-        #copyButton:hover { background-color: #5a6268; }
-
-        .whatsapp-btn {
-            background-color: #25D366; /* WhatsApp yeşili */
-        }
-        .whatsapp-btn:hover { background-color: #128C7E; }
-
-        .twitter-btn {
-            background-color: #1DA1F2; /* Twitter mavisi */
-        }
-        .twitter-btn:hover { background-color: #0c85d0; }
-
-        #status {
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            min-height: 1.5em;
-        }
-
-        #a2hsButton {
-            background-color: #34c759; /* Apple yeşili */
-        }
-        #a2hsButton:hover { background-color: #2eb050; }
-
-        /* Arka plan karartması */
-        .modal-overlay {
+        .banner-backdrop {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
             z-index: 1000;
-            display: none; /* Başlangıçta gizli */
             opacity: 0;
+            pointer-events: none;
             transition: opacity 0.3s ease;
         }
 
-        /* Yarım açılan alt menü (Bottom Sheet) */
-        .bottom-sheet {
-            position: fixed;
-            bottom: -100%; /* Başlangıçta ekranın altında gizli */
-            left: 0; width: 100%;
-            background-color: #fff;
-            border-radius: 24px 24px 0 0;
-            padding: 2rem 1.5rem 3rem 1.5rem;
-            box-sizing: border-box;
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
-            z-index: 1001;
-            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Tatlı bir sıçrama efekti */
-            text-align: center;
+        .banner-backdrop.active {
+            opacity: 1;
+            pointer-events: all;
         }
 
-        .bottom-sheet h3 { margin-top: 0; color: #333; }
-        .bottom-sheet p { margin-bottom: 1rem; font-size: 1rem; color: #555; }
+        .banner-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .banner-text {
+            color: #4b5563;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
         
-        .close-modal-btn {
-            background-color: #e5e5ea;
-            color: #333;
+        .banner-text p {
+            margin: 8px 0;
+        }
+        
+        .close-btn {
+            background-color: #e5e7eb;
+            color: #374151;
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            max-width: 200px;
+            margin: 0 auto;
             margin-top: 10px;
         }
-        .close-modal-btn:hover { background-color: #d1d1d6; }
 
-        /* Üstten açılan bilgi kartı (Top Sheet / Banner) */
-        .top-banner {
+        /* YENİ: Işıltılı Hareketli Ok */
+        .glowing-arrow {
             position: fixed;
-            top: -100%; /* Başlangıçta ekranın üstünde gizli */
-            left: 0; width: 100%;
-            background-color: #ffffff;
-            border-radius: 0 0 24px 24px;
-            padding: 1.5rem 1.5rem 2rem 1.5rem;
-            box-sizing: border-box;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-            z-index: 1001;
-            transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            text-align: center;
-            border-bottom: 4px solid #007aff;
+            bottom: 30px; /* Safari'nin menüsüne yakın olacak şekilde */
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 40px;
+            z-index: 1002; /* Banner'ın ve backdrop'ın üstünde */
+            opacity: 0;
+            pointer-events: none; /* Tıklanmasını engelle */
+            transition: opacity 0.3s ease;
+            
+            /* Işıltı (Glow) efekti */
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 
+                         0 0 20px rgba(59, 130, 246, 0.6), 
+                         0 0 30px rgba(59, 130, 246, 0.4);
+            color: white; 
+            
+            /* Sadece aşağı yukarı zıplama animasyonu */
+            animation: bounceAndGlow 1.5s infinite ease-in-out;
         }
-
-        .top-banner h3 { margin-top: 0; color: #333; font-size: 1.2rem; }
-        .top-banner p { margin-bottom: 1rem; font-size: 0.95rem; color: #555; line-height: 1.5; }
-
-        /* Aktif class'lar */
-        .modal-overlay.active { opacity: 1; }
-        .top-banner.active { top: 0; }
+        
+        .glowing-arrow.active {
+            opacity: 1;
+        }
+        
+        /* Zıplama ve ışıldama animasyonunun detayları */
+        @keyframes bounceAndGlow {
+            0%, 100% {
+                bottom: 30px;
+                text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 
+                             0 0 20px rgba(59, 130, 246, 0.6);
+            }
+            50% {
+                bottom: 10px; /* Aşağıya doğru zıplar */
+                text-shadow: 0 0 20px rgba(59, 130, 246, 1), 
+                             0 0 30px rgba(59, 130, 246, 0.8),
+                             0 0 40px rgba(59, 130, 246, 0.6); /* Zıpladığında ışıltı artar */
+            }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>İçeriği Paylaş</h2>
-    <p>Bu sayfayı arkadaşlarınızla paylaşın!</p>
-    
-    <div class="btn-group">
-        <!-- Orijinal Web Share API Butonu (HTTPS'te çalışır) -->
-        <button id="shareButton">Safari/Telefon ile Paylaş 🚀</button>
+    <div class="container">
+        <h2 style="margin-top: 0;">Uygulamayı İndir</h2>
+        <p style="color: #6b7280; margin-bottom: 25px;">
+            Web sitemizi bir uygulama gibi kullanmak için ana ekranınıza ekleyin.
+        </p>
 
-        <button id="a2hsButton">📱 Ana Ekrana Ekle</button>
-
-        <!-- Alternatif 1: Link Kopyalama -->
-        <button id="copyButton">🔗 Linki Kopyala</button>
-
-        <!-- Alternatif 2: Direkt Sosyal Medya Linkleri -->
-        <a href="#" id="waButton" class="social-btn whatsapp-btn" target="_blank">📱 WhatsApp'ta Paylaş</a>
-        <a href="#" id="twButton" class="social-btn twitter-btn" target="_blank">🐦 X'te (Twitter) Paylaş</a>
+        <!-- Sadece Ana Ekrana Ekle Butonu Kaldı -->
+        <button onclick="showInstructionBanner()" class="btn btn-green">
+            📱 Ana Ekrana Ekle
+        </button>
     </div>
 
-    <p id="status"></p>
-</div>
+    <!-- Karartma Arka Planı -->
+    <div class="banner-backdrop" id="bannerBackdrop" onclick="hideInstructionBanner()"></div>
 
-<div id="modalOverlay" class="modal-overlay"></div>
+    <!-- Üstten İnen Bilgilendirme Menüsü -->
+    <div class="instruction-banner" id="instructionBanner">
+        <h3 class="banner-title">Ana Ekrana Nasıl Eklenir?</h3>
+        <div class="banner-text">
+            <p>1. Ekranın altındaki <strong>Paylaş</strong> ( 📤 ) butonuna dokunun.</p>
+            <p>2. Açılan menüde aşağı kaydırıp <strong>"Ana Ekrana Ekle"</strong> seçeneğine tıklayın.</p>
+        </div>
+        <button class="close-btn" onclick="hideInstructionBanner()">Tamam, Anladım</button>
+    </div>
 
-<div id="bottomSheet" class="top-banner">
-    <h3>📱 Ana Ekrana Nasıl Eklenir?</h3>
-    <p>1. Ekranın en altındaki <b>Paylaş ( 📤 )</b> butonuna dokun.<br>
-    2. Açılan menüde aşağı kaydırıp <b>"Ana Ekrana Ekle"</b> seçeneğine tıkla.</p>
-    <button id="closeModalBtn" class="close-modal-btn">Tamam, Anladım 👍</button>
-</div>
+    <!-- YENİ: Aşağı Işıltılı Ok -->
+    <div class="glowing-arrow" id="glowingArrow">⬇️</div>
 
-<script>
-    const shareButton = document.getElementById('shareButton');
-    const copyButton = document.getElementById('copyButton');
-    const statusText = document.getElementById('status');
-    const waButton = document.getElementById('waButton');
-    const twButton = document.getElementById('twButton');
+    <script>
+        const banner = document.getElementById('instructionBanner');
+        const backdrop = document.getElementById('bannerBackdrop');
+        const arrow = document.getElementById('glowingArrow');
 
-    // Mevcut sayfa URL'si
-    const currentUrl = window.location.href;
-    const shareText = "Şu harika siteye bir göz at: ";
-
-    // Sosyal medya butonlarının linklerini ayarla
-    waButton.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + currentUrl)}`;
-    twButton.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(currentUrl)}`;
-
-    // 1. Web Share API (Senin asıl istediğin, HTTPS şart)
-    shareButton.addEventListener('click', async () => {
-        statusText.textContent = '';
-        if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: 'Harika Bir Web Sitesi',
-                    text: shareText,
-                    url: currentUrl
-                });
-                statusText.textContent = 'Paylaşıldı! ✅';
-                statusText.style.color = 'green';
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    statusText.textContent = 'Hata: ' + error.message;
-                    statusText.style.color = 'red';
-                }
-            }
-        } else {
-            statusText.textContent = 'Güvenli bağlantı (HTTPS) olmadığı için sistem menüsü açılamıyor. 👇 Alttaki butonları kullanabilirsin.';
-            statusText.style.color = 'red';
-            shareButton.style.display = 'none'; // Çalışmıyorsa butonu gizleyebilirsin
+        function showInstructionBanner() {
+            banner.classList.add('active');
+            backdrop.classList.add('active');
+            arrow.classList.add('active'); // Oku görünür yap
         }
-    });
 
-    // 2. Link Kopyalama (Çoğu tarayıcıda HTTP'de de çalışabilir ama HTTPS önerilir)
-    copyButton.addEventListener('click', () => {
-        // Modern yöntem
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(currentUrl).then(() => {
-                statusText.textContent = 'Link panoya kopyalandı! 📋';
-                statusText.style.color = 'green';
-            }).catch(err => {
-                statusText.textContent = 'Kopyalama başarısız oldu.';
-                statusText.style.color = 'red';
-            });
-        } else {
-            // Eski yöntem (HTTP için yedek plan)
-            const textArea = document.createElement("textarea");
-            textArea.value = currentUrl;
-            textArea.style.position = "fixed";  // Sayfayı kaydırmamak için
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    statusText.textContent = 'Link panoya kopyalandı! 📋 (Eski yöntem)';
-                    statusText.style.color = 'green';
-                } else {
-                    statusText.textContent = 'Kopyalama başarısız oldu.';
-                    statusText.style.color = 'red';
-                }
-            } catch (err) {
-                statusText.textContent = 'Tarayıcı kopyalamayı engelledi.';
-                statusText.style.color = 'red';
-            }
-            document.body.removeChild(textArea);
+        function hideInstructionBanner() {
+            banner.classList.remove('active');
+            backdrop.classList.remove('active');
+            arrow.classList.remove('active'); // Oku gizle
         }
-    });
-
-    const a2hsButton = document.getElementById('a2hsButton');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const bottomSheet = document.getElementById('bottomSheet');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-
-    // Menüyü açma fonksiyonu (Artık üstten aşağı kayıyor)
-    a2hsButton.addEventListener('click', () => {
-        modalOverlay.style.display = 'block';
-        
-        setTimeout(() => {
-            modalOverlay.classList.add('active');
-            bottomSheet.classList.add('active');
-        }, 10);
-    });
-
-    // Menüyü kapama fonksiyonu
-    function hideModal() {
-        modalOverlay.classList.remove('active');
-        bottomSheet.classList.remove('active');
-        
-        setTimeout(() => {
-            modalOverlay.style.display = 'none';
-        }, 400);
-    }
-
-    closeModalBtn.addEventListener('click', hideModal);
-    modalOverlay.addEventListener('click', hideModal);
-
-</script>
+    </script>
 
 </body>
 </html>
