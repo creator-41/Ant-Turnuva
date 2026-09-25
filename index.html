@@ -2038,7 +2038,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                     supabaseClient.from('players').select('*').order('name'),
                     supabaseClient.from('matches').select('*').order('match_date'),
                     supabaseClient.from('match_events').select('*'),
-                    supabaseClient.from('profiles').select('*'),
+                    supabaseClient.from('profiles').select('id,username'),
                     supabaseClient.from('gameweeks').select('*').order('id'),
                     supabaseClient.from('tournament_settings').select('knockout_enabled').eq('id',1).maybeSingle()
                 ]);
@@ -2272,7 +2272,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                 supabaseClient.from('matches').select('*').order('match_date'),
                 supabaseClient.from('match_events').select('*'),
                 supabaseClient.from('fantasy_teams').select('id, name, user_id, captain_slot, fantasy_team_players(slot, player_id, gameweek_id)'),
-                supabaseClient.from('profiles').select('*'),
+                supabaseClient.from('profiles').select('id,username'),
                 supabaseClient.from('gameweeks').select('*').order('id'),
                 supabaseClient.from('tournament_settings').select('knockout_enabled').eq('id',1).maybeSingle()
             ]);
