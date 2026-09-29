@@ -1489,11 +1489,18 @@ async function sendAutomaticPush(title, body){
         });
         if(error) throw error;
         if(data?.success === false) throw new Error(data.error || 'Bildirim gönderilemedi.');
+        const failed = Number(data?.failed || 0);
+        const sent = Number(data?.sent || 0);
+        if(failed > 0) {
+            alert(`Maç/istatistik kaydedildi; ancak bildirim ${sent} cihaza ulaştı, ${failed} cihaza ulaşmadı. Bildirimler sekmesinden kontrol edebilirsin.`);
+            return false;
+        }
         console.log('Otomatik push gönderildi:', title, data);
         return true;
     } catch(e) {
-        // Bildirim hatası, maç/istatistik kaydını bozmasın.
+        // Maç kaydı tamamlandı; bildirim hatasını yöneticiye ayrıca göster.
         console.error('Otomatik push gönderim hatası:', e);
+        alert('Maç/istatistik kaydedildi; ancak otomatik bildirim gönderilemedi: ' + (e?.message || 'Bilinmeyen hata'));
         return false;
     }
 }
