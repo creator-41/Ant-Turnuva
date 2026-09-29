@@ -1795,7 +1795,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             }
             const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
             if(error) {
-                msg.innerHTML = '<span class="text-danger">' + error.message + '</span>';
+                msg.innerHTML = '<span class="text-danger"></span>'; msg.querySelector('span').textContent=error.message;
             } else {
                 showNotification("Şifren başarıyla güncellendi!", "success");
                 bootstrap.Modal.getInstance(document.getElementById('updatePasswordModal')).hide();
