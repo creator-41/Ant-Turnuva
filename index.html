@@ -1101,7 +1101,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                 const home=m.home_team_id===championId, a=Number(home?m.home_score:m.away_score)||0, b=Number(home?m.away_score:m.home_score)||0;
                 gf+=a; ga+=b; if(a>b) wins++; else if(a<b) losses++; else draws++;
             });
-            const roster=(dbPlayersGlobal||[]).filter(p=>p.team_id===championId).map(p=>p.name).sort((a,b)=>a.localeCompare(b,'tr'));
+            const roster=(dbPlayersGlobal||[]).filter(p=>p.team_id===championId).map(p=>publicPlayerName(p.name)).sort((a,b)=>a.localeCompare(b,'tr'));
             const playerMap=Object.fromEntries((dbPlayersGlobal||[]).map(p=>[p.id,p]));
             const totals={};
             (events||[]).forEach(e=>{
@@ -1138,8 +1138,8 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                 </div>
                 <div class="season-finale-card mb-4">
                     <h6 class="text-warning fw-bold mb-3">👑 Sezonun Kralları</h6>
-                    <div class="d-flex justify-content-between border-bottom border-secondary py-2"><span>⚽ Gol Kralı</span><strong>${scorer&&scorer.goals>0?esc(scorer.name)+' · '+scorer.goals+' Gol':'-'}</strong></div>
-                    <div class="d-flex justify-content-between py-2"><span>🎯 Asist Kralı</span><strong>${assister&&assister.assists>0?esc(assister.name)+' · '+assister.assists+' Asist':'-'}</strong></div>
+                    <div class="d-flex justify-content-between border-bottom border-secondary py-2"><span>⚽ Gol Kralı</span><strong>${scorer&&scorer.goals>0?esc(publicPlayerName(scorer.name))+' · '+scorer.goals+' Gol':'-'}</strong></div>
+                    <div class="d-flex justify-content-between py-2"><span>🎯 Asist Kralı</span><strong>${assister&&assister.assists>0?esc(publicPlayerName(assister.name))+' · '+assister.assists+' Asist':'-'}</strong></div>
                 </div>
                 <button class="btn btn-warning fw-bold px-4" data-bs-dismiss="modal">🏆 Kutlamaya Devam</button>
             </section>`;
@@ -1228,6 +1228,11 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
         let currentActiveSlot = null;
         let selectedPlayerForPlacement = null;
 
+        function publicPlayerName(value) {
+            const clean = String(value || '').replace(/\s*\(K\)\s*$/i, '').trim();
+            return clean.split(/\s+/)[0] || 'Bilinmiyor';
+        }
+
         function getPlayerTeam(playerName) {
             let cleanName = playerName.trim();
             for(let team in teamsData) { 
@@ -1309,7 +1314,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
 
         function getAntCardMeta(playerName, stats) {
             const clean = String(playerName || '').replace(' (K)', '').trim();
-            const words = clean.split(/\s+/).filter(Boolean);
+            const words = publicPlayerName(clean).split(/\s+/).filter(Boolean);
             const initials = (words.length > 1 ? words[0][0] + words[words.length - 1][0] : clean.slice(0,2)).toLocaleUpperCase('tr-TR');
             const dbPlayer = dbPlayersGlobal.find(p => String(p.name || '').replace(' (K)', '').trim().toLocaleLowerCase('tr-TR') === clean.toLocaleLowerCase('tr-TR'));
             const position = dbPlayer?.position || (String(playerName).includes('(K)') ? 'Kaleci' : 'Oyuncu');
@@ -1389,11 +1394,11 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             const recent=[...played].sort((a,b)=>new Date(b.match_date)-new Date(a.match_date)).slice(0,5);
             const stageName=st=>st==='semifinal'?'Yarı Final':st==='final'?'Final':st==='third_place'?"3.'lük":'Grup';
             const formHtml=form.slice(-5).map(x=>`<span class="team-form-badge ${x==='G'?'bg-success':x==='B'?'bg-warning text-dark':'bg-danger'}">${x}</span>`).join('')||'<span class="text-muted small">Henüz oynanan maç yok.</span>';
-            const leaderNames=arr=>arr.length?arr.map(x=>`${esc(x.p.name)} (${x.goals||x.assists})`).join(', '):'—';
+            const leaderNames=arr=>arr.length?arr.map(x=>`${esc(publicPlayerName(x.p.name))} (${x.goals||x.assists})`).join(', '):'—';
             const safeName=n=>String(n).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
             const rosterHtml=roster.length?roster.map(p=>{
                 const st=pstats[p.id]||{goals:0,assists:0};
-                return `<div class="team-player-row d-flex justify-content-between align-items-center gap-2" onclick="openPlayerProfile('${safeName(p.name)}')"><div><strong>${esc(p.name)}</strong></div><div class="small text-nowrap"><span class="text-warning">⚽ ${st.goals}</span> <span class="text-info ms-2">🎯 ${st.assists}</span></div></div>`;
+                return `<div class="team-player-row d-flex justify-content-between align-items-center gap-2" onclick="openPlayerProfile('${safeName(p.name)}')"><div><strong>${esc(publicPlayerName(p.name))}</strong></div><div class="small text-nowrap"><span class="text-warning">⚽ ${st.goals}</span> <span class="text-info ms-2">🎯 ${st.assists}</span></div></div>`;
             }).join(''):'<div class="text-muted small">Kadro bulunamadı.</div>';
             const recentHtml=recent.length?recent.map(m=>`<div class="team-match-row"><div class="d-flex justify-content-between gap-2"><strong>${esc(tn(m.home_team_id))} ${Number(m.home_score||0)}-${Number(m.away_score||0)} ${esc(tn(m.away_team_id))}</strong><span class="small text-muted text-nowrap">${stageName(m.stage||'group')}</span></div><div class="small text-muted mt-1">${esc(fmt(m.match_date))}</div></div>`).join(''):'<div class="text-muted small">Henüz oynanan maç yok.</div>';
             const color=/^#[0-9a-fA-F]{6}$/.test(String(team.color||''))?team.color:'#3b82f6';
@@ -1445,7 +1450,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                         <div class="ant-card-badge">ANT • ${esc(card.position)}</div>
                     </div>
                     <div class="ant-card-avatar">${esc(card.initials)}</div>
-                    <div class="ant-card-name">${esc(playerName.replace(' (K)',''))}</div>
+                    <div class="ant-card-name">${esc(publicPlayerName(playerName))}</div>
                     <div class="ant-card-team">${esc(team)}</div>
                     <div class="ant-card-stats">
                         <div class="ant-card-stat"><strong>${stats.goals}</strong><span>GOL</span></div>
@@ -1602,9 +1607,9 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                     filtered.forEach(player => {
                         let isAlreadySelected = Object.values(mySquad).includes(player);
                         if(isAlreadySelected) {
-                            listHTML += `<button class="list-group-item list-group-item-action py-2 fs-6 opacity-50 bg-dark text-muted" disabled>${player} <span class="badge bg-warning text-dark float-end">Kadroda</span></button>`;
+                            listHTML += `<button class="list-group-item list-group-item-action py-2 fs-6 opacity-50 bg-dark text-muted" disabled>${publicPlayerName(player)} <span class="badge bg-warning text-dark float-end">Kadroda</span></button>`;
                         } else {
-                            listHTML += `<button class="list-group-item list-group-item-action py-2 fs-6" onclick="selectPlayer('${player.replace("'", "\\'")}')">${player}</button>`;
+                            listHTML += `<button class="list-group-item list-group-item-action py-2 fs-6" onclick="selectPlayer('${player.replace("'", "\\'")}')">${publicPlayerName(player)}</button>`;
                         }
                     });
                 }
@@ -1633,7 +1638,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             return `
                 <div class="player-card">
                     <div onclick="openSelectModal('${slotKey}')">${generateJerseySVG(colors.c1, colors.c2, colors.collar, isCaptain)}</div>
-                    <div class="jersey-name-tag ${isCaptain ? 'is-captain-tag' : ''}" onclick="openSelectModal('${slotKey}')">${isCaptain ? '(C) ' : ''}${playerName}</div>
+                    <div class="jersey-name-tag ${isCaptain ? 'is-captain-tag' : ''}" onclick="openSelectModal('${slotKey}')">${isCaptain ? '(C) ' : ''}${publicPlayerName(playerName)}</div>
                     ${isSelected ? `<a href="#" class="captain-btn" onclick="setCaptain('${slotKey}'); return false;">${isCaptain ? '★ Kaptan' : '☆ Kaptan'}</a>` : ''}
                 </div>`;
         }
@@ -1643,7 +1648,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             if(!pitchDiv) return;
             let topPerformersHTML = topPerformers.map(p => {
                 let isAdded = Object.values(mySquad).includes(p.name);
-                return `<div class="top-player-card"><div class="top-player-name" title="${p.name}" style="cursor: pointer;" onclick="openPlayerProfile('${p.name.replace("'", "\\'")}')">${p.name}</div><div class="top-player-stat"><i class="bi bi-fire text-warning"></i> ${p.stat}</div><button class="add-to-squad-btn" ${isAdded ? 'disabled' : ''} onclick="openSlotChoiceForPlayer('${p.name.replace("'", "\\'")}')">${isAdded ? '<i class="bi bi-check"></i> Ekli' : '<i class="bi bi-plus-lg"></i> Ekle'}</button></div>`;
+                return `<div class="top-player-card"><div class="top-player-name" title="${publicPlayerName(p.name)}" style="cursor: pointer;" onclick="openPlayerProfile('${p.name.replace("'", "\\'")}')">${publicPlayerName(p.name)}</div><div class="top-player-stat"><i class="bi bi-fire text-warning"></i> ${p.stat}</div><button class="add-to-squad-btn" ${isAdded ? 'disabled' : ''} onclick="openSlotChoiceForPlayer('${p.name.replace("'", "\\'")}')">${isAdded ? '<i class="bi bi-check"></i> Ekli' : '<i class="bi bi-plus-lg"></i> Ekle'}</button></div>`;
             }).join('');
 
             pitchDiv.innerHTML = `
@@ -2190,8 +2195,8 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             body.innerHTML=data.map((h,i)=>`<div class="card p-3 mb-3 ${i===0?'border-warning':''}">
                 <div class="text-center mb-3"><div style="font-size:34px">👑</div><h4 class="text-warning fw-bold mb-0">${esc(String(h.season_year))} SEZONU</h4></div>
                 <div class="d-flex justify-content-between border-bottom border-secondary py-2"><span>🏆 Turnuva Şampiyonu</span><strong>${esc(h.champion_team||'-')}</strong></div>
-                <div class="d-flex justify-content-between border-bottom border-secondary py-2"><span>⚽ Gol Kralı</span><strong class="text-end">${esc(h.top_scorer_name||'-')}${h.top_scorer_goals!=null?' · '+Number(h.top_scorer_goals)+' Gol':''}</strong></div>
-                <div class="d-flex justify-content-between border-bottom border-secondary py-2"><span>🎯 Asist Kralı</span><strong class="text-end">${esc(h.top_assist_name||'-')}${h.top_assist_count!=null?' · '+Number(h.top_assist_count)+' Asist':''}</strong></div>
+                <div class="d-flex justify-content-between border-bottom border-secondary py-2"><span>⚽ Gol Kralı</span><strong class="text-end">${esc(publicPlayerName(h.top_scorer_name||'-'))}${h.top_scorer_goals!=null?' · '+Number(h.top_scorer_goals)+' Gol':''}</strong></div>
+                <div class="d-flex justify-content-between border-bottom border-secondary py-2"><span>🎯 Asist Kralı</span><strong class="text-end">${esc(publicPlayerName(h.top_assist_name||'-'))}${h.top_assist_count!=null?' · '+Number(h.top_assist_count)+' Asist':''}</strong></div>
                 <div class="d-flex justify-content-between border-bottom border-secondary py-2"><span>⭐ Fantezi Şampiyonu</span><strong class="text-end">${esc(h.fantasy_champion_team||'-')}${h.fantasy_champion_manager?' · '+esc(h.fantasy_champion_manager):''}${h.fantasy_champion_points!=null?' · '+Number(h.fantasy_champion_points)+' P':''}</strong></div>
                 <div class="d-flex justify-content-between py-2"><span>🔮 Tahmin Ligi</span><strong class="text-end">${h.prediction_champion_name?esc(h.prediction_champion_name)+(h.prediction_champion_points!=null?' · '+Number(h.prediction_champion_points)+' P':''):'Henüz yok'}</strong></div>
             </div>`).join('');
@@ -2236,7 +2241,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                         ${chunk.map(p => `
                             <div class="player-card" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')" style="margin:2px;">
                                 ${generateJerseySVG(teamColor || '#38bdf8', '#0f172a', '#ffffff', p.name.includes('(K)'))}
-                                <div class="jersey-name-tag">${esc(p.name)}</div>
+                                <div class="jersey-name-tag">${esc(publicPlayerName(p.name))}</div>
                             </div>
                         `).join('')}
                     </div>
@@ -2461,7 +2466,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                                     return `
                                         <div class="player-card text-center" style="margin:2px;" onclick="openPlayerProfile('${pName.replace(/'/g,"\\'")}')">
                                             ${generateJerseySVG(tColor, '#0f172a', '#ffffff', isCap)}
-                                            <div class="jersey-name-tag ${isCap ? 'is-captain-tag' : ''}" style="font-size:7.5px; max-width:65px; white-space:normal; line-height:1.1; margin-top:3px;">${isCap ? '(C) ' : ''}${esc(pName)}</div>
+                                            <div class="jersey-name-tag ${isCap ? 'is-captain-tag' : ''}" style="font-size:7.5px; max-width:65px; white-space:normal; line-height:1.1; margin-top:3px;">${isCap ? '(C) ' : ''}${esc(publicPlayerName(pName))}</div>
                                             <span class="badge bg-success mt-1" style="font-size:9px;">${pts} P</span>
                                         </div>`;
                                 };
@@ -2507,7 +2512,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                                             let tColor = teamColors[ctx.teamMap[p.team_id]?.name]?.c1 || '#38bdf8';
                                             return `<div class="player-card text-center" style="margin:2px;" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')">
                                                 ${generateJerseySVG(tColor, '#0f172a', '#ffffff', false)}
-                                                <div class="jersey-name-tag" style="font-size:7.5px; max-width:65px; white-space:normal; line-height:1.1; margin-top:3px;">${esc(p.name)}</div>
+                                                <div class="jersey-name-tag" style="font-size:7.5px; max-width:65px; white-space:normal; line-height:1.1; margin-top:3px;">${esc(publicPlayerName(p.name))}</div>
                                                 <span class="badge bg-success mt-1" style="font-size:9px;">${p.pts} P</span>
                                             </div>`
                                         }).join('')}
@@ -2691,7 +2696,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                 const goals={}, assists={};
                 events.forEach(e=>{ if(Number(e.goals||0)>0) goals[e.player_id]=(goals[e.player_id]||0)+Number(e.goals); if(Number(e.assists||0)>0) assists[e.player_id]=(assists[e.player_id]||0)+Number(e.assists); });
                 const pr=Object.fromEntries((await supabaseClient.from('players').select('*')).data?.map(p=>[p.id,p])||[]);
-                const list=(obj,label)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,v],i)=>{ const playerName=pr[id]?.name||'Bilinmiyor'; const safePlayer=playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); return `<li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary" style="cursor:pointer" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safePlayer}')"><div><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'} me-2">${i+1}</span><strong>${esc(playerName)}</strong> <small class="text-muted">(${esc(teamMap[pr[id]?.team_id]?.name||'')})</small></div><span class="badge bg-primary fs-6">${v} ${label}</span></li>`; }).join('')||'<li class="list-group-item bg-dark text-muted border-secondary">Henüz veri yok.</li>';
+                const list=(obj,label)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,v],i)=>{ const playerName=pr[id]?.name||'Bilinmiyor'; const safePlayer=playerName.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); return `<li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary" style="cursor:pointer" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safePlayer}')"><div><span class="badge ${i===0?'bg-warning text-dark':i===1?'bg-secondary':i===2?'bg-danger':'bg-dark border'} me-2">${i+1}</span><strong>${esc(publicPlayerName(playerName))}</strong> <small class="text-muted">(${esc(teamMap[pr[id]?.team_id]?.name||'')})</small></div><span class="badge bg-primary fs-6">${v} ${label}</span></li>`; }).join('')||'<li class="list-group-item bg-dark text-muted border-secondary">Henüz veri yok.</li>';
                 let html = `<h5 class="text-info mb-3"><i class="bi bi-bar-chart-line-fill me-2"></i>İstatistikler</h5><div class="card p-3 mb-3 border-warning" style="cursor:pointer" onclick="openHallOfFame()"><div class="d-flex align-items-center justify-content-between"><div><h6 class="text-warning fw-bold mb-1">👑 Hall of Fame</h6><div class="small text-muted">Geçmiş sezonların şampiyonları ve kralları</div></div><i class="bi bi-chevron-right text-warning fs-4"></i></div></div>${buildTournamentRecordsHTML(teams,matches,events,pr,teamMap)}<div class="card p-3"><h6 class="text-warning">Gol Krallığı</h6><ul class="list-group">${list(goals,'Gol')}</ul><button class="ant-share-result-btn mt-3" onclick="openAntKingShare('goal')"><i class="bi bi-share-fill me-1"></i> Gol Kralını Paylaş</button></div><div class="card p-3"><h6 class="text-info">Asist Krallığı</h6><ul class="list-group">${list(assists,'Asist')}</ul><button class="ant-share-result-btn mt-3" onclick="openAntKingShare('assist')"><i class="bi bi-share-fill me-1"></i> Asist Kralını Paylaş</button></div>`;
                 content.innerHTML = html + '<div style="height: 100px; width: 100%; display: block; clear: both;"></div>';
             } else if(tabName==='kadrolar') {
@@ -2783,7 +2788,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             return `<div class="card p-3 mb-3"><div class="d-flex align-items-center justify-content-between mb-2"><h6 class="text-info fw-bold mb-0">📊 Turnuva Rekorları</h6><span class="badge bg-dark border border-secondary">${played.length} Maç</span></div>
             ${rec('⚽','En Gollü Maç',mostGoals.map(x=>esc(score(x.m))),`${maxTotal} gol`)}
             ${biggest.length?rec('💥','En Farklı Galibiyet',biggest.map(x=>esc(score(x.m))),`${maxDiff} gol fark`):''}
-            ${topPlayers.length?rec('🎩','Bir Maçta En Çok Gol',topPlayers.map(x=>`${esc(playerMap[x.playerId]?.name||'Bilinmiyor')} • ${x.goals} Gol`)):''}
+            ${topPlayers.length?rec('🎩','Bir Maçta En Çok Gol',topPlayers.map(x=>`${esc(publicPlayerName(playerMap[x.playerId]?.name||'Bilinmiyor'))} • ${x.goals} Gol`)):''}
             ${topTeamIds.length?rec('🔥','En Golcü Takım',topTeamIds.map(id=>`${esc(tn(id))} • ${teamGoals[id]} Gol`)):''}
             ${streakIds.length?rec('📈','En Uzun Galibiyet Serisi',streakIds.map(id=>`${esc(tn(id))} • ${streak[id].best} Maç`)):''}
             </div>`;
@@ -2893,7 +2898,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             const goalContributions=contributions.filter(x=>x.goals>0);
             const assistOnlyContributions=contributions.filter(x=>x.goals===0 && x.assists>0);
 
-            const playerLink=(player,team)=>{ const safe=String(player).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); return `<span class="fw-bold text-white" style="cursor:pointer;" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safe}')">${esc(player)} <small class="text-muted">(${esc(team)})</small></span>`; };
+            const playerLink=(player,team)=>{ const safe=String(player).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); return `<span class="fw-bold text-white" style="cursor:pointer;" title="Oyuncu detaylarını aç" onclick="openPlayerProfile('${safe}')">${esc(publicPlayerName(player))} <small class="text-muted">(${esc(team)})</small></span>`; };
             const goalsHTML=goalContributions.map(x=>`<div class="match-contribution-row"><div class="match-contribution-player">${playerLink(x.player,x.team)}</div><div class="match-contribution-stats"><span class="badge bg-success">Gol ${x.goals}</span>${x.assists>0 ? `<span class="badge bg-warning text-dark">Asist ${x.assists}</span>` : ''}</div></div>`).join('');
             const assistOnlyHTML=assistOnlyContributions.length ? `<div class="mt-3 pt-2 border-top border-secondary"><div class="text-center text-warning small fw-bold mb-2"><i class="bi bi-star-fill me-1"></i>Sadece Asist Yapanlar</div>${assistOnlyContributions.map(x=>`<div class="match-contribution-row"><div class="match-contribution-player">${playerLink(x.player,x.team)}</div><div class="match-contribution-stats"><span class="badge bg-warning text-dark">Asist ${x.assists}</span></div></div>`).join('')}</div>` : '';
 
@@ -3194,7 +3199,7 @@ async function openAntKingShare(kind){
     c.fillStyle='#f8fafc';c.font='900 62px Arial';c.fillText(String(king.value),540,577);
     c.fillStyle='#cbd5e1';c.font='900 23px Arial';c.fillText(unit,540,630);
 
-    let sz=antFitText(c,king.name,800,58,34);c.font=`900 ${sz}px Arial`;c.fillStyle='#f8fafc';c.fillText(king.name,540,790);
+    let sz=antFitText(c,publicPlayerName(king.name),800,58,34);c.font=`900 ${sz}px Arial`;c.fillStyle='#f8fafc';c.fillText(publicPlayerName(king.name),540,790);
     sz=antFitText(c,team.name,700,34,24);c.font=`800 ${sz}px Arial`;c.fillStyle='#94a3b8';c.fillText(team.name,540,842);
 
     antRoundRect(c,205,930,670,120,28,'rgba(15,23,42,.9)',isGoal?'rgba(245,158,11,.34)':'rgba(56,189,248,.34)');
@@ -3205,7 +3210,7 @@ async function openAntKingShare(kind){
     c.fillStyle='#475569';c.font='600 17px Arial';c.fillText('ANT Fantezi Lig • İstatistik Lideri',540,1292);
 
     antKingBlob=await new Promise(res=>canvas.toBlob(res,'image/png',1));
-    antKingName=`ANT_${title.replace(/\s+/g,'_')}_${king.name}.png`.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'_');
+    antKingName=`ANT_${title.replace(/\s+/g,'_')}_${publicPlayerName(king.name)}.png`.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'_');
     img.src=URL.createObjectURL(antKingBlob);img.style.display='block';loading.style.display='none';actions.style.setProperty('display','grid','important');
   }catch(err){loading.innerHTML='<div class="alert alert-danger mb-0">Kral kartı hazırlanamadı.</div>';console.error(err);}
 }
@@ -3340,7 +3345,7 @@ async function openAntMatchShare(matchId){
     if(me||te||ee||pe||!m) throw new Error('Maç verisi alınamadı');
     const tm=Object.fromEntries((teams||[]).map(t=>[t.id,t])), pm=Object.fromEntries((players||[]).map(p=>[p.id,p]));
     const home=tm[m.home_team_id]||{name:'Bilinmiyor',color:'#38bdf8'}, away=tm[m.away_team_id]||{name:'Bilinmiyor',color:'#f59e0b'};
-    const scorers=(events||[]).filter(e=>Number(e.goals||0)>0).map(e=>({name:pm[e.player_id]?.name||'Bilinmiyor',goals:Number(e.goals),team:e.team_id===m.home_team_id?home.name:away.name}));
+    const scorers=(events||[]).filter(e=>Number(e.goals||0)>0).map(e=>({name:publicPlayerName(pm[e.player_id]?.name||'Bilinmiyor'),goals:Number(e.goals),team:e.team_id===m.home_team_id?home.name:away.name}));
     const stage=m.stage==='semifinal'?'YARI FİNAL':m.stage==='final'?'FİNAL':m.stage==='third_place'?"3.'LÜK MAÇI":`GRUP ${m.group_name||''}`;
     const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;const c=canvas.getContext('2d');
 
@@ -3370,7 +3375,7 @@ async function openAntMatchShare(matchId){
     if(!scorers.length){c.fillStyle='#64748b';c.font='600 25px Arial';c.fillText('Gol kaydı bulunmuyor.',90,y);}
     else{
       scorers.slice(0,7).forEach(sc=>{
-        c.fillStyle='#f8fafc';c.font='800 27px Arial';c.fillText(sc.name,90,y);
+        c.fillStyle='#f8fafc';c.font='800 27px Arial';c.fillText(publicPlayerName(sc.name),90,y);
         c.fillStyle='#94a3b8';c.font='600 20px Arial';c.fillText(sc.team,90,y+28);
         c.textAlign='right';c.fillStyle='#86efac';c.font='900 25px Arial';c.fillText(`${sc.goals} GOL`,990,y+8);c.textAlign='left';y+=75;
       });
