@@ -25,7 +25,7 @@
     <a class="back" href="/">← ANT Fantezi Lig'e Dön</a>
     <div class="card">
         <h1>Gizlilik ve Çerez Politikası</h1>
-        <p class="muted">Son güncelleme: 22 Eylül 2026</p>
+        <p class="muted">Son güncelleme: 1 Ekim 2026</p>
 
         <p>Bu politika, <strong>ANT Fantezi Lig</strong> web sitesini kullanırken hangi bilgilerin işlendiğini, bu bilgilerin hangi amaçlarla kullanıldığını ve site içerisinde kullanılan çerez ve benzeri teknolojileri açıklamak amacıyla hazırlanmıştır.</p>
 
@@ -35,23 +35,30 @@
         <p>Şirket adı, birim adları ve varsa kurumsal unsurlar yalnızca ilgili şirket içi turnuvayı ve katılımcı ekipleri tanımlamak amacıyla kullanılmaktadır.</p>
 
         <h2>2. İşlenen bilgiler</h2>
-        <p>Site özelliklerine bağlı olarak hesap oluşturma ve giriş işlemlerinde e-posta adresi, kullanıcı adı ve hesapla ilişkili teknik kimlik bilgileri işlenebilir. Fantezi takım seçimleri, kadro bilgileri, bildirim aboneliği ve site içindeki kullanıcı tercihleri de hizmetin çalışması amacıyla saklanabilir.</p>
+        <p>ANT Fantezi Lig'in mevcut özellikleri kullanıldığında aşağıdaki bilgiler işlenir:</p>
+        <ul>
+            <li><strong>Hesap:</strong> üyelikte e-posta adresi ve kullanıcı adı; hesapla bağlantılı sistem kimliği ve rol bilgisi.</li>
+            <li><strong>Giriş:</strong> parola, Supabase Auth kimlik doğrulama hizmeti aracılığıyla giriş yapmak için kullanılır.</li>
+            <li><strong>Fantezi lig:</strong> oluşturulan takım adı, seçilen oyuncular, kadro pozisyonları, kaptan tercihi ve oyun haftası bilgisi.</li>
+            <li><strong>Bildirim aboneliği:</strong> kullanıcı bildirim iznini verip aboneliği açtığında hesap kimliği ve tarayıcı push aboneliğine ait teknik anahtarlar.</li>
+            <li><strong>Turnuva:</strong> oyuncu adı, takım ve mevki bilgileri ile maç kadrosu ve gol, asist, kart gibi maç istatistikleri.</li>
+        </ul>
 
-        <h2>3. Supabase ve hesap altyapısı</h2>
-        <p>ANT Fantezi Lig; kullanıcı girişi, veritabanı ve bazı uygulama işlevleri için Supabase altyapısından yararlanır. Bu kapsamda hizmetin güvenli şekilde sunulabilmesi için gerekli hesap ve teknik veriler Supabase üzerinden işlenebilir.</p>
+        <h2>3. Hesap ve uygulama altyapısı</h2>
+        <p>Kullanıcı hesabı ve kimlik doğrulama Supabase Auth; profiller, fantezi takım ve kadro bilgileri, turnuva verileri ve bildirim abonelikleri Supabase veritabanı üzerinden yönetilir. Parola, giriş doğrulaması için kimlik doğrulama hizmetine gönderilir.</p>
 
         <h2>4. Bildirimler</h2>
-        <p>Kullanıcı açıkça izin verdiğinde gol, maç başlangıcı, maç sonucu veya benzeri turnuva bildirimleri için tarayıcı bildirimleri kullanılabilir. Bildirim izni cihaz veya tarayıcı ayarlarından daha sonra kapatılabilir.</p>
+        <p>Tarayıcı bildirimi yalnızca kullanıcı bildirim iznini verdiğinde etkinleştirilir. Abonelik açıkken bildirimlerin iletilebilmesi için kullanıcı hesabıyla ilişkilendirilmiş push abonelik bilgisi kullanılır. İzin cihaz veya tarayıcı ayarlarından kapatılabilir.</p>
 
         <h2>5. Çerezler ve benzeri teknolojiler</h2>
-        <p>Çerezler ve tarayıcıdaki yerel depolama teknolojileri; oturumun sürdürülmesi, kullanıcı tercihlerinin hatırlanması, uygulamanın doğru şekilde çalışması ve güvenliğin sağlanması gibi amaçlarla kullanılabilir.</p>
-        <p>Kullanıcılar tarayıcı ayarları üzerinden çerezleri ve site verilerini silebilir veya sınırlandırabilir. Bazı çerezlerin veya yerel verilerin engellenmesi, giriş ve diğer site özelliklerinin düzgün çalışmasını etkileyebilir.</p>
+        <p>Site, oturumun sürdürülmesi ve tercihlerin hatırlanması gibi teknik işlevler için tarayıcı çerezi veya yerel depolama teknolojilerinden yararlanabilir. Tarayıcı ayarlarından site verileri silinebilir veya sınırlandırılabilir; bu durumda giriş ve bazı özellikler çalışmayabilir.</p>
 
         <h2>6. Verilerin kullanım amacı</h2>
-        <p>Toplanan veya işlenen bilgiler; kullanıcı hesabının ve fantezi lig özelliklerinin çalıştırılması, güvenliğin sağlanması, kullanıcı tercihlerinin korunması, bildirimlerin gönderilmesi ve hizmetin teknik olarak sürdürülebilmesi amaçlarıyla kullanılabilir.</p>
+        <p>Bu bilgiler; hesap oluşturma ve giriş, fantezi takım ve kadro özelliklerinin sunulması, turnuva ve maç istatistiklerinin gösterilmesi, kullanıcının talep ettiği bildirimlerin iletilmesi ve hizmetin teknik olarak işletilmesi amacıyla kullanılır.</p>
 
-        <h2>7. Üçüncü taraf hizmetleri</h2>
-        <p>Site, kullanıcı hesapları, veritabanı ve uygulamanın bazı teknik işlevleri için Supabase gibi üçüncü taraf hizmetlerden yararlanabilir. Bu hizmetlerin kendi gizlilik ve veri işleme politikaları geçerlidir.</p>
+        <h2>7. Teknik hizmetler</h2>
+        <p>Kullanıcı hesabı, veritabanı ve uygulama işlevleri için Supabase kullanılır. Web sitesi GitHub Pages üzerinden yayımlanır. Arayüzün bazı dosyaları (Bootstrap ve Bootstrap Icons) jsDelivr içerik dağıtım ağı üzerinden yüklenir. Bu teknik hizmetlere bağlantı sırasında hizmetin çalışması için gerekli bağlantı verileri ilgili sağlayıcıya iletilebilir.</p>
+        <p>İncelenen mevcut site kodunda Google Analytics, Google Tag Manager, Meta Pixel, Hotjar veya Microsoft Clarity izleme kodu tespit edilmemiştir.</p>
 
         <h2>8. Politika değişiklikleri</h2>
         <p>Site özellikleri, kullanılan hizmetler veya yasal gereklilikler değiştiğinde bu politika güncellenebilir. Güncel sürüm bu sayfada yayımlanır.</p>
