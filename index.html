@@ -758,6 +758,17 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                         <a href="#" onclick="forgotPassword(); return false;" class="text-info small text-decoration-none">Şifremi Unuttum?</a>
                     </div>
 
+                    <div id="signupNoticeArea" class="mb-3 p-3 rounded border border-secondary" style="display:none;">
+                        <h6 class="small fw-bold text-info">Üyelik ve kişisel veriler hakkında bilgilendirme</h6>
+                        <p class="small mb-2">Üyelikte e-posta adresiniz, kullanıcı adınız, kullanıcı kimliğiniz ve hesap rolünüz; hesap oluşturma, giriş ve hesap güvenliği amacıyla Supabase üzerinden işlenir. Parolanız kimlik doğrulama için Supabase Auth'a iletilir. Fantezi takım adınız ve kadro tercihleriniz hesabınızla ilişkilendirilerek saklanır.</p>
+                        <p class="small mb-2">ANT veritabanı İrlanda bölgesinde (eu-west-1) barındırılır. Bildirim aboneliği yalnızca ayrıca bildirim izni verdiğinizde açılır.</p>
+                        <a href="/gizlilik.html" target="_blank" rel="noopener noreferrer" class="text-info small d-inline-block mb-2">Gizlilik ve Çerez Politikası — ayrıntıları oku ↗</a>
+                        <div class="form-check">
+                            <input id="signupNoticeRead" type="checkbox" class="form-check-input" onchange="syncSignupNotice()" aria-describedby="signupNoticeHelp">
+                            <label class="form-check-label small" for="signupNoticeRead">Yukarıdaki bilgilendirme metnini okudum ve bilgilendirildim.</label>
+                        </div>
+                        <p id="signupNoticeHelp" class="small text-muted mt-2 mb-0">Bu beyan açık rıza veya bildirim izni değildir.</p>
+                    </div>
                     <button id="authSubmitBtn" class="btn btn-primary w-100 fw-bold mb-2" onclick="submitAuth()">Giriş Yap</button>
                     <button id="authToggleBtn" class="btn btn-link text-info w-100 mt-1" onclick="toggleAuthMode()">Hesabın yok mu? Kayıt ol</button>
                     <div id="authMessage" class="small text-center mt-2"></div>
@@ -1752,12 +1763,19 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
         let isTeamNameChanged = false; 
         let authMode = 'login'; 
 
+        function syncSignupNotice() {
+            document.getElementById('signupNoticeArea').style.display = authMode === 'signup' ? 'block' : 'none';
+            document.getElementById('authSubmitBtn').disabled = authMode === 'signup' && !document.getElementById('signupNoticeRead').checked;
+        }
+
         function openAuthModal() { 
             document.getElementById('authMessage').innerHTML = ''; 
             document.getElementById('authEmail').value = '';
             document.getElementById('authPassword').value = '';
             document.getElementById('authUsername').value = '';
             authMode = 'login';
+            document.getElementById('signupNoticeRead').checked = false;
+            syncSignupNotice();
             document.getElementById('authTitle').innerHTML = '<i class="bi bi-person-circle text-info me-2"></i>Giriş Yap';
             document.getElementById('authSubmitBtn').innerText = 'Giriş Yap';
             document.getElementById('authToggleBtn').innerText = 'Hesabın yok mu? Kayıt ol';
@@ -1768,6 +1786,8 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
 
         function toggleAuthMode() {
             authMode = authMode === 'login' ? 'signup' : 'login';
+            document.getElementById('signupNoticeRead').checked = false;
+            syncSignupNotice();
             document.getElementById('authTitle').innerHTML = authMode === 'login' ? '<i class="bi bi-person-circle text-info me-2"></i>Giriş Yap' : '<i class="bi bi-person-plus text-info me-2"></i>Kayıt Ol';
             document.getElementById('authSubmitBtn').innerText = authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol';
             document.getElementById('authToggleBtn').innerText = authMode === 'login' ? 'Hesabın yok mu? Kayıt ol' : 'Zaten hesabın var mı? Giriş yap';
@@ -1812,6 +1832,11 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
 
             if(!email || !password) { msg.innerHTML='<span class="text-warning">E-posta ve şifre gerekli.</span>'; return; }
             if(authMode === 'signup') {
+                if(!document.getElementById('signupNoticeRead').checked) {
+                    msg.innerHTML='<span class="text-warning">Kayıt için bilgilendirme metnini okuyup okuduğunuzu belirtin.</span>';
+                    document.getElementById('signupNoticeRead').focus();
+                    return;
+                }
                 if(!username) { msg.innerHTML='<span class="text-warning">Kullanıcı adı zorunludur!</span>'; return; }
                 if(containsBadWord(username)) { msg.innerHTML='<span class="text-danger">Kullanıcı adında uygunsuz kelimeler kullanılamaz!</span>'; return; }
             }
