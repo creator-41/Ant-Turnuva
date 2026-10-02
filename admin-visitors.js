@@ -52,5 +52,6 @@
     load();
   }));
   document.querySelector('#tabs button[data-tab="visitors"]')?.addEventListener("click",()=>setTimeout(load,0));
+  window.antLoadVisitors=load;
   document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!$("tab-visitors").classList.contains("hidden"))load();});
 })();
