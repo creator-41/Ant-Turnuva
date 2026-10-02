@@ -1,5 +1,5 @@
 (function(){
-  const db=window.sb;
+  const db=typeof sb!=="undefined"?sb:null;
   const root=document.getElementById("visitorPanel");
   if(!db||!root)return;
   const $=id=>document.getElementById(id);
