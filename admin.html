@@ -125,6 +125,7 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
         <li class="nav-item"><button class="nav-link" data-tab="news">📰 ANT Spor</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="halloffame">👑 Hall of Fame</button></li>
         <li class="nav-item"><button class="nav-link" data-tab="notifications">🔔 Bildirimler</button></li>
+        <li class="nav-item"><button class="nav-link" data-tab="visitors">📈 Ziyaretçiler</button></li>
     </ul>
 
     <!-- TEAMS -->
@@ -332,6 +333,19 @@ body{ background:#0f172a; color:#f8fafc; font-family:Segoe UI,sans-serif; }
             <div id="pushResult" class="small mt-3"></div>
         </div>
     </section>
+
+<section id="tab-visitors" class="tab-pane-admin hidden">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div><h4 class="mb-1">📈 Ziyaretçiler</h4><div class="muted small">Anonim cihaz ve trafik özeti. İsim, IP adresi veya tam cihaz modeli gösterilmez.</div></div>
+        <button class="btn btn-outline-info btn-sm" onclick="window.antLoadVisitors?.()"><i class="bi bi-arrow-clockwise"></i> Yenile</button>
+    </div>
+    <div class="d-flex gap-2 mb-3">
+        <button class="btn btn-sm btn-outline-light" data-visitor-range="1" aria-pressed="false">Bugün</button>
+        <button class="btn btn-sm btn-info" data-visitor-range="7" aria-pressed="true">Son 7 gün</button>
+        <button class="btn btn-sm btn-outline-light" data-visitor-range="30" aria-pressed="false">Son 30 gün</button>
+    </div>
+    <div id="visitorPanel" class="muted">Bu sekmeyi açınca trafik yüklenir.</div>
+</section>
 </div>
 </div>
 
@@ -1557,5 +1571,6 @@ document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
 init();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="admin-visitors.js?v=20261002-1"></script>
 </body>
 </html>
