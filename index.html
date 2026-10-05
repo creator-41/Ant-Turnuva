@@ -2166,7 +2166,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                     .map(x => ({ name: x.name, team: x.team, stat: x.goals ? `${x.goals} Gol${x.assists ? ` • ${x.assists} Asist` : ''}` : `${x.assists} Asist` }));
 
                 playedMatchesDetails = {};
-                dbMatches.filter(m => m.played && (m.stage || 'group') === 'group').forEach(m => {
+                dbMatches.filter(m => m.played).forEach(m => {
                     const evs = dbEvents.filter(e => e.match_id === m.id);
                     playedMatchesDetails[m.id] = {
                         homeTeam: teamMap[m.home_team_id]?.name || 'Bilinmiyor', awayTeam: teamMap[m.away_team_id]?.name || 'Bilinmiyor',
