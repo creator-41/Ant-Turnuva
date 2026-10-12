@@ -412,6 +412,10 @@
 
 
         /* Sezon finali - tam ekran şampiyonluk sunumu */
+        #championShareModal { padding: max(14px, env(safe-area-inset-top, 0px)) 10px max(14px, env(safe-area-inset-bottom, 0px)) !important; }
+        #championShareModal .modal-dialog { width:min(500px, 100%); height:100%; max-height:100%; margin:0 auto; }
+        #championShareModal .modal-content { max-height:100%; border-radius:18px; }
+        #championShareModal .modal-footer { flex-shrink:0; }
         #seasonFinaleModal { z-index: 2100; }
         #seasonFinaleModal .modal-dialog { width:100%; max-width:none; height:100%; margin:0; }
         #seasonFinaleModal .modal-content { min-height:100%; border:0; border-radius:0; background:radial-gradient(circle at top, #3b2a08 0%, #111827 34%, #020617 100%); color:#fff; overflow:hidden; }
@@ -894,6 +898,25 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
     
 
 
+<div class="modal fade" id="championShareModal" tabindex="-1" aria-hidden="true" aria-labelledby="championShareTitle">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-dark text-white border-warning">
+      <div class="modal-header border-secondary">
+        <h5 id="championShareTitle" class="modal-title fs-6">🏆 Şampiyonu Paylaş</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body">
+        <div id="championShareLoading" class="text-center py-4 text-muted" role="status">Şampiyon kartı hazırlanıyor...</div>
+        <img id="championSharePreview" alt="2026 ANT Turnuva şampiyonunun paylaşım kartı" style="display:none;width:100%;max-width:430px;border-radius:18px;margin:auto;box-shadow:0 18px 45px rgba(0,0,0,.42)">
+      </div>
+      <div id="championShareActions" class="modal-footer border-secondary d-grid gap-2" style="display:none!important">
+        <button type="button" class="btn btn-warning fw-bold" onclick="shareAntChampionCard()"><i class="bi bi-share-fill me-1"></i> Paylaş</button>
+        <button type="button" class="btn btn-outline-light" onclick="saveAntChampionCard()"><i class="bi bi-download me-1"></i> PNG Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="kingShareModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content bg-dark text-white border-secondary">
@@ -1117,6 +1140,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                 <div class="season-finale-kicker mt-3">2026 ANT FANTEZİ LİG ŞAMPİYONU</div>
                 <div class="season-finale-name">${esc(teamName)}</div>
                 <div class="text-warning fw-bold mt-2">ŞAMPİYON! 🎉</div>
+                <button type="button" class="btn btn-warning fw-bold mt-3" onclick="openAntChampionShare()"><i class="bi bi-share-fill me-1"></i> Şampiyonu Paylaş</button>
                 <div class="season-finale-card">
                     <div class="small text-muted mb-2">FİNAL</div>
                     <div class="fs-5 fw-bold">${esc(teamMap[finalMatch.home_team_id]?.name||'-')} <span class="text-warning">${Number(finalMatch.home_score||0)} - ${Number(finalMatch.away_score||0)}</span> ${esc(teamMap[finalMatch.away_team_id]?.name||'-')}</div>
@@ -1151,7 +1175,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             const key=`ant_season_finale_2026_${ctx.championId}_${Number(ctx.finalMatch.home_score||0)}_${Number(ctx.finalMatch.away_score||0)}`;
             if(localStorage.getItem(key)) return;
             localStorage.setItem(key,'1');
-            setTimeout(()=>openSeasonFinale(ctx), 5450);
+            setTimeout(()=>{ if(!document.getElementById('championShareModal').classList.contains('show')) openSeasonFinale(ctx); }, 5450);
         }
 
         function showNotification(message, type = 'success') {
@@ -2583,7 +2607,10 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                     <div class="champion-name text-white mt-2 team-name-link" onclick="openTeamProfile('${championId}')">${esc(teamN(championId))}</div>
                     <div class="champion-score">Final: ${esc(teamN(finalMatch.home_team_id))} ${Number(finalMatch.home_score??0)} - ${Number(finalMatch.away_score??0)} ${esc(teamN(finalMatch.away_team_id))}</div>
                     <div class="small text-warning mt-2">🎉 TEBRİKLER 🎉</div>
-                    <button class="btn btn-sm btn-warning fw-bold mt-3" onclick="openSeasonFinale(window.antSeasonFinaleContext)">🎬 Sezon Finalini İzle</button>
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+                    <button class="btn btn-sm btn-warning fw-bold" onclick="openSeasonFinale(window.antSeasonFinaleContext)">🎬 Sezon Finalini İzle</button>
+                    <button type="button" class="btn btn-sm btn-outline-warning fw-bold" onclick="openAntChampionShare()"><i class="bi bi-share-fill me-1"></i> Şampiyonu Paylaş</button>
+                    </div>
                 </div>` : '';
 
                 content.innerHTML = `
@@ -3405,6 +3432,121 @@ function saveAntMatchCard(){
 }
 </script>
 
+<script id="antChampionShareCardJS">
+let antChampionBlob=null, antChampionName='ANT_2026_Sampiyon.png';
+let antChampionPreviewUrl=null, antChampionRender=0, antChampionReturnToFinale=false;
+
+document.getElementById('championShareModal').addEventListener('hidden.bs.modal',()=>{
+  antChampionRender++;
+  if(antChampionPreviewUrl){URL.revokeObjectURL(antChampionPreviewUrl);antChampionPreviewUrl=null;}
+  antChampionBlob=null;
+  if(antChampionReturnToFinale){
+    antChampionReturnToFinale=false;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('seasonFinaleModal')).show();
+  }
+});
+
+async function openAntChampionShare(){
+  const ctx=window.antSeasonFinaleContext;
+  if(!ctx?.championId || !ctx.finalMatch?.played) return;
+  const final=ctx.finalMatch, hs=Number(final.home_score), as=Number(final.away_score);
+  if(!Number.isFinite(hs)||!Number.isFinite(as)||hs===as) return;
+  if((hs>as?final.home_team_id:final.away_team_id)!==ctx.championId) return;
+  const modalEl=document.getElementById('championShareModal');
+  const finaleEl=document.getElementById('seasonFinaleModal');
+  const loading=document.getElementById('championShareLoading');
+  const img=document.getElementById('championSharePreview');
+  const actions=document.getElementById('championShareActions');
+  const render=++antChampionRender;
+  antChampionBlob=null;
+  if(antChampionPreviewUrl){URL.revokeObjectURL(antChampionPreviewUrl);antChampionPreviewUrl=null;}
+  loading.style.display='block';
+  loading.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Şampiyon kartı hazırlanıyor...';
+  img.style.display='none';actions.style.setProperty('display','none','important');
+  const show=()=>bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  antChampionReturnToFinale=finaleEl.classList.contains('show');
+  if(antChampionReturnToFinale){
+    finaleEl.addEventListener('hidden.bs.modal',show,{once:true});
+    bootstrap.Modal.getOrCreateInstance(finaleEl).hide();
+  }else show();
+  try{
+    if(document.fonts?.ready) await document.fonts.ready;
+    const champion=ctx.teamMap[ctx.championId], name=champion?.name||'Şampiyon';
+    const home=ctx.teamMap[final.home_team_id]?.name||'-';
+    const away=ctx.teamMap[final.away_team_id]?.name||'-';
+    const matches=(ctx.matches||[]).filter(m=>m.played&&(m.home_team_id===ctx.championId||m.away_team_id===ctx.championId));
+    let wins=0,goals=0;
+    matches.forEach(m=>{const h=m.home_team_id===ctx.championId,a=Number(h?m.home_score:m.away_score)||0,b=Number(h?m.away_score:m.home_score)||0;goals+=a;if(a>b)wins++;});
+    const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
+    const c=canvas.getContext('2d');
+    const bg=c.createLinearGradient(0,0,1080,1350);
+    bg.addColorStop(0,'#302208');bg.addColorStop(.48,'#101827');bg.addColorStop(1,'#050913');
+    c.fillStyle=bg;c.fillRect(0,0,1080,1350);
+    const glow=c.createRadialGradient(540,460,30,540,460,500);
+    glow.addColorStop(0,'rgba(251,191,36,.24)');glow.addColorStop(1,'rgba(251,191,36,0)');
+    c.fillStyle=glow;c.fillRect(0,0,1080,1000);
+    c.strokeStyle='rgba(251,191,36,.45)';c.lineWidth=3;c.strokeRect(34,34,1012,1282);
+    c.fillStyle=champion?.color||'#fbbf24';c.fillRect(0,0,14,1350);c.fillRect(1066,0,14,1350);
+    for(let i=0;i<44;i++){
+      const x=65+(i*137)%950,y=175+(i*83)%650;
+      c.save();c.translate(x,y);c.rotate(i*.7);c.fillStyle=i%2?'rgba(251,191,36,.48)':'rgba(255,255,255,.24)';c.fillRect(-3,-7,6,14);c.restore();
+    }
+    c.textAlign='center';c.fillStyle='#fde68a';c.font='900 30px Arial';c.fillText('ANT FANTEZİ LİG',540,103);
+    c.fillStyle='#cbd5e1';c.font='700 22px Arial';c.fillText('2026 SEZONU',540,146);
+    c.fillStyle='#fbbf24';c.font='900 68px Arial';c.fillText('ŞAMPİYON',540,251);
+    // Draw a trophy directly so the card is identical on every device.
+    const gold=c.createLinearGradient(380,0,700,0);gold.addColorStop(0,'#b7791f');gold.addColorStop(.45,'#fde68a');gold.addColorStop(1,'#d99a21');
+    c.strokeStyle='#e7b43c';c.lineWidth=20;
+    c.beginPath();c.moveTo(410,350);c.bezierCurveTo(285,325,320,505,455,510);c.stroke();
+    c.beginPath();c.moveTo(670,350);c.bezierCurveTo(795,325,760,505,625,510);c.stroke();
+    c.fillStyle=gold;c.beginPath();c.moveTo(400,320);c.lineTo(680,320);c.lineTo(650,475);c.bezierCurveTo(625,575,455,575,430,475);c.closePath();c.fill();
+    c.fillRect(520,548,40,77);antRoundRect(c,453,617,174,25,9,gold);antRoundRect(c,420,639,240,34,9,'#a66e18');
+    c.fillStyle='#fff8df';c.font='900 62px Arial';c.fillText('★',540,444);
+    let size=68,lines=[];
+    do{c.font=`900 ${size}px Arial`;lines=antWrapLines(c,name,880);if(lines.length<=2&&lines.every(line=>c.measureText(line).width<=880))break;size-=2;}while(size>24);
+    c.fillStyle='#f8fafc';lines.forEach((line,i)=>c.fillText(line,540,760+i*(size+10),880));
+    c.fillStyle='#fbbf24';c.font='800 23px Arial';c.fillText('2026 ANT TURNUVA ŞAMPİYONU',540,lines.length>1?875:831);
+    antRoundRect(c,90,910,900,160,24,'rgba(15,23,42,.86)','rgba(251,191,36,.38)');
+    c.fillStyle='#94a3b8';c.font='800 20px Arial';c.fillText('FİNAL',540,948);
+    c.fillStyle='#f8fafc';c.font=`800 ${antFitText(c,home,345,30,18)}px Arial`;c.fillText(home,296,1012,345);
+    c.font=`800 ${antFitText(c,away,345,30,18)}px Arial`;c.fillText(away,784,1012,345);
+    c.fillStyle='#fbbf24';c.font='900 46px Arial';c.fillText(`${hs} - ${as}`,540,1017,160);
+    const stats=[[matches.length,'MAÇ'],[wins,'GALİBİYET'],[goals,'GOL']];
+    stats.forEach(([value,label],i)=>{const x=240+i*300;antRoundRect(c,x-130,1100,260,107,18,'rgba(255,255,255,.05)');c.fillStyle='#fbbf24';c.font='900 40px Arial';c.fillText(String(value),x,1147);c.fillStyle='#cbd5e1';c.font='700 18px Arial';c.fillText(label,x,1181);});
+    c.fillStyle='#94a3b8';c.font='700 22px Arial';c.fillText('antturnuva.com.tr',540,1272);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+    if(!blob)throw new Error('PNG oluşturulamadı');
+    if(render!==antChampionRender)return;
+    antChampionBlob=blob;
+    antChampionName=`ANT_2026_Sampiyon_${name}.png`.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'_');
+    antChampionPreviewUrl=URL.createObjectURL(blob);img.src=antChampionPreviewUrl;img.style.display='block';
+    loading.style.display='none';actions.style.setProperty('display','grid','important');
+  }catch(error){
+    if(render!==antChampionRender)return;
+    loading.innerHTML='<div class="alert alert-danger mb-0">Şampiyon kartı hazırlanamadı. Kapatıp tekrar deneyebilirsin.</div>';
+    console.error('Şampiyon paylaşımı:',error);
+  }
+}
+
+async function shareAntChampionCard(){
+  if(!antChampionBlob)return;
+  const file=new File([antChampionBlob],antChampionName,{type:'image/png'});
+  try{
+    if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+      await navigator.share({files:[file],title:'2026 ANT Turnuva Şampiyonu'});return;
+    }
+  }catch(error){if(error?.name==='AbortError')return;}
+  saveAntChampionCard();
+}
+function saveAntChampionCard(){
+  if(!antChampionBlob)return;
+  const url=URL.createObjectURL(antChampionBlob),link=document.createElement('a');
+  link.href=url;link.download=antChampionName;document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+</script>
+
 <script src="site-visitors.js?v=20261002-1"></script>
 </body>
 </html>
+
