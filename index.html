@@ -2361,10 +2361,10 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
 
 let antFantasyDisplayVersion=0;
 
-function getFantasySeasonFinal(matches,gameweeks,now=Date.now()){
+function getFantasySeasonFinal(matches,gameweeks){
     const final=matches.filter(m=>m.stage==='final').sort((a,b)=>new Date(b.match_date)-new Date(a.match_date))[0];
     if(!final?.played||final.home_score==null||final.away_score==null||Number(final.home_score)===Number(final.away_score))return null;
-    if(gameweeks.some(g=>g.is_current&&String(g.id)!==String(final.gameweek_id)&&new Date(g.deadline).getTime()>now&&new Date(g.deadline)>new Date(final.match_date)))return null;
+    if(gameweeks.some(g=>g.is_current&&String(g.id)!==String(final.gameweek_id)&&new Date(g.deadline)>new Date(final.match_date)))return null;
     return final;
 }
 
