@@ -2425,7 +2425,10 @@ async function renderFantasyChampionShowcase(content,version){
         </section><div style="height:100px"></div>`;
         content.querySelectorAll('[data-champion-player-id]').forEach(button=>button.addEventListener('click',()=>{
             const player=dbPlayersGlobal.find(p=>p.id===button.dataset.championPlayerId);
-            if(player)openPlayerProfile(player.name);
+            if(player){
+                openPlayerProfile(player.name);
+                document.querySelectorAll('#playerProfileBody button[onclick*="openSlotChoiceForPlayerFromProfile"], #playerProfileBody button[onclick*="removePlayerFromSquadByName"]').forEach(action=>action.remove());
+            }
         }));
         return true;
     }catch(error){
