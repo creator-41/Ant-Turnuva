@@ -53,8 +53,8 @@
         .ant-news-meta { font-size:10px; color:#94a3b8; }
         .ant-news-more { border-top:1px solid #334155; }
 
-        .ant-fantasy-champion { max-width:620px; margin:0 auto; padding:8px 8px 0; }
-        .ant-fantasy-champion-header { padding:16px 10px; border:1px solid rgba(251,191,36,.5); border-radius:16px; background:radial-gradient(circle at top,rgba(245,158,11,.18),rgba(15,23,42,.8)); }
+        .ant-tournament-champion { max-width:620px; margin:0 auto; padding:8px 8px 0; }
+        .ant-tournament-champion-header { padding:16px 10px; border:1px solid rgba(251,191,36,.5); border-radius:16px; background:radial-gradient(circle at top,rgba(245,158,11,.18),rgba(15,23,42,.8)); }
         .ant-champion-player { border:0; padding:0; background:transparent; color:inherit; }
         .ant-champion-points { font-size:9px; }
         .ant-champion-pitch { max-width:390px !important; }
@@ -2359,82 +2359,68 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             }).join('');
         }
 
-let antFantasyDisplayVersion=0;
+let antChampionDisplayVersion=0;
 
-function getFantasySeasonFinal(matches,gameweeks){
+function getTournamentSeasonFinal(matches,gameweeks){
     const final=matches.filter(m=>m.stage==='final').sort((a,b)=>new Date(b.match_date)-new Date(a.match_date))[0];
     if(!final?.played||final.home_score==null||final.away_score==null||Number(final.home_score)===Number(final.away_score))return null;
     if(gameweeks.some(g=>g.is_current&&String(g.id)!==String(final.gameweek_id)&&new Date(g.deadline)>new Date(final.match_date)))return null;
     return final;
 }
 
-function buildFantasyChampionData(teams,matches,events,gameweeks,profiles,archive){
-    const final=getFantasySeasonFinal(matches,gameweeks);
+function buildTournamentChampionData(teams,players,matches,events,gameweeks){
+    const final=getTournamentSeasonFinal(matches,gameweeks);
     if(!final)return null;
-    const matchWeeks=Object.fromEntries(matches.map(m=>[m.id,m.gameweek_id]));
-    const points={};
-    events.forEach(e=>{const gw=matchWeeks[e.match_id];if(gw==null)return;const key=e.player_id+'|'+gw;points[key]=(points[key]||0)+Number(e.fantasy_points||0);});
-    const managers=Object.fromEntries(profiles.map(p=>[p.id,p.username]));
-    const ranking=teams.map(team=>({...team,manager:managers[team.user_id]||'Kullanıcı',score:(team.fantasy_team_players||[]).reduce((sum,p)=>sum+(points[p.player_id+'|'+p.gameweek_id]||0)*(p.slot===team.captain_slot?2:1),0)})).sort((a,b)=>b.score-a.score||String(a.id).localeCompare(String(b.id)));
-    if(!ranking.length)throw new Error('Şampiyon takımın kadro kaydı bulunamadı.');
-    const champion=ranking.find(t=>t.score===ranking[0].score&&t.name===archive?.fantasy_champion_team&&t.manager===archive?.fantasy_champion_manager)||ranking[0];
-    const picks=champion.fantasy_team_players||[];
-    let week=gameweeks.find(g=>String(g.id)===String(final.gameweek_id)&&picks.some(p=>String(p.gameweek_id)===String(g.id)));
-    if(!week)week=gameweeks.filter(g=>new Date(g.deadline)<=new Date(final.match_date)&&picks.some(p=>String(p.gameweek_id)===String(g.id))).sort((a,b)=>new Date(b.deadline)-new Date(a.deadline))[0];
-    if(!week)throw new Error('Şampiyonun kayıtlı sezon kadrosu bulunamadı.');
-    return {champion,week,final,points,picks:picks.filter(p=>String(p.gameweek_id)===String(week.id))};
+    const championId=Number(final.home_score)>Number(final.away_score)?final.home_team_id:final.away_team_id;
+    const champion=teams.find(t=>t.id===championId);
+    if(!champion)throw new Error('Şampiyon takım bilgisi bulunamadı.');
+    const roster=players.filter(p=>p.team_id===championId).sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+    if(!roster.length)throw new Error('Şampiyon takımın oyuncu kaydı bulunamadı.');
+    const isKeeper=p=>String(p.position||'').toLocaleLowerCase('tr').includes('kaleci');
+    const keepers=roster.filter(isKeeper),field=roster.filter(p=>!isKeeper(p));
+    const stats={};events.forEach(e=>{if(!stats[e.player_id])stats[e.player_id]={goals:0,assists:0};stats[e.player_id].goals+=Number(e.goals||0);stats[e.player_id].assists+=Number(e.assists||0);});
+    return {champion,final,roster,keepers,field,stats};
 }
 
-async function renderFantasyChampionShowcase(content,version){
+async function renderTournamentChampionShowcase(content,version){
     content.innerHTML='<div class="text-center py-5 text-warning"><span class="spinner-border spinner-border-sm me-2"></span>Sezon durumu yükleniyor...</div>';
     try{
-        const [m,g,t,e,p,h]=await Promise.all([
-            supabaseClient.from('matches').select('*'),
-            supabaseClient.from('gameweeks').select('*'),
-            supabaseClient.from('fantasy_teams').select('id,name,user_id,captain_slot,fantasy_team_players(slot,player_id,gameweek_id)'),
-            supabaseClient.from('match_events').select('*'),
-            supabaseClient.from('profiles').select('id,username'),
-            supabaseClient.from('hall_of_fame').select('season_year,fantasy_champion_team,fantasy_champion_manager').order('season_year',{ascending:false}).limit(1)
+        const [m,g,t,p,e]=await Promise.all([
+            supabaseClient.from('matches').select('*'),supabaseClient.from('gameweeks').select('*'),
+            supabaseClient.from('teams').select('*'),supabaseClient.from('players').select('*'),supabaseClient.from('match_events').select('*')
         ]);
-        if(version!==antFantasyDisplayVersion)return true;
-        for(const result of [m,g,t,e,p,h])if(result.error)throw result.error;
-        const data=buildFantasyChampionData(t.data||[],m.data||[],e.data||[],g.data||[],p.data||[],h.data?.[0]);
+        if(version!==antChampionDisplayVersion)return true;
+        for(const result of [m,g,t,p,e])if(result.error)throw result.error;
+        const data=buildTournamentChampionData(t.data||[],p.data||[],m.data||[],e.data||[],g.data||[]);
         if(!data){currentGameweek=(g.data||[]).filter(week=>week.is_current).sort((a,b)=>new Date(b.deadline)-new Date(a.deadline))[0]||null;return false;}
-        const {champion,week,final,points,picks}=data;
+        const {champion,final,roster,keepers,field,stats}=data;
         const year=new Intl.DateTimeFormat('en',{timeZone:'Europe/Istanbul',year:'numeric'}).format(new Date(final.match_date));
-        const pickMap=Object.fromEntries(picks.map(p=>[p.slot,p]));
-        const slot=key=>{
-            const pick=pickMap[key],player=dbPlayersGlobal.find(p=>p.id===pick?.player_id);
-            if(!player)return '<div class="player-card"><div class="jersey-name-tag text-muted">Kayıt yok</div></div>';
-            const isCaptain=champion.captain_slot===key;
-            const team=rawTeamsGlobal.find(t=>t.id===player.team_id);
-            const colors=key==='gk'?teamColors.GK:(teamColors[team?.name]||teamColors.DEFAULT);
-            const score=(points[player.id+'|'+week.id]||0)*(isCaptain?2:1);
-            return `<button type="button" class="player-card ant-champion-player" data-champion-player-id="${esc(String(player.id))}" aria-label="${esc(publicPlayerName(player.name))}${isCaptain?', Kaptan':''}">${generateJerseySVG(colors.c1,colors.c2,colors.collar,isCaptain)}<span class="jersey-name-tag ${isCaptain?'is-captain-tag':''}">${isCaptain?'(C) ':''}${esc(publicPlayerName(player.name))}</span><span class="badge bg-success mt-1 ant-champion-points">${score} P</span></button>`;
+        const teamMap=Object.fromEntries((t.data||[]).map(team=>[team.id,team]));
+        const card=player=>{
+            const keeper=keepers.some(p=>p.id===player.id),colors=keeper?teamColors.GK:(teamColors[champion.name]||teamColors.DEFAULT);
+            const stat=stats[player.id]||{goals:0,assists:0};
+            return `<button type="button" class="player-card ant-champion-player" data-champion-player-id="${esc(String(player.id))}" aria-label="${esc(publicPlayerName(player.name))}">${generateJerseySVG(colors.c1,colors.c2,colors.collar,false)}<span class="jersey-name-tag">${esc(publicPlayerName(player.name))}</span><span class="badge bg-success mt-1 ant-champion-points">⚽ ${stat.goals} · 🎯 ${stat.assists}</span></button>`;
         };
-        content.innerHTML=`<section class="ant-fantasy-champion">
-            <div class="ant-fantasy-champion-header text-center mb-3"><div class="text-warning small fw-bold">🏆 ${year} FANTEZİ LİG ŞAMPİYONU</div><h4 class="text-white fw-bold mt-2 mb-1">${esc(champion.name)}</h4><div class="small text-muted">${esc(champion.manager)} <span class="badge bg-warning text-dark ms-2">${champion.score} PUAN</span></div></div>
-            <div class="text-center small text-warning mb-2">${esc(week.name)} kadrosu • (C) Kaptan</div>
-            <div class="pitch-layout-wrapper ant-champion-pitch">
-                <div class="left-bench"><div class="left-bench-title">YEDEKLER</div>${slot('sub1')}${slot('sub2')}${slot('sub3')}${slot('sub4')}</div>
-                <div class="perspective-container"><div class="stadium-wall"><div class="ant-logo-box"><img src="/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img"></div><div class="goal-box"></div><div class="ant-logo-box"><img src="/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img"></div></div>
-                    <div class="pitch-3d"><div class="pitch-box-top"></div><div class="pitch-penalty-arc-top"></div><div class="pitch-line-center"></div><div class="pitch-circle-center"></div><div class="pitch-row text-center d-flex justify-content-center">${slot('st')}</div><div class="pitch-row d-flex justify-content-around">${slot('os1')}${slot('os2')}${slot('os3')}</div><div class="pitch-row d-flex justify-content-around">${slot('def1')}${slot('def2')}</div><div class="pitch-row text-center d-flex justify-content-center">${slot('gk')}</div></div>
-                </div>
-            </div>
-            <div class="alert alert-warning text-center small mt-3 mb-0">${year} sezonu tamamlandı. Yeni sezon başlayana kadar şampiyonun kadrosu burada! 🏆</div>
+        const rows=[];for(let i=0;i<field.length;i+=4)rows.push(field.slice(i,i+4));
+        content.innerHTML=`<section class="ant-tournament-champion">
+            <div class="ant-tournament-champion-header text-center mb-3"><div class="text-warning small fw-bold">🏆 ${year} ANT TURNUVA ŞAMPİYONU</div><h4 class="text-white fw-bold mt-2 mb-1">${esc(champion.name)}</h4><div class="small text-muted">Final: ${esc(teamMap[final.home_team_id]?.name||'-')} <strong class="text-warning">${Number(final.home_score)} – ${Number(final.away_score)}</strong> ${esc(teamMap[final.away_team_id]?.name||'-')}</div></div>
+            <div class="text-center small text-warning mb-2">Şampiyon takım kadrosu • ${roster.length} oyuncu</div>
+            <div class="pitch-layout-wrapper ant-champion-pitch"><div class="perspective-container">
+                <div class="stadium-wall"><div class="ant-logo-box"><img src="/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img"></div><div class="goal-box"></div><div class="ant-logo-box"><img src="/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img"></div></div>
+                <div class="pitch-3d"><div class="pitch-box-top"></div><div class="pitch-penalty-arc-top"></div><div class="pitch-line-center"></div><div class="pitch-circle-center"></div>${rows.map(row=>`<div class="pitch-row d-flex justify-content-around">${row.map(card).join('')}</div>`).join('')}<div class="pitch-row d-flex justify-content-around">${keepers.map(card).join('')}</div></div>
+            </div></div>
+            <div class="text-center small text-muted mt-2">⚽ Sezon golleri • 🎯 Sezon asistleri</div>
+            <div class="alert alert-warning text-center small mt-3 mb-0">${year} sezonu tamamlandı. Yeni sezon başlayana kadar şampiyon ${esc(champion.name)} kadrosu burada! 🏆</div>
         </section><div style="height:100px"></div>`;
         content.querySelectorAll('[data-champion-player-id]').forEach(button=>button.addEventListener('click',()=>{
-            const player=dbPlayersGlobal.find(p=>p.id===button.dataset.championPlayerId);
-            if(player){
-                openPlayerProfile(player.name);
-                document.querySelectorAll('#playerProfileBody button[onclick*="openSlotChoiceForPlayerFromProfile"], #playerProfileBody button[onclick*="removePlayerFromSquadByName"]').forEach(action=>action.remove());
-            }
+            const player=roster.find(p=>p.id===button.dataset.championPlayerId);
+            if(player){openPlayerProfile(player.name);document.querySelectorAll('#playerProfileBody button[onclick*="openSlotChoiceForPlayerFromProfile"], #playerProfileBody button[onclick*="removePlayerFromSquadByName"]').forEach(action=>action.remove());}
         }));
         return true;
     }catch(error){
-        if(version!==antFantasyDisplayVersion)return true;
+        if(version!==antChampionDisplayVersion)return true;
         console.error('Şampiyon kadrosu:',error);
-        content.innerHTML='<div class="alert alert-warning text-center mt-3">Sezon bilgisi yüklenemedi.<button type="button" class="btn btn-sm btn-outline-light d-block mx-auto mt-2" onclick="renderLiveTab(\'Fantezi\')">Tekrar Dene</button></div>';
+        content.innerHTML='<div class="alert alert-warning text-center mt-3">Şampiyon kadrosu yüklenemedi.<button type="button" class="btn btn-sm btn-outline-light d-block mx-auto mt-2" onclick="renderLiveTab(\'Fantezi\')">Tekrar Dene</button></div>';
         return true;
     }
 }
@@ -2443,9 +2429,9 @@ async function renderFantasyChampionShowcase(content,version){
         async function renderLiveTab(tabName) {
             const content = document.getElementById('main-content');
             
-            const fantasyDisplayVersion=++antFantasyDisplayVersion;
+            const fantasyDisplayVersion=++antChampionDisplayVersion;
             if(tabName === 'Fantezi') {
-                if(await renderFantasyChampionShowcase(content,fantasyDisplayVersion))return;
+                if(await renderTournamentChampionShowcase(content,fantasyDisplayVersion))return;
                 const renameBtnHTML = (!isTeamNameChanged && fantasyTeamName !== 'Rüya Takımını Kur' && currentUser) 
                     ? `<button class="btn btn-sm btn-outline-warning py-0 px-2 ms-2" style="font-size: 10px;" onclick="renameTeam()"><i class="bi bi-pencil"></i> Adı Değiştir (1 Hak)</button>` 
                     : '';
