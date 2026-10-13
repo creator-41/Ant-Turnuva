@@ -416,6 +416,19 @@
         #championShareModal .modal-dialog { width:min(500px, 100%); height:100%; max-height:100%; margin:0 auto; }
         #championShareModal .modal-content { max-height:100%; border-radius:18px; }
         #championShareModal .modal-footer { flex-shrink:0; }
+        #championWelcomeModal { padding: max(16px, env(safe-area-inset-top, 0px)) 14px max(16px, env(safe-area-inset-bottom, 0px)) !important; }
+        #championWelcomeModal .modal-dialog { width:min(390px, 100%); height:100%; max-height:100%; margin:0 auto; }
+        #championWelcomeModal .modal-content { max-height:100%; overflow-y:auto; position:relative; border:1px solid rgba(251,191,36,.65); border-radius:24px; background:radial-gradient(circle at 50% 0%, #48310c, #111827 60%, #080e1b); box-shadow:0 22px 70px rgba(0,0,0,.5); }
+        #championWelcomeModal .btn-close { position:absolute; top:16px; right:16px; z-index:1; }
+        #championWelcomeBody { padding:30px 22px 22px; text-align:center; }
+        .ant-welcome-trophy { font-size:64px; line-height:1.2; margin:4px 0 16px; filter:drop-shadow(0 0 18px rgba(251,191,36,.5)); }
+        .ant-welcome-kicker { font-size:10px; font-weight:900; letter-spacing:1.6px; color:#fde68a; }
+        .ant-welcome-name { font-size:clamp(28px,9vw,42px); font-weight:900; margin:12px 0 8px; overflow-wrap:anywhere; }
+        .ant-welcome-congrats { color:#fbbf24; font-size:13px; margin-bottom:18px; }
+        .ant-welcome-final { background:rgba(15,23,42,.8); border:1px solid rgba(251,191,36,.22); border-radius:14px; padding:13px 10px; }
+        .ant-welcome-score { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:10px; font-size:11px; font-weight:700; }
+        .ant-welcome-score strong { color:#fbbf24; font-size:24px; white-space:nowrap; }
+        .ant-welcome-score span { overflow-wrap:anywhere; }
         #seasonFinaleModal { z-index: 2100; }
         #seasonFinaleModal .modal-dialog { width:100%; max-width:none; height:100%; margin:0; }
         #seasonFinaleModal .modal-content { min-height:100%; border:0; border-radius:0; background:radial-gradient(circle at top, #3b2a08 0%, #111827 34%, #020617 100%); color:#fff; overflow:hidden; }
@@ -898,6 +911,16 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
     
 
 
+<div class="modal fade" id="championWelcomeModal" tabindex="-1" aria-labelledby="championWelcomeTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <h2 id="championWelcomeTitle" class="visually-hidden">2026 ANT Turnuva Şampiyonu</h2>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      <div id="championWelcomeBody"></div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="championShareModal" tabindex="-1" aria-hidden="true" aria-labelledby="championShareTitle">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content bg-dark text-white border-warning">
@@ -1175,7 +1198,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             const key=`ant_season_finale_2026_${ctx.championId}_${Number(ctx.finalMatch.home_score||0)}_${Number(ctx.finalMatch.away_score||0)}`;
             if(localStorage.getItem(key)) return;
             localStorage.setItem(key,'1');
-            setTimeout(()=>{ if(!document.getElementById('championShareModal').classList.contains('show')) openSeasonFinale(ctx); }, 5450);
+            setTimeout(()=>{ if(!document.querySelector('.modal.show')) openSeasonFinale(ctx); }, 5450);
         }
 
         function showNotification(message, type = 'success') {
@@ -2204,7 +2227,7 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                 window.globalProfileMap = profileMap;
 
                 showTab('Fantezi', document.querySelector('.nav-bottom-item:nth-child(6)'));
-                maybeShowChampionPollPrompt();
+                if(!maybeShowChampionWelcome()) maybeShowChampionPollPrompt();
             } catch (err) { console.error('Supabase veri yükleme hatası:', err); }
         }
 
@@ -2882,6 +2905,60 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             const votedOption=body.querySelector('.champ-poll-option.selected'); if(votedOption) votedOption.classList.add('ant-vote-pop');
             renderChampionPollCard(sf1,sf2);
         }
+let antChampionWelcomeQueued=false;
+
+function maybeShowChampionWelcome(){
+  const finalMatch=dbMatchesGlobal.find(m=>m.stage==='final'&&m.played);
+  if(!finalMatch||finalMatch.home_score==null||finalMatch.away_score==null)return false;
+  const hs=Number(finalMatch.home_score),as=Number(finalMatch.away_score);
+  if(!Number.isFinite(hs)||!Number.isFinite(as)||hs===as)return false;
+  const championId=hs>as?finalMatch.home_team_id:finalMatch.away_team_id;
+  const teamMap=Object.fromEntries(rawTeamsGlobal.map(t=>[t.id,t]));
+  const champion=teamMap[championId];
+  if(!champion)return false;
+  if(antChampionWelcomeQueued)return true;
+  antChampionWelcomeQueued=true;
+  window.antSeasonFinaleContext={championId,finalMatch,matches:dbMatchesGlobal,events:dbEventsGlobal,teamMap};
+  const modal=document.getElementById('championWelcomeModal');
+  document.getElementById('championWelcomeBody').innerHTML=`
+    <div class="ant-welcome-trophy" aria-hidden="true">🏆</div>
+    <div class="ant-welcome-kicker">2026 ANT TURNUVA ŞAMPİYONU</div>
+    <h2 class="ant-welcome-name">${esc(champion.name)}</h2>
+    <p class="ant-welcome-congrats">Şampiyon belli oldu! 🎉</p>
+    <div class="ant-welcome-final"><div class="small text-muted mb-2">FİNAL SONUCU</div>
+      <div class="ant-welcome-score"><span>${esc(teamMap[finalMatch.home_team_id]?.name||'-')}</span><strong>${hs} – ${as}</strong><span>${esc(teamMap[finalMatch.away_team_id]?.name||'-')}</span></div>
+    </div>
+    <div class="d-grid gap-2 mt-3">
+      <button type="button" class="btn btn-warning fw-bold" onclick="shareChampionFromWelcome()"><i class="bi bi-share-fill me-1"></i> Şampiyonu Paylaş</button>
+      <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Siteye Devam</button>
+    </div>`;
+  modal.addEventListener('shown.bs.modal',()=>{
+    if(!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
+      document.getElementById('championConfetti')?.remove();
+      document.getElementById('championFireworks')?.remove();
+      celebrateChampionOnce('ant-welcome-2026');
+    }
+  },{once:true});
+  modal.addEventListener('hidden.bs.modal',()=>{
+    document.getElementById('championConfetti')?.remove();
+    document.getElementById('championFireworks')?.remove();
+  },{once:true});
+  const showWhenReady=()=>{
+    const busy=document.querySelector('.modal.show');
+    if(busy){busy.addEventListener('hidden.bs.modal',()=>setTimeout(showWhenReady,200),{once:true});return;}
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+  };
+  setTimeout(showWhenReady,1400);
+  return true;
+}
+
+function shareChampionFromWelcome(){
+  const modal=document.getElementById('championWelcomeModal');
+  modal.addEventListener('hidden.bs.modal',()=>openAntChampionShare(),{once:true});
+  bootstrap.Modal.getOrCreateInstance(modal).hide();
+}
+
+
         async function maybeShowChampionPollPrompt(){
             const sf1=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF1'),sf2=dbMatchesGlobal.find(m=>m.stage==='semifinal'&&m.group_name==='SF2');
             if(championPollCandidates(sf1,sf2).length<4||championPollLocked(sf1,sf2))return;
