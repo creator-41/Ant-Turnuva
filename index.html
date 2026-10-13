@@ -2636,7 +2636,6 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                 </div>` : '';
 
                 content.innerHTML = `
-                    <div id="championPollFinals" class="mb-3"></div>
                     <div class="knockout-wrap">
                         <h5 class="text-warning text-center mb-3"><i class="bi bi-trophy-fill me-2"></i>Final Ağacı</h5>
                         ${championHTML}
@@ -2658,7 +2657,6 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
                     </div>
                     <div style="height:110px"></div>`;
 
-                renderChampionPollCard(sf1, sf2);
 
                 if(championId) {
                     const celebrationKey = `ant_champion_2026_${championId}_${Number(finalMatch.home_score??0)}_${Number(finalMatch.away_score??0)}`;
