@@ -2364,7 +2364,7 @@ let antFantasyDisplayVersion=0;
 function getFantasySeasonFinal(matches,gameweeks,now=Date.now()){
     const final=matches.filter(m=>m.stage==='final').sort((a,b)=>new Date(b.match_date)-new Date(a.match_date))[0];
     if(!final?.played||final.home_score==null||final.away_score==null||Number(final.home_score)===Number(final.away_score))return null;
-    if(gameweeks.some(g=>g.is_current&&new Date(g.deadline).getTime()>now&&new Date(g.deadline)>new Date(final.match_date)))return null;
+    if(gameweeks.some(g=>g.is_current&&String(g.id)!==String(final.gameweek_id)&&new Date(g.deadline).getTime()>now&&new Date(g.deadline)>new Date(final.match_date)))return null;
     return final;
 }
 
@@ -2399,7 +2399,7 @@ async function renderFantasyChampionShowcase(content,version){
         if(version!==antFantasyDisplayVersion)return true;
         for(const result of [m,g,t,e,p,h])if(result.error)throw result.error;
         const data=buildFantasyChampionData(t.data||[],m.data||[],e.data||[],g.data||[],p.data||[],h.data?.[0]);
-        if(!data){currentGameweek=(g.data||[]).find(week=>week.is_current)||null;return false;}
+        if(!data){currentGameweek=(g.data||[]).filter(week=>week.is_current).sort((a,b)=>new Date(b.deadline)-new Date(a.deadline))[0]||null;return false;}
         const {champion,week,final,points,picks}=data;
         const year=new Intl.DateTimeFormat('en',{timeZone:'Europe/Istanbul',year:'numeric'}).format(new Date(final.match_date));
         const pickMap=Object.fromEntries(picks.map(p=>[p.slot,p]));
