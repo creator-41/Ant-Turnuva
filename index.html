@@ -53,6 +53,13 @@
         .ant-news-meta { font-size:10px; color:#94a3b8; }
         .ant-news-more { border-top:1px solid #334155; }
 
+        .ant-fantasy-champion { max-width:620px; margin:0 auto; padding:8px 8px 0; }
+        .ant-fantasy-champion-header { padding:16px 10px; border:1px solid rgba(251,191,36,.5); border-radius:16px; background:radial-gradient(circle at top,rgba(245,158,11,.18),rgba(15,23,42,.8)); }
+        .ant-champion-player { border:0; padding:0; background:transparent; color:inherit; }
+        .ant-champion-points { font-size:9px; }
+        .ant-champion-pitch { max-width:390px !important; }
+        .ant-champion-pitch .perspective-container { flex:1 1 280px; }
+        @media(max-width:576px){ .ant-champion-pitch .left-bench{width:65px !important;flex-basis:65px !important;} .ant-champion-pitch .perspective-container{flex:1 1 0;max-width:280px;} .ant-champion-pitch .jersey-name-tag{max-width:70px;font-size:8px !important;} .ant-champion-pitch .jersey-icon{width:30px !important;height:30px !important;} }
         .pitch-layout-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 8px; max-width: 520px; margin: 0 auto; position: relative; }
         
         @media (max-width: 576px) {
@@ -2352,10 +2359,90 @@ if (navigator.onLine === false && !location.pathname.endsWith('/offline.html')) 
             }).join('');
         }
 
+let antFantasyDisplayVersion=0;
+
+function getFantasySeasonFinal(matches,gameweeks,now=Date.now()){
+    const final=matches.filter(m=>m.stage==='final').sort((a,b)=>new Date(b.match_date)-new Date(a.match_date))[0];
+    if(!final?.played||final.home_score==null||final.away_score==null||Number(final.home_score)===Number(final.away_score))return null;
+    if(gameweeks.some(g=>g.is_current&&new Date(g.deadline).getTime()>now&&new Date(g.deadline)>new Date(final.match_date)))return null;
+    return final;
+}
+
+function buildFantasyChampionData(teams,matches,events,gameweeks,profiles,archive){
+    const final=getFantasySeasonFinal(matches,gameweeks);
+    if(!final)return null;
+    const matchWeeks=Object.fromEntries(matches.map(m=>[m.id,m.gameweek_id]));
+    const points={};
+    events.forEach(e=>{const gw=matchWeeks[e.match_id];if(gw==null)return;const key=e.player_id+'|'+gw;points[key]=(points[key]||0)+Number(e.fantasy_points||0);});
+    const managers=Object.fromEntries(profiles.map(p=>[p.id,p.username]));
+    const ranking=teams.map(team=>({...team,manager:managers[team.user_id]||'Kullanıcı',score:(team.fantasy_team_players||[]).reduce((sum,p)=>sum+(points[p.player_id+'|'+p.gameweek_id]||0)*(p.slot===team.captain_slot?2:1),0)})).sort((a,b)=>b.score-a.score||String(a.id).localeCompare(String(b.id)));
+    if(!ranking.length)throw new Error('Şampiyon takımın kadro kaydı bulunamadı.');
+    const champion=ranking.find(t=>t.score===ranking[0].score&&t.name===archive?.fantasy_champion_team&&t.manager===archive?.fantasy_champion_manager)||ranking[0];
+    const picks=champion.fantasy_team_players||[];
+    let week=gameweeks.find(g=>String(g.id)===String(final.gameweek_id)&&picks.some(p=>String(p.gameweek_id)===String(g.id)));
+    if(!week)week=gameweeks.filter(g=>new Date(g.deadline)<=new Date(final.match_date)&&picks.some(p=>String(p.gameweek_id)===String(g.id))).sort((a,b)=>new Date(b.deadline)-new Date(a.deadline))[0];
+    if(!week)throw new Error('Şampiyonun kayıtlı sezon kadrosu bulunamadı.');
+    return {champion,week,final,points,picks:picks.filter(p=>String(p.gameweek_id)===String(week.id))};
+}
+
+async function renderFantasyChampionShowcase(content,version){
+    content.innerHTML='<div class="text-center py-5 text-warning"><span class="spinner-border spinner-border-sm me-2"></span>Sezon durumu yükleniyor...</div>';
+    try{
+        const [m,g,t,e,p,h]=await Promise.all([
+            supabaseClient.from('matches').select('*'),
+            supabaseClient.from('gameweeks').select('*'),
+            supabaseClient.from('fantasy_teams').select('id,name,user_id,captain_slot,fantasy_team_players(slot,player_id,gameweek_id)'),
+            supabaseClient.from('match_events').select('*'),
+            supabaseClient.from('profiles').select('id,username'),
+            supabaseClient.from('hall_of_fame').select('season_year,fantasy_champion_team,fantasy_champion_manager').order('season_year',{ascending:false}).limit(1)
+        ]);
+        if(version!==antFantasyDisplayVersion)return true;
+        for(const result of [m,g,t,e,p,h])if(result.error)throw result.error;
+        const data=buildFantasyChampionData(t.data||[],m.data||[],e.data||[],g.data||[],p.data||[],h.data?.[0]);
+        if(!data){currentGameweek=(g.data||[]).find(week=>week.is_current)||null;return false;}
+        const {champion,week,final,points,picks}=data;
+        const year=new Intl.DateTimeFormat('en',{timeZone:'Europe/Istanbul',year:'numeric'}).format(new Date(final.match_date));
+        const pickMap=Object.fromEntries(picks.map(p=>[p.slot,p]));
+        const slot=key=>{
+            const pick=pickMap[key],player=dbPlayersGlobal.find(p=>p.id===pick?.player_id);
+            if(!player)return '<div class="player-card"><div class="jersey-name-tag text-muted">Kayıt yok</div></div>';
+            const isCaptain=champion.captain_slot===key;
+            const team=rawTeamsGlobal.find(t=>t.id===player.team_id);
+            const colors=key==='gk'?teamColors.GK:(teamColors[team?.name]||teamColors.DEFAULT);
+            const score=(points[player.id+'|'+week.id]||0)*(isCaptain?2:1);
+            return `<button type="button" class="player-card ant-champion-player" data-champion-player-id="${esc(String(player.id))}" aria-label="${esc(publicPlayerName(player.name))}${isCaptain?', Kaptan':''}">${generateJerseySVG(colors.c1,colors.c2,colors.collar,isCaptain)}<span class="jersey-name-tag ${isCaptain?'is-captain-tag':''}">${isCaptain?'(C) ':''}${esc(publicPlayerName(player.name))}</span><span class="badge bg-success mt-1 ant-champion-points">${score} P</span></button>`;
+        };
+        content.innerHTML=`<section class="ant-fantasy-champion">
+            <div class="ant-fantasy-champion-header text-center mb-3"><div class="text-warning small fw-bold">🏆 ${year} FANTEZİ LİG ŞAMPİYONU</div><h4 class="text-white fw-bold mt-2 mb-1">${esc(champion.name)}</h4><div class="small text-muted">${esc(champion.manager)} <span class="badge bg-warning text-dark ms-2">${champion.score} PUAN</span></div></div>
+            <div class="text-center small text-warning mb-2">${esc(week.name)} kadrosu • (C) Kaptan</div>
+            <div class="pitch-layout-wrapper ant-champion-pitch">
+                <div class="left-bench"><div class="left-bench-title">YEDEKLER</div>${slot('sub1')}${slot('sub2')}${slot('sub3')}${slot('sub4')}</div>
+                <div class="perspective-container"><div class="stadium-wall"><div class="ant-logo-box"><img src="/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img"></div><div class="goal-box"></div><div class="ant-logo-box"><img src="/ant-logo-1-1.png" alt="ANT Logo" class="ant-logo-img"></div></div>
+                    <div class="pitch-3d"><div class="pitch-box-top"></div><div class="pitch-penalty-arc-top"></div><div class="pitch-line-center"></div><div class="pitch-circle-center"></div><div class="pitch-row text-center d-flex justify-content-center">${slot('st')}</div><div class="pitch-row d-flex justify-content-around">${slot('os1')}${slot('os2')}${slot('os3')}</div><div class="pitch-row d-flex justify-content-around">${slot('def1')}${slot('def2')}</div><div class="pitch-row text-center d-flex justify-content-center">${slot('gk')}</div></div>
+                </div>
+            </div>
+            <div class="alert alert-warning text-center small mt-3 mb-0">${year} sezonu tamamlandı. Yeni sezon başlayana kadar şampiyonun kadrosu burada! 🏆</div>
+        </section><div style="height:100px"></div>`;
+        content.querySelectorAll('[data-champion-player-id]').forEach(button=>button.addEventListener('click',()=>{
+            const player=dbPlayersGlobal.find(p=>p.id===button.dataset.championPlayerId);
+            if(player)openPlayerProfile(player.name);
+        }));
+        return true;
+    }catch(error){
+        if(version!==antFantasyDisplayVersion)return true;
+        console.error('Şampiyon kadrosu:',error);
+        content.innerHTML='<div class="alert alert-warning text-center mt-3">Sezon bilgisi yüklenemedi.<button type="button" class="btn btn-sm btn-outline-light d-block mx-auto mt-2" onclick="renderLiveTab(\'Fantezi\')">Tekrar Dene</button></div>';
+        return true;
+    }
+}
+
+
         async function renderLiveTab(tabName) {
             const content = document.getElementById('main-content');
             
+            const fantasyDisplayVersion=++antFantasyDisplayVersion;
             if(tabName === 'Fantezi') {
+                if(await renderFantasyChampionShowcase(content,fantasyDisplayVersion))return;
                 const renameBtnHTML = (!isTeamNameChanged && fantasyTeamName !== 'Rüya Takımını Kur' && currentUser) 
                     ? `<button class="btn btn-sm btn-outline-warning py-0 px-2 ms-2" style="font-size: 10px;" onclick="renameTeam()"><i class="bi bi-pencil"></i> Adı Değiştir (1 Hak)</button>` 
                     : '';
